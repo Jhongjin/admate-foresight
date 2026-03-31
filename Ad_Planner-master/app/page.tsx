@@ -16,6 +16,13 @@ const ALL_GENDERS = [
   { value: 'female', label: '여성' },
 ];
 
+const OBJECTIVE_LABELS: Record<string, string> = {
+  'OUTCOME_AWARENESS': '인지도',
+  'OUTCOME_ENGAGEMENT': '참여',
+  'LINK_CLICKS': '트래픽',
+  'OUTCOME_SALES': '전환/판매',
+};
+
 const AGE_RANGE_MAP: Record<string, [number, number]> = {
   '18-24': [18, 24], '25-34': [25, 34], '35-44': [35, 44],
   '45-54': [45, 54], '55-64': [55, 64], '65+': [65, 99],
@@ -31,6 +38,10 @@ interface PredictResult {
   reach: number;
   cpm: number;
   cpc: number;
+  cpcLink: number;
+  cpv: number;
+  vtr: number;
+  frequency: number;
   reachChange: number | null;
   cpmChange: number | null;
   cpcChange: number | null;
@@ -51,10 +62,12 @@ function formatBudget(v: number) {
 
 export default function SimulatorPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
+  const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
 
   // Multi-select state (empty = 전체)
   const [industries, setIndustries] = useState<string[]>([]);
   const [genders, setGenders] = useState<string[]>([]);
+  const [objectives, setObjectives] = useState<string[]>([]);
   const [minAge, setMinAge] = useState(18);
   const [maxAge, setMaxAge] = useState(65);
   const [budget, setBudget] = useState(10_000_000);
@@ -71,12 +84,15 @@ export default function SimulatorPage() {
   useEffect(() => {
     fetch('/api/filters')
       .then((r) => r.json())
-      .then((f) => setAvailableIndustries(f.industries))
+      .then((f) => {
+        setAvailableIndustries(f.industries);
+        setAvailableObjectives(f.objectives ?? []);
+      })
       .catch(console.error);
   }, []);
 
   const fetchPrediction = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[]; budget: number;
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number;
   }) => {
     setLoading(true);
     try {
@@ -91,7 +107,7 @@ export default function SimulatorPage() {
   }, []);
 
   const fetchRange = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[];
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[];
   }) => {
     setRangeLoading(true);
     try {
@@ -108,20 +124,26 @@ export default function SimulatorPage() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchPrediction({ industries, genders, ageRanges: minMaxToAgeRanges(minAge, maxAge), budget });
+      fetchPrediction({ industries, genders, ageRanges: minMaxToAgeRanges(minAge, maxAge), objectives, budget });
     }, 300);
-  }, [industries, genders, minAge, maxAge, budget, fetchPrediction]);
+  }, [industries, genders, minAge, maxAge, objectives, budget, fetchPrediction]);
 
   useEffect(() => {
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
     rangeDebounceRef.current = setTimeout(() => {
-      fetchRange({ industries, genders, ageRanges: minMaxToAgeRanges(minAge, maxAge) });
+      fetchRange({ industries, genders, ageRanges: minMaxToAgeRanges(minAge, maxAge), objectives });
     }, 400);
-  }, [industries, genders, minAge, maxAge, fetchRange]);
+  }, [industries, genders, minAge, maxAge, objectives, fetchRange]);
 
   function toggleGender(value: string) {
     setGenders((prev) =>
       prev.includes(value) ? prev.filter((g) => g !== value) : [...prev, value]
+    );
+  }
+
+  function toggleObjective(value: string) {
+    setObjectives((prev) =>
+      prev.includes(value) ? prev.filter((o) => o !== value) : [...prev, value]
     );
   }
 
@@ -130,10 +152,14 @@ export default function SimulatorPage() {
   const genderLabel = genders.length === 0 ? '전체'
     : genders.map((g) => g === 'male' ? '남성' : '여성').join(', ');
   const ageLabel = `${minAge}~${maxAge}세`;
+  const objectiveLabel = objectives.length === 0
+    ? '전체'
+    : objectives.map((o) => OBJECTIVE_LABELS[o] ?? o).join(', ');
 
   const tags = [
     { label: '업종', value: industryLabel },
     { label: 'Gender', value: genderLabel },
+    { label: '캠페인 목표', value: objectiveLabel },
     { label: 'Age', value: ageLabel },
     { label: '예산', value: `₩${budget.toLocaleString()}` },
   ];
@@ -240,6 +266,42 @@ export default function SimulatorPage() {
             )}
           </div>
 
+          {/* Campaign Objective */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">캠페인 목표</label>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {availableObjectives.map((obj) => {
+                const active = objectives.includes(obj);
+                return (
+                  <button
+                    key={obj}
+                    type="button"
+                    onClick={() => toggleObjective(obj)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      active
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    }`}
+                  >
+                    {OBJECTIVE_LABELS[obj] ?? obj}
+                  </button>
+                );
+              })}
+              {objectives.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setObjectives([])}
+                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors"
+                >
+                  초기화
+                </button>
+              )}
+            </div>
+            {objectives.length === 0 && (
+              <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>
+            )}
+          </div>
+
           {/* Age range - min/max inputs */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">연령대</label>
@@ -269,7 +331,9 @@ export default function SimulatorPage() {
           <h2 className="text-base font-semibold text-gray-800">예측 결과</h2>
           <div className="flex items-center gap-3">
             {result && !loading && (
-              <span className="text-xs text-gray-400">매칭 데이터 {result.matchedCount}건 기반</span>
+              <span className="text-xs text-gray-400">
+                매칭 데이터 {result.matchedCount}건 · 평균 빈도 {result.frequency?.toFixed(2)}
+              </span>
             )}
             <button
               onClick={exportToExcel}
@@ -292,8 +356,14 @@ export default function SimulatorPage() {
             change={result?.reachChange ?? null} icon="👥" loading={loading} />
           <KPICard title="예상 CPM" value={result ? `₩${result.cpm.toLocaleString()}` : '—'}
             change={result?.cpmChange ?? null} icon="📊" loading={loading} />
-          <KPICard title="예상 CPC" value={result ? `₩${result.cpc.toLocaleString()}` : '—'}
+          <KPICard title="CPC(전체)" value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
             change={result?.cpcChange ?? null} icon="🖱️" loading={loading} />
+          <KPICard title="CPC(링크)" value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
+            change={null} icon="🔗" loading={loading} />
+          <KPICard title="동영상 3초 조회당 비용" value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
+            change={null} icon="🎬" loading={loading} />
+          <KPICard title="VTR(3s)" value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
+            change={null} icon="▶️" loading={loading} />
         </div>
       </div>
 
@@ -319,7 +389,7 @@ export default function SimulatorPage() {
                 width={64}
               />
               <Tooltip
-                formatter={(v: number) => [v.toLocaleString() + '명', '예상 도달']}
+                formatter={(v) => [Number(v).toLocaleString() + '명', '예상 도달']}
                 labelFormatter={(label) => `예산 ${label}`}
               />
               <ReferenceLine
@@ -382,8 +452,8 @@ export default function SimulatorPage() {
 
       {/* Info Note */}
       <div className="bg-indigo-50 rounded-xl p-4 text-sm text-indigo-700">
-        <strong>예측 방식:</strong> 실제 캠페인 데이터 기반 통계 예측 (조건 그룹 가중평균 + 예산 비례 스케일링).
-        조건 매칭 데이터가 부족할 경우 상위 카테고리로 자동 보정합니다.
+        <strong>예측 방식:</strong> Meta 공식 기반 (예산÷CPM×1000÷빈도) + Diminishing Returns 보정 (β=0.82).
+        캠페인 목표별 CPM·빈도를 실제 데이터에서 적용하며, 예산이 클수록 단위당 도달 효율이 감소합니다.
       </div>
     </div>
   );

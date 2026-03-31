@@ -19,10 +19,11 @@ export async function POST(req: NextRequest) {
       industries = [],
       genders = [],
       ageRanges = [],
+      objectives = [],
     } = body;
 
     const results = BUDGET_LEVELS.map((budget) => {
-      const r = predict({ industries, genders, ageRanges, budget });
+      const r = predict({ industries, genders, ageRanges, objectives, budget });
       return { budget, reach: r.reach, cpm: r.cpm, cpc: r.cpc };
     });
 
