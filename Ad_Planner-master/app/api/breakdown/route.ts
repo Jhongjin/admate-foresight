@@ -12,8 +12,9 @@ export async function GET(req: NextRequest) {
     const industries = parseList(searchParams.get('industries'));
     const genders    = parseList(searchParams.get('genders'));
     const ageRanges  = parseList(searchParams.get('ageRanges'));
+    const objectives = parseList(searchParams.get('objectives'));
 
-    const data = getBreakdown(industries, genders, ageRanges);
+    const data = getBreakdown(industries, genders, ageRanges, objectives);
     return NextResponse.json(data);
   } catch (err) {
     console.error(err);

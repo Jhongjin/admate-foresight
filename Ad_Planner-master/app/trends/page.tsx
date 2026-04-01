@@ -6,7 +6,6 @@ import {
   BarChart, Bar, Cell,
 } from 'recharts';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
-import AgeInput from '@/components/AgeInput';
 
 interface TrendPoint {
   month: string;
@@ -42,21 +41,19 @@ interface EfficiencyRank {
   ctrRank: number;
 }
 
-const AGE_RANGE_MAP: Record<string, [number, number]> = {
-  '18-24': [18, 24], '25-34': [25, 34], '35-44': [35, 44],
-  '45-54': [45, 54], '55-64': [55, 64], '65+': [65, 99],
-};
-
-function minMaxToAgeRanges(minAge: number, maxAge: number): string[] {
-  return Object.entries(AGE_RANGE_MAP)
-    .filter(([, [lo, hi]]) => lo <= maxAge && hi >= minAge)
-    .map(([key]) => key);
-}
+const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
 
 const ALL_GENDERS = [
   { value: 'male', label: '남성' },
   { value: 'female', label: '여성' },
 ];
+
+const OBJECTIVE_LABELS: Record<string, string> = {
+  OUTCOME_AWARENESS: '인지도',
+  OUTCOME_ENGAGEMENT: '참여',
+  LINK_CLICKS: '트래픽',
+  OUTCOME_SALES: '전환/판매',
+};
 
 const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
 const GENDER_COLORS: Record<string, string> = { male: '#6366f1', female: '#f59e0b', unknown: '#10b981' };
@@ -87,10 +84,11 @@ export default function TrendsPage() {
   const [loading, setLoading] = useState(true);
   const [industries, setIndustries] = useState<string[]>([]);
   const [genders, setGenders] = useState<string[]>([]);
-  const [minAge, setMinAge] = useState(18);
-  const [maxAge, setMaxAge] = useState(65);
+  const [ageRanges, setAgeRanges] = useState<string[]>([]);
+  const [objectives, setObjectives] = useState<string[]>([]);
   const [metric, setMetric] = useState('avgCPM');
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
+  const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
 
   const [breakdown, setBreakdown] = useState<{
     byGender: BreakdownRow[];
@@ -101,39 +99,46 @@ export default function TrendsPage() {
   useEffect(() => {
     fetch('/api/filters')
       .then((r) => r.json())
-      .then((f) => setAvailableIndustries(f.industries));
+      .then((f) => {
+        setAvailableIndustries(f.industries ?? []);
+        setAvailableObjectives(f.objectives ?? []);
+      });
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    const ageRangesParam = minMaxToAgeRanges(minAge, maxAge);
     const params = new URLSearchParams();
     if (industries.length > 0) params.set('industries', industries.join(','));
     if (genders.length > 0) params.set('genders', genders.join(','));
-    if (ageRangesParam.length > 0) params.set('ageRanges', ageRangesParam.join(','));
+    if (ageRanges.length > 0) params.set('ageRanges', ageRanges.join(','));
+    if (objectives.length > 0) params.set('objectives', objectives.join(','));
     fetch(`/api/trends?${params}`)
       .then((r) => r.json())
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [industries, genders, minAge, maxAge]);
+  }, [industries, genders, ageRanges, objectives]);
 
   useEffect(() => {
-    const ageRangesParam = minMaxToAgeRanges(minAge, maxAge);
     const params = new URLSearchParams();
     if (industries.length > 0) params.set('industries', industries.join(','));
     if (genders.length > 0) params.set('genders', genders.join(','));
-    if (ageRangesParam.length > 0) params.set('ageRanges', ageRangesParam.join(','));
+    if (ageRanges.length > 0) params.set('ageRanges', ageRanges.join(','));
+    if (objectives.length > 0) params.set('objectives', objectives.join(','));
     fetch(`/api/breakdown?${params}`)
       .then((r) => r.json())
       .then(setBreakdown)
       .catch(console.error);
-  }, [industries, genders, minAge, maxAge]);
+  }, [industries, genders, ageRanges, objectives]);
 
   function toggleGender(value: string) {
-    setGenders((prev) =>
-      prev.includes(value) ? prev.filter((g) => g !== value) : [...prev, value]
-    );
+    setGenders((prev) => prev.includes(value) ? prev.filter((g) => g !== value) : [...prev, value]);
+  }
+  function toggleAgeRange(value: string) {
+    setAgeRanges((prev) => prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]);
+  }
+  function toggleObjective(value: string) {
+    setObjectives((prev) => prev.includes(value) ? prev.filter((o) => o !== value) : [...prev, value]);
   }
 
   const metricConfig = METRIC_OPTIONS.find((m) => m.key === metric)!;
@@ -145,10 +150,7 @@ export default function TrendsPage() {
     return { industry: d.industry, ...latest };
   });
 
-  // Gender breakdown: reshape for grouped bar
-  const genderGroups = breakdown
-    ? [...new Set(breakdown.byGender.map((r) => r.group))]
-    : [];
+  const genderGroups = breakdown ? [...new Set(breakdown.byGender.map((r) => r.group))] : [];
   const genderChartData = breakdown
     ? displayedIndustries.map((ind) => {
         const row: Record<string, string | number> = { industry: ind };
@@ -160,10 +162,7 @@ export default function TrendsPage() {
       })
     : [];
 
-  // Age breakdown
-  const ageGroups = breakdown
-    ? [...new Set(breakdown.byAge.map((r) => r.group))]
-    : [];
+  const ageGroups = breakdown ? [...new Set(breakdown.byAge.map((r) => r.group))] : [];
   const ageChartData = breakdown
     ? displayedIndustries.map((ind) => {
         const row: Record<string, string | number> = { industry: ind };
@@ -186,7 +185,7 @@ export default function TrendsPage() {
 
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
           {/* 업종 - multi-select dropdown */}
           <MultiSelectDropdown
@@ -197,70 +196,99 @@ export default function TrendsPage() {
             placeholder="전체"
           />
 
-          {/* Gender - pill buttons */}
+          {/* 성별 - pill buttons */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">성별</label>
             <div className="flex gap-2 pt-1 flex-wrap">
               {ALL_GENDERS.map(({ value, label }) => {
                 const active = genders.includes(value);
                 return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => toggleGender(value)}
+                  <button key={value} type="button" onClick={() => toggleGender(value)}
                     className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      active
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                    }`}
-                  >
+                      active ? 'bg-indigo-600 text-white border-indigo-600'
+                             : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    }`}>
                     {label}
                   </button>
                 );
               })}
               {genders.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setGenders([])}
-                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors"
-                >
+                <button type="button" onClick={() => setGenders([])}
+                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
                   초기화
                 </button>
               )}
             </div>
-            {genders.length === 0 && (
-              <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>
-            )}
-          </div>
-
-          {/* 연령대 - min/max inputs */}
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">연령대</label>
-            <div className="flex gap-3 items-end">
-              <AgeInput label="Min Age" value={minAge} min={18} max={maxAge} onChange={setMinAge} />
-              <span className="text-gray-400 pb-2 text-lg">~</span>
-              <AgeInput label="Max Age" value={maxAge} min={minAge} max={65} onChange={setMaxAge} />
-            </div>
+            {genders.length === 0 && <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>}
           </div>
 
           {/* 지표 - single select */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">지표</label>
-            <select
-              value={metric}
-              onChange={(e) => setMetric(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
+            <select value={metric} onChange={(e) => setMetric(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
               {METRIC_OPTIONS.map((m) => (
                 <option key={m.key} value={m.key}>{m.label}</option>
               ))}
             </select>
           </div>
 
+          {/* 캠페인 목표 - pill buttons */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">캠페인 목표</label>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {availableObjectives.map((obj) => {
+                const active = objectives.includes(obj);
+                return (
+                  <button key={obj} type="button" onClick={() => toggleObjective(obj)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      active ? 'bg-indigo-600 text-white border-indigo-600'
+                             : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    }`}>
+                    {OBJECTIVE_LABELS[obj] ?? obj}
+                  </button>
+                );
+              })}
+              {objectives.length > 0 && (
+                <button type="button" onClick={() => setObjectives([])}
+                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                  초기화
+                </button>
+              )}
+            </div>
+            {objectives.length === 0 && <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>}
+          </div>
+
+          {/* 연령대 - pill buttons */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">연령대</label>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {ALL_AGE_RANGES.map((age) => {
+                const active = ageRanges.includes(age);
+                return (
+                  <button key={age} type="button" onClick={() => toggleAgeRange(age)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      active ? 'bg-indigo-600 text-white border-indigo-600'
+                             : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    }`}>
+                    {age}
+                  </button>
+                );
+              })}
+              {ageRanges.length > 0 && (
+                <button type="button" onClick={() => setAgeRanges([])}
+                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                  초기화
+                </button>
+              )}
+            </div>
+            {ageRanges.length === 0 && <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>}
+          </div>
+
         </div>
       </div>
 
-      {/* ── 1. 업종별 효율 순위 ── */}
+      {/* ── 업종별 효율 순위 ── */}
       {effRanks.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">업종별 효율 순위</h2>
@@ -302,7 +330,7 @@ export default function TrendsPage() {
         </div>
       )}
 
-      {/* ── 기존: 월별 [지표] 추이 ── */}
+      {/* 월별 지표 추이 */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-base font-semibold text-gray-800 mb-6">월별 {metricConfig.label} 추이</h2>
         {loading ? (
@@ -348,7 +376,7 @@ export default function TrendsPage() {
         </div>
       )}
 
-      {/* ── 3. 성별 분포 ── */}
+      {/* 성별 분포 */}
       {genderChartData.length > 0 && genderGroups.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">성별 {metricConfig.label} 분포</h2>
@@ -368,7 +396,7 @@ export default function TrendsPage() {
         </div>
       )}
 
-      {/* ── 3. 연령대 분포 ── */}
+      {/* 연령대 분포 */}
       {ageChartData.length > 0 && ageGroups.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">연령대별 {metricConfig.label} 분포</h2>
@@ -388,7 +416,7 @@ export default function TrendsPage() {
         </div>
       )}
 
-      {/* 상세 데이터 테이블 (기존) */}
+      {/* 상세 데이터 테이블 */}
       {data.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
           <h2 className="text-base font-semibold text-gray-800 mb-4">상세 데이터</h2>

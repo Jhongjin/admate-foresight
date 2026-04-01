@@ -10,10 +10,11 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const industries = parseList(searchParams.get('industries'));
-    const genders   = parseList(searchParams.get('genders'));
-    const ageRanges = parseList(searchParams.get('ageRanges'));
+    const genders    = parseList(searchParams.get('genders'));
+    const ageRanges  = parseList(searchParams.get('ageRanges'));
+    const objectives = parseList(searchParams.get('objectives'));
 
-    const data = getTrends(industries, genders, ageRanges);
+    const data = getTrends(industries, genders, ageRanges, objectives);
     return NextResponse.json(data);
   } catch (err) {
     console.error(err);
