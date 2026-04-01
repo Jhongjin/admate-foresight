@@ -180,8 +180,8 @@ export default function TrendsPage() {
       .catch(console.error);
   }, [objectives, ageIndustries]);
 
-  function toggleObjective(value: string) {
-    setObjectives((prev) => prev.includes(value) ? prev.filter((o) => o !== value) : [...prev, value]);
+  function selectObjective(value: string) {
+    setObjectives((prev) => prev.includes(value) ? [] : [value]);
   }
 
   const metricConfig = METRIC_OPTIONS.find((m) => m.key === metric)!;
@@ -231,7 +231,7 @@ export default function TrendsPage() {
               {availableObjectives.map((obj) => {
                 const active = objectives.includes(obj);
                 return (
-                  <button key={obj} type="button" onClick={() => toggleObjective(obj)}
+                  <button key={obj} type="button" onClick={() => selectObjective(obj)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                       active ? 'bg-indigo-600 text-white border-indigo-600'
                              : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
