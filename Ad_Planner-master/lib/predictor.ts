@@ -24,9 +24,11 @@ export interface PredictResult {
 }
 
 // ── 상수 ──────────────────────────────────────────────
-// Power-law diminishing returns: reach ∝ budget^0.82
-// 근거: 지출 구간별 10만원당 도달 데이터 피팅 결과
-const BETA = 0.82;
+// BETA: diminishing returns 지수 (0.864)
+// FREQ_GAMMA: 빈도(frequency)의 예산 탄력성 (0.044, 132개 캠페인 log-log 회귀, R²=0.024)
+// 총 도달 지수 = BETA - FREQ_GAMMA = 0.864 - 0.044 = 0.820 (지출 구간 데이터 피팅값 유지)
+const BETA = 0.864;
+const FREQ_GAMMA = 0.044;
 const REF_BUDGET = 1_000_000; // 100만원 기준
 
 // ── XLSX 필터 ─────────────────────────────────────────
@@ -109,14 +111,17 @@ function calcReach(records: XlsxRecord[], budget: number): {
   const cpcLink = weightedCPCLink(records);
   const cpv = weightedCPV(records);
   const vtr = calcVTR(records);
-  const frequency = weightedFrequency(records);
+  const baseFreq = weightedFrequency(records);
 
-  if (cpm === 0 || frequency === 0) return { reach: 0, cpm: 0, cpc: 0, cpcLink, cpv, vtr, frequency };
+  // 예산 반영 빈도: 예산이 클수록 동일인에게 더 자주 노출됨 (γ=0.044)
+  const adjustedFreq = baseFreq * Math.pow(budget / REF_BUDGET, FREQ_GAMMA);
 
-  // 메타 공식: 도달 = (예산 / CPM × 1000) / 빈도
-  const linearReach = (budget / cpm) * 1000 / frequency;
+  if (cpm === 0 || adjustedFreq === 0) return { reach: 0, cpm: 0, cpc: 0, cpcLink, cpv, vtr, frequency: Math.round(adjustedFreq * 100) / 100 };
 
-  // Diminishing returns 보정: reach = linearReach × (budget/REF)^(β-1)
+  // 메타 공식: 도달 = (예산 / CPM × 1000) / 예산반영빈도
+  const linearReach = (budget / cpm) * 1000 / adjustedFreq;
+
+  // Diminishing returns 보정 (BETA=0.864, 총 지수 = 0.864-0.044 = 0.820 유지)
   const diminishingFactor = budget > 0
     ? Math.pow(budget / REF_BUDGET, BETA - 1)
     : 1;
@@ -126,9 +131,9 @@ function calcReach(records: XlsxRecord[], budget: number): {
     cpm: Math.round(cpm),
     cpc: Math.round(cpc),
     cpcLink: Math.round(cpcLink),
-    cpv: Math.round(cpv * 10) / 10,   // 소수점 1자리
-    vtr: Math.round(vtr * 100) / 100, // 소수점 2자리
-    frequency: Math.round(frequency * 100) / 100,
+    cpv: Math.round(cpv * 10) / 10,
+    vtr: Math.round(vtr * 100) / 100,
+    frequency: Math.round(adjustedFreq * 100) / 100,
   };
 }
 

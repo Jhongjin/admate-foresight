@@ -7,7 +7,6 @@ import {
 } from 'recharts';
 import KPICard from '@/components/KPICard';
 import BudgetSlider from '@/components/BudgetSlider';
-import AgeInput from '@/components/AgeInput';
 import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 
@@ -23,16 +22,7 @@ const OBJECTIVE_LABELS: Record<string, string> = {
   'OUTCOME_SALES': '전환/판매',
 };
 
-const AGE_RANGE_MAP: Record<string, [number, number]> = {
-  '18-24': [18, 24], '25-34': [25, 34], '35-44': [35, 44],
-  '45-54': [45, 54], '55-64': [55, 64], '65+': [65, 99],
-};
-
-function minMaxToAgeRanges(minAge: number, maxAge: number): string[] {
-  return Object.entries(AGE_RANGE_MAP)
-    .filter(([, [lo, hi]]) => lo <= maxAge && hi >= minAge)
-    .map(([key]) => key);
-}
+const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
 
 interface PredictResult {
   reach: number;
@@ -68,8 +58,7 @@ export default function SimulatorPage() {
   const [industries, setIndustries] = useState<string[]>([]);
   const [genders, setGenders] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
-  const [minAge, setMinAge] = useState(18);
-  const [maxAge, setMaxAge] = useState(65);
+  const [ageRanges, setAgeRanges] = useState<string[]>([]);
   const [budget, setBudget] = useState(10_000_000);
 
   const [result, setResult] = useState<PredictResult | null>(null);
@@ -124,16 +113,16 @@ export default function SimulatorPage() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchPrediction({ industries, genders, ageRanges: minMaxToAgeRanges(minAge, maxAge), objectives, budget });
+      fetchPrediction({ industries, genders, ageRanges, objectives, budget });
     }, 300);
-  }, [industries, genders, minAge, maxAge, objectives, budget, fetchPrediction]);
+  }, [industries, genders, ageRanges, objectives, budget, fetchPrediction]);
 
   useEffect(() => {
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
     rangeDebounceRef.current = setTimeout(() => {
-      fetchRange({ industries, genders, ageRanges: minMaxToAgeRanges(minAge, maxAge), objectives });
+      fetchRange({ industries, genders, ageRanges, objectives });
     }, 400);
-  }, [industries, genders, minAge, maxAge, objectives, fetchRange]);
+  }, [industries, genders, ageRanges, objectives, fetchRange]);
 
   function toggleGender(value: string) {
     setGenders((prev) =>
@@ -147,11 +136,17 @@ export default function SimulatorPage() {
     );
   }
 
+  function toggleAgeRange(value: string) {
+    setAgeRanges((prev) =>
+      prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]
+    );
+  }
+
   // Condition tags
   const industryLabel = industries.length === 0 ? '전체' : industries.join(', ');
   const genderLabel = genders.length === 0 ? '전체'
     : genders.map((g) => g === 'male' ? '남성' : '여성').join(', ');
-  const ageLabel = `${minAge}~${maxAge}세`;
+  const ageLabel = ageRanges.length === 0 ? '전체' : ageRanges.join(', ');
   const objectiveLabel = objectives.length === 0
     ? '전체'
     : objectives.map((o) => OBJECTIVE_LABELS[o] ?? o).join(', ');
@@ -186,7 +181,7 @@ export default function SimulatorPage() {
           conditions: {
             industry: industryLabel,
             gender: genderLabel,
-            age: `${minAge}~${maxAge}세`,
+            age: ageLabel,
             budget,
           },
           dateStr,
@@ -206,7 +201,7 @@ export default function SimulatorPage() {
     } finally {
       setExporting(false);
     }
-  }, [result, rangeData, industryLabel, genderLabel, ageLabel, budget]);
+  }, [result, rangeData, industryLabel, genderLabel, ageLabel, ageRanges, budget]);
 
   return (
     <div className="space-y-8">
@@ -302,14 +297,40 @@ export default function SimulatorPage() {
             )}
           </div>
 
-          {/* Age range - min/max inputs */}
+          {/* Age range - multi-select pills */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">연령대</label>
-            <div className="flex gap-3 items-end">
-              <AgeInput label="Min Age" value={minAge} min={18} max={maxAge} onChange={setMinAge} />
-              <span className="text-gray-400 pb-2 text-lg">~</span>
-              <AgeInput label="Max Age" value={maxAge} min={minAge} max={65} onChange={setMaxAge} />
+            <div className="flex flex-wrap gap-2 pt-1">
+              {ALL_AGE_RANGES.map((age) => {
+                const active = ageRanges.includes(age);
+                return (
+                  <button
+                    key={age}
+                    type="button"
+                    onClick={() => toggleAgeRange(age)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      active
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    }`}
+                  >
+                    {age}
+                  </button>
+                );
+              })}
+              {ageRanges.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setAgeRanges([])}
+                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors"
+                >
+                  초기화
+                </button>
+              )}
             </div>
+            {ageRanges.length === 0 && (
+              <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>
+            )}
           </div>
 
           {/* Budget */}
