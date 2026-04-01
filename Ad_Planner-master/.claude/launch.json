@@ -3,10 +3,10 @@
   "configurations": [
     {
       "name": "ad-planner",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "D:\\npm.cmd",
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
-      "cwd": "/c/Users/Administrator/Documents/trae_projects/230/Ad_Planner-master/Ad_Planner-master"
+      "cwd": "C:\\Users\\Administrator\\Documents\\trae_projects\\230\\Ad_Planner-master\\Ad_Planner-master"
     }
   ]
 }
