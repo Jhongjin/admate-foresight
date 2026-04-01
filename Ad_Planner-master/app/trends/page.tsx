@@ -41,13 +41,6 @@ interface EfficiencyRank {
   ctrRank: number;
 }
 
-const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
-
-const ALL_GENDERS = [
-  { value: 'male', label: '남성' },
-  { value: 'female', label: '여성' },
-];
-
 const OBJECTIVE_LABELS: Record<string, string> = {
   OUTCOME_AWARENESS: '인지도',
   OUTCOME_ENGAGEMENT: '참여',
@@ -55,7 +48,7 @@ const OBJECTIVE_LABELS: Record<string, string> = {
   OUTCOME_SALES: '전환/판매',
 };
 
-const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'];
 const GENDER_COLORS: Record<string, string> = { male: '#6366f1', female: '#f59e0b', unknown: '#10b981' };
 const GENDER_LABELS: Record<string, string> = { male: '남성', female: '여성', unknown: '전체' };
 const AGE_COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
@@ -68,6 +61,19 @@ const METRIC_OPTIONS = [
   { key: 'totalReach', label: '총 도달',   format: (v: number) => v.toLocaleString() },
 ];
 
+// 지표별 상위 3개 추출 (CPM/CPC는 낮을수록, CTR/도달은 높을수록 좋음)
+function getTop3(ranks: EfficiencyRank[], metric: string) {
+  const higherBetter = metric === 'avgCTR' || metric === 'totalReach';
+  return [...ranks]
+    .filter((r) => (r as unknown as Record<string, number>)[metric] > 0)
+    .sort((a, b) => {
+      const av = (a as unknown as Record<string, number>)[metric];
+      const bv = (b as unknown as Record<string, number>)[metric];
+      return higherBetter ? bv - av : av - bv;
+    })
+    .slice(0, 3);
+}
+
 function mergeByMonth(trends: IndustryTrend[], metric: string) {
   const monthMap = new Map<string, Record<string, number>>();
   for (const { industry, trends: pts } of trends) {
@@ -79,22 +85,55 @@ function mergeByMonth(trends: IndustryTrend[], metric: string) {
   return [...monthMap.values()].sort((a, b) => String(a.month).localeCompare(String(b.month)));
 }
 
+function buildParams(objectives: string[], industries: string[]) {
+  const params = new URLSearchParams();
+  if (objectives.length > 0) params.set('objectives', objectives.join(','));
+  if (industries.length > 0) params.set('industries', industries.join(','));
+  return params.toString();
+}
+
+// 차트 내 업종 필터 컴포넌트
+function ChartIndustryFilter({
+  availableIndustries,
+  selected,
+  onChange,
+}: {
+  availableIndustries: string[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+}) {
+  return (
+    <div className="w-56">
+      <MultiSelectDropdown
+        label=""
+        options={availableIndustries}
+        selected={selected}
+        onChange={onChange}
+        placeholder="업종 전체"
+      />
+    </div>
+  );
+}
+
 export default function TrendsPage() {
-  const [data, setData] = useState<IndustryTrend[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [industries, setIndustries] = useState<string[]>([]);
-  const [genders, setGenders] = useState<string[]>([]);
-  const [ageRanges, setAgeRanges] = useState<string[]>([]);
-  const [objectives, setObjectives] = useState<string[]>([]);
-  const [metric, setMetric] = useState('avgCPM');
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
 
-  const [breakdown, setBreakdown] = useState<{
-    byGender: BreakdownRow[];
-    byAge: BreakdownRow[];
-    efficiencyRanks: EfficiencyRank[];
-  } | null>(null);
+  // 전역 필터
+  const [objectives, setObjectives] = useState<string[]>([]);
+  const [metric, setMetric] = useState('avgCPM');
+
+  // 차트별 개별 업종 필터
+  const [trendIndustries, setTrendIndustries] = useState<string[]>([]);
+  const [genderIndustries, setGenderIndustries] = useState<string[]>([]);
+  const [ageIndustries, setAgeIndustries] = useState<string[]>([]);
+
+  // 데이터 상태
+  const [trendData, setTrendData] = useState<IndustryTrend[]>([]);
+  const [efficiencyRanks, setEfficiencyRanks] = useState<EfficiencyRank[]>([]);
+  const [genderBreakdown, setGenderBreakdown] = useState<BreakdownRow[]>([]);
+  const [ageBreakdown, setAgeBreakdown] = useState<BreakdownRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/filters')
@@ -105,76 +144,74 @@ export default function TrendsPage() {
       });
   }, []);
 
+  // 월별 추이 데이터
   useEffect(() => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (industries.length > 0) params.set('industries', industries.join(','));
-    if (genders.length > 0) params.set('genders', genders.join(','));
-    if (ageRanges.length > 0) params.set('ageRanges', ageRanges.join(','));
-    if (objectives.length > 0) params.set('objectives', objectives.join(','));
-    fetch(`/api/trends?${params}`)
+    fetch(`/api/trends?${buildParams(objectives, trendIndustries)}`)
       .then((r) => r.json())
-      .then(setData)
+      .then(setTrendData)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [industries, genders, ageRanges, objectives]);
+  }, [objectives, trendIndustries]);
 
+  // 효율 순위 (업종 필터 없음 — 전체 기준)
   useEffect(() => {
     const params = new URLSearchParams();
-    if (industries.length > 0) params.set('industries', industries.join(','));
-    if (genders.length > 0) params.set('genders', genders.join(','));
-    if (ageRanges.length > 0) params.set('ageRanges', ageRanges.join(','));
     if (objectives.length > 0) params.set('objectives', objectives.join(','));
     fetch(`/api/breakdown?${params}`)
       .then((r) => r.json())
-      .then(setBreakdown)
+      .then((d) => setEfficiencyRanks(d.efficiencyRanks ?? []))
       .catch(console.error);
-  }, [industries, genders, ageRanges, objectives]);
+  }, [objectives]);
 
-  function toggleGender(value: string) {
-    setGenders((prev) => prev.includes(value) ? prev.filter((g) => g !== value) : [...prev, value]);
-  }
-  function toggleAgeRange(value: string) {
-    setAgeRanges((prev) => prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]);
-  }
+  // 성별 분포
+  useEffect(() => {
+    fetch(`/api/breakdown?${buildParams(objectives, genderIndustries)}`)
+      .then((r) => r.json())
+      .then((d) => setGenderBreakdown(d.byGender ?? []))
+      .catch(console.error);
+  }, [objectives, genderIndustries]);
+
+  // 연령대 분포
+  useEffect(() => {
+    fetch(`/api/breakdown?${buildParams(objectives, ageIndustries)}`)
+      .then((r) => r.json())
+      .then((d) => setAgeBreakdown(d.byAge ?? []))
+      .catch(console.error);
+  }, [objectives, ageIndustries]);
+
   function toggleObjective(value: string) {
     setObjectives((prev) => prev.includes(value) ? prev.filter((o) => o !== value) : [...prev, value]);
   }
 
   const metricConfig = METRIC_OPTIONS.find((m) => m.key === metric)!;
-  const chartData = mergeByMonth(data, metric);
-  const displayedIndustries = data.map((d) => d.industry);
+  const top3 = getTop3(efficiencyRanks, metric);
 
-  const summaryRows = data.map((d) => {
-    const latest = d.trends[d.trends.length - 1];
-    return { industry: d.industry, ...latest };
+  const trendChartData = mergeByMonth(trendData, metric);
+  const trendIndustryKeys = trendData.map((d) => d.industry);
+  const summaryRows = trendData.map((d) => ({ industry: d.industry, ...(d.trends[d.trends.length - 1] ?? {}) }));
+
+  const genderGroups = [...new Set(genderBreakdown.map((r) => r.group))];
+  const genderIndustryKeys = [...new Set(genderBreakdown.map((r) => r.industry))];
+  const genderChartData = genderIndustryKeys.map((ind) => {
+    const row: Record<string, string | number> = { industry: ind };
+    for (const g of genderGroups) {
+      const found = genderBreakdown.find((r) => r.industry === ind && r.group === g);
+      row[g] = (found as unknown as Record<string, number>)?.[metric] ?? 0;
+    }
+    return row;
   });
 
-  const genderGroups = breakdown ? [...new Set(breakdown.byGender.map((r) => r.group))] : [];
-  const genderChartData = breakdown
-    ? displayedIndustries.map((ind) => {
-        const row: Record<string, string | number> = { industry: ind };
-        for (const g of genderGroups) {
-          const found = breakdown.byGender.find((r) => r.industry === ind && r.group === g);
-          row[g] = (found as unknown as Record<string, number>)?.[metric] ?? 0;
-        }
-        return row;
-      })
-    : [];
-
-  const ageGroups = breakdown ? [...new Set(breakdown.byAge.map((r) => r.group))] : [];
-  const ageChartData = breakdown
-    ? displayedIndustries.map((ind) => {
-        const row: Record<string, string | number> = { industry: ind };
-        for (const a of ageGroups) {
-          const found = breakdown.byAge.find((r) => r.industry === ind && r.group === a);
-          row[a] = (found as unknown as Record<string, number>)?.[metric] ?? 0;
-        }
-        return row;
-      })
-    : [];
-
-  const effRanks = breakdown?.efficiencyRanks ?? [];
+  const ageGroups = [...new Set(ageBreakdown.map((r) => r.group))];
+  const ageIndustryKeys = [...new Set(ageBreakdown.map((r) => r.industry))];
+  const ageChartData = ageIndustryKeys.map((ind) => {
+    const row: Record<string, string | number> = { industry: ind };
+    for (const a of ageGroups) {
+      const found = ageBreakdown.find((r) => r.industry === ind && r.group === a);
+      row[a] = (found as unknown as Record<string, number>)?.[metric] ?? 0;
+    }
+    return row;
+  });
 
   return (
     <div className="space-y-8">
@@ -183,57 +220,11 @@ export default function TrendsPage() {
         <p className="text-sm text-gray-500 mt-1">업종별 광고 성과 지표 추이를 확인합니다.</p>
       </div>
 
-      {/* Filters */}
+      {/* 전역 필터: 캠페인 목표 + 지표 */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="flex flex-wrap gap-8 items-start">
 
-          {/* 업종 - multi-select dropdown */}
-          <MultiSelectDropdown
-            label="업종"
-            options={availableIndustries}
-            selected={industries}
-            onChange={setIndustries}
-            placeholder="전체"
-          />
-
-          {/* 성별 - pill buttons */}
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">성별</label>
-            <div className="flex gap-2 pt-1 flex-wrap">
-              {ALL_GENDERS.map(({ value, label }) => {
-                const active = genders.includes(value);
-                return (
-                  <button key={value} type="button" onClick={() => toggleGender(value)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      active ? 'bg-indigo-600 text-white border-indigo-600'
-                             : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                    }`}>
-                    {label}
-                  </button>
-                );
-              })}
-              {genders.length > 0 && (
-                <button type="button" onClick={() => setGenders([])}
-                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
-                  초기화
-                </button>
-              )}
-            </div>
-            {genders.length === 0 && <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>}
-          </div>
-
-          {/* 지표 - single select */}
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">지표</label>
-            <select value={metric} onChange={(e) => setMetric(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-              {METRIC_OPTIONS.map((m) => (
-                <option key={m.key} value={m.key}>{m.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* 캠페인 목표 - pill buttons */}
+          {/* 캠페인 목표 */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">캠페인 목표</label>
             <div className="flex flex-wrap gap-2 pt-1">
@@ -259,95 +250,67 @@ export default function TrendsPage() {
             {objectives.length === 0 && <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>}
           </div>
 
-          {/* 연령대 - pill buttons */}
+          {/* 지표 */}
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">연령대</label>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {ALL_AGE_RANGES.map((age) => {
-                const active = ageRanges.includes(age);
-                return (
-                  <button key={age} type="button" onClick={() => toggleAgeRange(age)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      active ? 'bg-indigo-600 text-white border-indigo-600'
-                             : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                    }`}>
-                    {age}
-                  </button>
-                );
-              })}
-              {ageRanges.length > 0 && (
-                <button type="button" onClick={() => setAgeRanges([])}
-                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
-                  초기화
-                </button>
-              )}
-            </div>
-            {ageRanges.length === 0 && <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>}
+            <label className="text-sm font-medium text-gray-700">지표</label>
+            <select value={metric} onChange={(e) => setMetric(e.target.value)}
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              {METRIC_OPTIONS.map((m) => (
+                <option key={m.key} value={m.key}>{m.label}</option>
+              ))}
+            </select>
           </div>
 
         </div>
       </div>
 
-      {/* ── 업종별 효율 순위 ── */}
-      {effRanks.length > 0 && (
+      {/* ── 업종별 효율 순위 Top 3 ── */}
+      {top3.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-1">업종별 효율 순위</h2>
-          <p className="text-xs text-gray-400 mb-5">CPM·CPC 낮을수록, CTR 높을수록 효율적</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-2 pr-4 text-gray-500 font-medium">업종</th>
-                  <th className="text-center py-2 pr-4 text-gray-500 font-medium">CPM 순위</th>
-                  <th className="text-right py-2 pr-4 text-gray-500 font-medium">CPM</th>
-                  <th className="text-center py-2 pr-4 text-gray-500 font-medium">CPC 순위</th>
-                  <th className="text-right py-2 pr-4 text-gray-500 font-medium">CPC</th>
-                  <th className="text-center py-2 pr-4 text-gray-500 font-medium">CTR 순위</th>
-                  <th className="text-right py-2 text-gray-500 font-medium">CTR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {effRanks.map((r) => (
-                  <tr key={r.industry} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="py-2.5 pr-4 font-semibold text-gray-800">{r.industry}</td>
-                    <td className="py-2.5 pr-4 text-center text-lg">
-                      {RANK_BADGE[r.cpmRank - 1] ?? `${r.cpmRank}위`}
-                    </td>
-                    <td className="py-2.5 pr-4 text-right text-gray-700">₩{r.avgCPM.toLocaleString()}</td>
-                    <td className="py-2.5 pr-4 text-center text-lg">
-                      {RANK_BADGE[r.cpcRank - 1] ?? `${r.cpcRank}위`}
-                    </td>
-                    <td className="py-2.5 pr-4 text-right text-gray-700">₩{r.avgCPC.toLocaleString()}</td>
-                    <td className="py-2.5 pr-4 text-center text-lg">
-                      {RANK_BADGE[r.ctrRank - 1] ?? `${r.ctrRank}위`}
-                    </td>
-                    <td className="py-2.5 text-right text-gray-700">{r.avgCTR.toFixed(3)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <h2 className="text-base font-semibold text-gray-800 mb-1">업종별 효율 순위 Top 3</h2>
+          <p className="text-xs text-gray-400 mb-5">
+            {metricConfig.label} 기준 —{' '}
+            {metric === 'avgCTR' || metric === 'totalReach' ? '높을수록 효율적' : '낮을수록 효율적'}
+          </p>
+          <div className="flex gap-4 flex-wrap">
+            {top3.map((r, i) => (
+              <div key={r.industry} className="flex-1 min-w-[140px] bg-gray-50 rounded-xl p-4 text-center">
+                <div className="text-2xl mb-1">{RANK_BADGE[i]}</div>
+                <div className="font-semibold text-gray-800 text-sm mb-2">{r.industry}</div>
+                <div className="text-indigo-600 font-bold text-lg">
+                  {metricConfig.format((r as unknown as Record<string, number>)[metric])}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* 월별 지표 추이 */}
+      {/* ── 월별 지표 추이 ── */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-base font-semibold text-gray-800 mb-6">월별 {metricConfig.label} 추이</h2>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <h2 className="text-base font-semibold text-gray-800">월별 {metricConfig.label} 추이</h2>
+          <ChartIndustryFilter
+            availableIndustries={availableIndustries}
+            selected={trendIndustries}
+            onChange={setTrendIndustries}
+          />
+        </div>
         {loading ? (
           <div className="h-64 flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
           </div>
-        ) : chartData.length === 0 ? (
+        ) : trendChartData.length === 0 ? (
           <div className="h-64 flex items-center justify-center text-gray-400 text-sm">데이터가 없습니다.</div>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={chartData}>
+            <LineChart data={trendChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(v)} width={80} />
               <Tooltip formatter={(v) => metricConfig.format(Number(v))} />
               <Legend />
-              {displayedIndustries.map((ind, i) => (
+              {trendIndustryKeys.map((ind, i) => (
                 <Line key={ind} type="monotone" dataKey={ind} stroke={COLORS[i % COLORS.length]}
                   strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               ))}
@@ -356,7 +319,7 @@ export default function TrendsPage() {
         )}
       </div>
 
-      {/* 업종별 최신 성과 비교 */}
+      {/* ── 업종별 최신 비교 (월별 추이와 동일 업종 필터 공유) ── */}
       {summaryRows.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-6">업종별 최신 {metricConfig.label} 비교</h2>
@@ -376,48 +339,74 @@ export default function TrendsPage() {
         </div>
       )}
 
-      {/* 성별 분포 */}
-      {genderChartData.length > 0 && genderGroups.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-1">성별 {metricConfig.label} 분포</h2>
-          <p className="text-xs text-gray-400 mb-6">업종별 남성/여성 {metricConfig.label} 비교</p>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={genderChartData} barGap={6} barCategoryGap="30%">
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(Number(v))} width={80} />
-              <Tooltip formatter={(v) => [metricConfig.format(Number(v)), '']} />
-              <Legend formatter={(v) => GENDER_LABELS[v] ?? v} />
-              {genderGroups.map((g) => (
-                <Bar key={g} dataKey={g} name={GENDER_LABELS[g] ?? g} fill={GENDER_COLORS[g] ?? '#6366f1'} radius={[4, 4, 0, 0]} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
+      {/* ── 성별 분포 ── */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800">성별 {metricConfig.label} 분포</h2>
+            <p className="text-xs text-gray-400 mt-0.5">업종별 남성/여성 {metricConfig.label} 비교</p>
+          </div>
+          <ChartIndustryFilter
+            availableIndustries={availableIndustries}
+            selected={genderIndustries}
+            onChange={setGenderIndustries}
+          />
         </div>
-      )}
+        {genderChartData.length === 0 ? (
+          <div className="h-48 flex items-center justify-center text-gray-400 text-sm mt-4">데이터가 없습니다.</div>
+        ) : (
+          <div className="mt-6">
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={genderChartData} barGap={6} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(Number(v))} width={80} />
+                <Tooltip formatter={(v) => [metricConfig.format(Number(v)), '']} />
+                <Legend formatter={(v) => GENDER_LABELS[v] ?? v} />
+                {genderGroups.map((g) => (
+                  <Bar key={g} dataKey={g} name={GENDER_LABELS[g] ?? g} fill={GENDER_COLORS[g] ?? '#6366f1'} radius={[4, 4, 0, 0]} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
 
-      {/* 연령대 분포 */}
-      {ageChartData.length > 0 && ageGroups.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-1">연령대별 {metricConfig.label} 분포</h2>
-          <p className="text-xs text-gray-400 mb-6">업종별 연령대 {metricConfig.label} 비교</p>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={ageChartData} barGap={4} barCategoryGap="25%">
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(Number(v))} width={80} />
-              <Tooltip formatter={(v) => [metricConfig.format(Number(v)), '']} />
-              <Legend />
-              {ageGroups.map((a, i) => (
-                <Bar key={a} dataKey={a} fill={AGE_COLORS[i % AGE_COLORS.length]} radius={[4, 4, 0, 0]} />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
+      {/* ── 연령대 분포 ── */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800">연령대별 {metricConfig.label} 분포</h2>
+            <p className="text-xs text-gray-400 mt-0.5">업종별 연령대 {metricConfig.label} 비교</p>
+          </div>
+          <ChartIndustryFilter
+            availableIndustries={availableIndustries}
+            selected={ageIndustries}
+            onChange={setAgeIndustries}
+          />
         </div>
-      )}
+        {ageChartData.length === 0 ? (
+          <div className="h-48 flex items-center justify-center text-gray-400 text-sm mt-4">데이터가 없습니다.</div>
+        ) : (
+          <div className="mt-6">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={ageChartData} barGap={4} barCategoryGap="25%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(Number(v))} width={80} />
+                <Tooltip formatter={(v) => [metricConfig.format(Number(v)), '']} />
+                <Legend />
+                {ageGroups.map((a, i) => (
+                  <Bar key={a} dataKey={a} fill={AGE_COLORS[i % AGE_COLORS.length]} radius={[4, 4, 0, 0]} />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
 
       {/* 상세 데이터 테이블 */}
-      {data.length > 0 && (
+      {trendData.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
           <h2 className="text-base font-semibold text-gray-800 mb-4">상세 데이터</h2>
           <table className="w-full text-sm">
@@ -432,7 +421,7 @@ export default function TrendsPage() {
               </tr>
             </thead>
             <tbody>
-              {data.flatMap((d) =>
+              {trendData.flatMap((d) =>
                 d.trends.map((pt) => (
                   <tr key={`${d.industry}-${pt.month}`} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="py-2 pr-4 font-medium text-gray-800">{d.industry}</td>
