@@ -253,12 +253,18 @@ export default function TrendsPage() {
           {/* 지표 */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">지표</label>
-            <select value={metric} onChange={(e) => setMetric(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <div className="flex flex-wrap gap-2 pt-1">
               {METRIC_OPTIONS.map((m) => (
-                <option key={m.key} value={m.key}>{m.label}</option>
+                <button key={m.key} type="button" onClick={() => setMetric(m.key)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    metric === m.key
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  }`}>
+                  {m.label}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
         </div>
