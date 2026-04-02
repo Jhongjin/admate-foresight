@@ -26,13 +26,13 @@ const INDUSTRY_KEYWORDS: Record<string, string> = {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const industry = searchParams.get('industry') || '';
-  const limit = Math.min(parseInt(searchParams.get('limit') || '6'), 20);
+  const limit = Math.min(parseInt(searchParams.get('limit') || '9'), 20);
+  const after = searchParams.get('after') || ''; // 페이지네이션 커서
 
   const userToken = process.env.META_ACCESS_TOKEN;
   const appId = process.env.META_APP_ID;
   const appSecret = process.env.META_APP_SECRET;
 
-  // User Access Token 우선 사용, 없으면 App Access Token 사용
   const accessToken = userToken || (appId && appSecret ? `${appId}|${appSecret}` : null);
 
   if (!accessToken) {
@@ -41,13 +41,23 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
+
   const searchTerm = INDUSTRY_KEYWORDS[industry] || industry || '브랜드';
+
+  // 전 세계 주요 국가 코드 (Meta API는 ad_reached_countries 필수)
+  const ALL_COUNTRIES = JSON.stringify([
+    'KR','US','JP','CN','GB','DE','FR','IN','BR','AU',
+    'CA','SG','TH','VN','ID','MY','PH','TW','HK','MX',
+    'IT','ES','NL','SE','NO','DK','FI','PL','RU','ZA',
+    'AE','SA','TR','AR','CL','CO','PE','EG','NG','KE',
+  ]);
 
   const params = new URLSearchParams({
     access_token: accessToken,
     search_terms: searchTerm,
-    ad_reached_countries: '["KR"]',
+    ad_reached_countries: ALL_COUNTRIES,
     ad_type: 'ALL',
+    ad_active_status: 'ALL', // 진행 중 + 종료 광고 모두 포함
     fields: [
       'id',
       'page_name',
@@ -59,13 +69,17 @@ export async function GET(req: NextRequest) {
       'ad_delivery_stop_time',
       'publisher_platforms',
       'languages',
+      'ad_reached_countries',
     ].join(','),
     limit: String(limit),
   });
 
+  // 페이지네이션 커서가 있으면 추가
+  if (after) params.set('after', after);
+
   try {
     const res = await fetch(`${BASE_URL}/ads_archive?${params}`, {
-      next: { revalidate: 300 }, // 5분 캐시
+      next: { revalidate: 300 },
     });
     const data = await res.json();
 
@@ -86,6 +100,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ads: data.data ?? [],
       paging: data.paging ?? null,
+      nextCursor: data.paging?.cursors?.after ?? null,
       industry,
       searchTerm,
     });

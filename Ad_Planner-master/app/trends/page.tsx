@@ -135,33 +135,6 @@ export default function TrendsPage() {
   const [ageBreakdown, setAgeBreakdown] = useState<BreakdownRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Meta 광고 소재 상태
-  const [metaIndustry, setMetaIndustry] = useState('');
-
-  // 업종 → Meta 광고 라이브러리 검색 키워드 매핑
-  const META_KEYWORDS: Record<string, string> = {
-    '식음료':      '식음료',
-    '의약/건기식': '건강기능식품',
-    '패션':        '패션 의류',
-    '뷰티':        '화장품 뷰티',
-    '생활/잡화':   '생활용품',
-    '기관/단체':   '공공기관',
-    '교육':        '교육',
-    '금융':        '금융 보험',
-    '여행':        '여행',
-    '게임':        '게임',
-    '부동산':      '부동산',
-    '자동차':      '자동차',
-    '엔터':        '엔터테인먼트',
-    '가전':        '가전',
-    '유통':        '쇼핑',
-  };
-
-  function getMetaLibraryUrl(industry: string) {
-    const keyword = META_KEYWORDS[industry] || industry;
-    return `https://www.facebook.com/ads/library/?country=KR&q=${encodeURIComponent(keyword)}&ad_type=all`;
-  }
-
   useEffect(() => {
     fetch('/api/filters')
       .then((r) => r.json())
@@ -471,80 +444,18 @@ export default function TrendsPage() {
         </div>
       )}
 
-      {/* ── Meta 광고 소재 바로가기 ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="mb-5">
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-base font-semibold text-gray-800">Meta 광고 소재 바로가기</h2>
-            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs font-medium rounded-full">라이브러리 연동</span>
-          </div>
-          <p className="text-xs text-gray-400">업종을 선택하면 Meta 광고 라이브러리에서 한국 실제 집행 광고를 바로 확인할 수 있습니다.</p>
+      {/* ── 경쟁사 모니터링 바로가기 ── */}
+      <div className="bg-indigo-50 rounded-2xl border border-indigo-100 p-5 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-indigo-800">경쟁사 광고 소재가 궁금하다면?</p>
+          <p className="text-xs text-indigo-500 mt-0.5">Meta 광고 라이브러리에서 전 세계 실제 집행 소재를 탐색할 수 있습니다.</p>
         </div>
-
-        {/* 업종 선택 */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {availableIndustries.map((ind) => (
-            <button
-              key={ind}
-              type="button"
-              onClick={() => setMetaIndustry(ind)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                metaIndustry === ind
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-              }`}
-            >
-              {ind}
-            </button>
-          ))}
-        </div>
-
-        {/* 안내 카드 */}
-        {!metaIndustry ? (
-          <div className="h-32 flex items-center justify-center text-gray-400 text-sm">
-            위에서 업종을 선택하세요.
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-6 flex flex-col sm:flex-row items-center gap-5">
-            {/* 아이콘 */}
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center shrink-0 shadow-md">
-              <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3 3h18" />
-              </svg>
-            </div>
-
-            {/* 텍스트 */}
-            <div className="flex-1 text-center sm:text-left">
-              <p className="text-sm font-semibold text-gray-800 mb-1">
-                <span className="text-indigo-600">{metaIndustry}</span> 업종 광고 소재
-              </p>
-              <p className="text-xs text-gray-500 mb-3">
-                검색어 <span className="font-medium text-gray-700">&quot;{META_KEYWORDS[metaIndustry] || metaIndustry}&quot;</span> 로 한국(KR) 집행 중인 광고를 Meta 광고 라이브러리에서 확인합니다.
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                <a
-                  href={getMetaLibraryUrl(metaIndustry)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                  </svg>
-                  Meta 광고 라이브러리 열기
-                </a>
-                <a
-                  href={`https://www.facebook.com/ads/library/?country=KR&ad_type=all`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-gray-50 text-gray-600 text-sm font-medium rounded-xl border border-gray-200 transition-colors"
-                >
-                  전체 라이브러리 보기
-                </a>
-              </div>
-            </div>
-          </div>
-        )}
+        <a
+          href="/competitor"
+          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+        >
+          경쟁사 모니터링 →
+        </a>
       </div>
     </div>
   );

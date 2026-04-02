@@ -7,6 +7,7 @@ const navItems = [
   { href: '/', label: '성과 예측 시뮬레이터' },
   { href: '/trends', label: '업종별 트렌드' },
   { href: '/insights', label: '시즌 인사이트' },
+  { href: '/competitor', label: '경쟁사 모니터링' },
 ];
 
 export default function Navigation() {

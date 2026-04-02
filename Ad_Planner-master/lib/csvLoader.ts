@@ -27,6 +27,10 @@ export function loadAdData(): AdRecord[] {
   if (cachedData) return cachedData;
 
   const filePath = path.join(process.cwd(), 'data', '뷰티_식음료.csv');
+  if (!fs.existsSync(filePath)) {
+    cachedData = [];
+    return cachedData;
+  }
   const fileContent = fs.readFileSync(filePath, 'utf-8');
 
   const result = Papa.parse<Record<string, string>>(fileContent, {
