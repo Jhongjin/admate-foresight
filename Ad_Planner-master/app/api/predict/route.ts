@@ -10,9 +10,10 @@ export async function POST(req: NextRequest) {
       ageRanges = [],
       objectives = [],
       budget = 10_000_000,
+      month,
     } = body;
 
-    const result = predict({ industries, genders, ageRanges, objectives, budget });
+    const result = predict({ industries, genders, ageRanges, objectives, budget, month });
     return NextResponse.json(result);
   } catch (err) {
     console.error(err);

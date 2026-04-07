@@ -111,3 +111,12 @@ export function getXlsxIndustries(): string[] {
   const industries = [...new Set(data.map((r) => r.업종).filter(Boolean))];
   return industries.sort();
 }
+
+/** 데이터에 존재하는 월 목록 (최신순, YYYY-MM 형식) */
+export function getAvailableMonths(): string[] {
+  const data = loadXlsxData();
+  const months = [...new Set(
+    data.map((r) => r.날짜.substring(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m))
+  )];
+  return months.sort().reverse();
+}

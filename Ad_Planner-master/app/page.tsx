@@ -36,6 +36,10 @@ interface PredictResult {
   cpmChange: number | null;
   cpcChange: number | null;
   matchedCount: number;
+  r2Cpm?: number;
+  r2Cpc?: number;
+  r2Vtr?: number;
+  predictionMethod?: 'regression' | 'weighted_avg' | 'fallback';
 }
 
 interface RangePoint {
@@ -50,9 +54,17 @@ function formatBudget(v: number) {
   return `${v / 10_000}만`;
 }
 
+function formatMonth(m: string) {
+  if (!m) return '전체';
+  const [y, mo] = m.split('-');
+  return `${y}년 ${parseInt(mo)}월`;
+}
+
 export default function SimulatorPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [month, setMonth] = useState<string>(''); // YYYY-MM, 빈 문자열 = 전체
 
   // Multi-select state (empty = 전체)
   const [industries, setIndustries] = useState<string[]>([]);
@@ -76,12 +88,16 @@ export default function SimulatorPage() {
       .then((f) => {
         setAvailableIndustries(f.industries);
         setAvailableObjectives(f.objectives ?? []);
+        const months: string[] = f.months ?? [];
+        setAvailableMonths(months);
+        // 기본값: 가장 최근 월
+        if (months.length > 0) setMonth(months[0]);
       })
       .catch(console.error);
   }, []);
 
   const fetchPrediction = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number;
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; month?: string;
   }) => {
     setLoading(true);
     try {
@@ -96,7 +112,7 @@ export default function SimulatorPage() {
   }, []);
 
   const fetchRange = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[];
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; month?: string;
   }) => {
     setRangeLoading(true);
     try {
@@ -113,16 +129,16 @@ export default function SimulatorPage() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchPrediction({ industries, genders, ageRanges, objectives, budget });
+      fetchPrediction({ industries, genders, ageRanges, objectives, budget, month: month || undefined });
     }, 300);
-  }, [industries, genders, ageRanges, objectives, budget, fetchPrediction]);
+  }, [industries, genders, ageRanges, objectives, budget, month, fetchPrediction]);
 
   useEffect(() => {
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
     rangeDebounceRef.current = setTimeout(() => {
-      fetchRange({ industries, genders, ageRanges, objectives });
+      fetchRange({ industries, genders, ageRanges, objectives, month: month || undefined });
     }, 400);
-  }, [industries, genders, ageRanges, objectives, fetchRange]);
+  }, [industries, genders, ageRanges, objectives, month, fetchRange]);
 
   function toggleGender(value: string) {
     setGenders((prev) =>
@@ -152,6 +168,7 @@ export default function SimulatorPage() {
     : objectives.map((o) => OBJECTIVE_LABELS[o] ?? o).join(', ');
 
   const tags = [
+    { label: '기준 월', value: month ? formatMonth(month) : '전체' },
     { label: '업종', value: industryLabel },
     { label: 'Gender', value: genderLabel },
     { label: '캠페인 목표', value: objectiveLabel },
@@ -333,6 +350,43 @@ export default function SimulatorPage() {
             )}
           </div>
 
+          {/* 기준 월 선택 */}
+          {availableMonths.length > 0 && (
+            <div className="space-y-1 lg:col-span-3">
+              <label className="text-sm font-medium text-gray-700">
+                기준 월
+                <span className="ml-1.5 text-xs font-normal text-gray-400">— 선택한 월의 실데이터로 CPM·CPC·VTR 계산</span>
+              </label>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setMonth('')}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    month === ''
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  }`}
+                >
+                  전체 (평균)
+                </button>
+                {availableMonths.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMonth(m)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      month === m
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    }`}
+                  >
+                    {formatMonth(m)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Budget */}
           <div className="lg:col-span-3">
             <BudgetSlider value={budget} onChange={setBudget} />
@@ -352,8 +406,20 @@ export default function SimulatorPage() {
           <h2 className="text-base font-semibold text-gray-800">예측 결과</h2>
           <div className="flex items-center gap-3">
             {result && !loading && (
-              <span className="text-xs text-gray-400">
-                매칭 데이터 {result.matchedCount}건 · 평균 빈도 {result.frequency?.toFixed(2)}
+              <span className="text-xs text-gray-400 flex items-center gap-2">
+                {result.predictionMethod === 'regression' ? (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 font-medium">
+                    📈 회귀모델
+                    {result.r2Cpm !== undefined && (
+                      <span className="text-indigo-400">R²={result.r2Cpm.toFixed(2)}</span>
+                    )}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+                    📊 가중평균
+                  </span>
+                )}
+                매칭 {result.matchedCount}건 · 빈도 {result.frequency?.toFixed(2)}
               </span>
             )}
             <button

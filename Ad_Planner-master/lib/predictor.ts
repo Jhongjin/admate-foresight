@@ -1,12 +1,14 @@
 import { loadAdData } from './csvLoader';
 import { XlsxRecord, loadXlsxData } from './xlsxLoader';
+import { predictByRegression } from './regression';
 
 export interface PredictInput {
   industries: string[];
   genders: string[];
   ageRanges: string[];
-  objectives: string[];   // 신규: 캠페인 목표
+  objectives: string[];
   budget: number;
+  month?: string;         // YYYY-MM 형식. 지정 시 해당 월 데이터 우선 사용
 }
 
 export interface PredictResult {
@@ -21,6 +23,11 @@ export interface PredictResult {
   cpmChange: number | null;
   cpcChange: number | null;
   matchedCount: number;
+  // 회귀 모델 정보
+  r2Cpm?: number;
+  r2Cpc?: number;
+  r2Vtr?: number;
+  predictionMethod: 'regression' | 'weighted_avg' | 'fallback';
 }
 
 // ── 상수 ──────────────────────────────────────────────
@@ -38,8 +45,10 @@ function filterXlsx(
   genders: string[],
   ageRanges: string[],
   objectives: string[],
+  month?: string,         // YYYY-MM, 지정 시 해당 월만
 ): XlsxRecord[] {
   return data.filter((r) => {
+    if (month && !r.날짜.startsWith(month)) return false;
     if (objectives.length > 0 && !objectives.includes(r.목표)) return false;
     if (industries.length > 0 && !industries.includes(r.업종)) return false;
     if (genders.length > 0 && !genders.includes(r.성별)) return false;
@@ -96,73 +105,103 @@ function weightedFrequency(records: XlsxRecord[]): number {
   return records.reduce((s, r) => s + r.빈도 * r.도달, 0) / totalReach;
 }
 
-// ── 핵심 도달 계산 ────────────────────────────────────
-function calcReach(records: XlsxRecord[], budget: number): {
-  reach: number;
-  cpm: number;
-  cpc: number;
-  cpcLink: number;
-  cpv: number;
-  vtr: number;
-  frequency: number;
-} {
-  const cpm = weightedCPM(records);
-  const cpc = weightedCPC(records);
-  const cpcLink = weightedCPCLink(records);
-  const cpv = weightedCPV(records);
-  const vtr = calcVTR(records);
-  const baseFreq = weightedFrequency(records);
-
-  // 예산 반영 빈도: 예산이 클수록 동일인에게 더 자주 노출됨 (γ=0.044)
+// ── 도달 계산 (CPM 값 주입 방식) ─────────────────────
+// cpmVal: 회귀 or 가중평균으로 결정된 CPM
+function calcReachFromCPM(
+  cpmVal: number,
+  baseFreq: number,
+  budget: number,
+): { reach: number; frequency: number } {
   const adjustedFreq = baseFreq * Math.pow(budget / REF_BUDGET, FREQ_GAMMA);
 
-  if (cpm === 0 || adjustedFreq === 0) return { reach: 0, cpm: 0, cpc: 0, cpcLink, cpv, vtr, frequency: Math.round(adjustedFreq * 100) / 100 };
+  if (cpmVal === 0 || adjustedFreq === 0) {
+    return { reach: 0, frequency: Math.round(adjustedFreq * 100) / 100 };
+  }
 
-  // 메타 공식: 도달 = (예산 / CPM × 1000) / 예산반영빈도
-  const linearReach = (budget / cpm) * 1000 / adjustedFreq;
-
-  // Diminishing returns 보정 (BETA=0.864, 총 지수 = 0.864-0.044 = 0.820 유지)
-  const diminishingFactor = budget > 0
-    ? Math.pow(budget / REF_BUDGET, BETA - 1)
-    : 1;
+  const linearReach = (budget / cpmVal) * 1000 / adjustedFreq;
+  const diminishingFactor = budget > 0 ? Math.pow(budget / REF_BUDGET, BETA - 1) : 1;
 
   return {
     reach: Math.round(linearReach * diminishingFactor),
+    frequency: Math.round(adjustedFreq * 100) / 100,
+  };
+}
+
+// ── 가중평균 기반 전체 계산 (폴백용) ────────────────
+function calcFromRecords(records: XlsxRecord[], budget: number): {
+  cpm: number; cpc: number; cpcLink: number; cpv: number; vtr: number;
+  reach: number; frequency: number;
+} {
+  const cpm     = weightedCPM(records);
+  const cpc     = weightedCPC(records);
+  const cpcLink = weightedCPCLink(records);
+  const cpv     = weightedCPV(records);
+  const vtr     = calcVTR(records);
+  const baseFreq = weightedFrequency(records);
+  const { reach, frequency } = calcReachFromCPM(cpm, baseFreq, budget);
+
+  return {
     cpm: Math.round(cpm),
     cpc: Math.round(cpc),
     cpcLink: Math.round(cpcLink),
     cpv: Math.round(cpv * 10) / 10,
     vtr: Math.round(vtr * 100) / 100,
-    frequency: Math.round(adjustedFreq * 100) / 100,
+    reach,
+    frequency,
   };
 }
 
 // ── XLSX 폴백 체인 ────────────────────────────────────
-// 조건을 점진적으로 완화하여 충분한 데이터 확보
+// month 지정 시: 월 필터 포함 체인 먼저 시도 → 부족하면 월 필터 제거 후 재시도
 function getMatchedXlsx(
   data: XlsxRecord[],
   industries: string[],
   genders: string[],
   ageRanges: string[],
   objectives: string[],
+  month?: string,
 ): XlsxRecord[] {
-  // 1. 전체 조건
+  // ── Phase 1: 월 필터 포함 (month가 있을 때만) ──
+  if (month) {
+    // 1-1. 전체 조건 + 월
+    let m = filterXlsx(data, industries, genders, ageRanges, objectives, month);
+    if (m.length >= 10) return m;
+
+    // 1-2. 연령 제거 + 월
+    m = filterXlsx(data, industries, genders, [], objectives, month);
+    if (m.length >= 10) return m;
+
+    // 1-3. 성별 제거 + 월
+    m = filterXlsx(data, industries, [], [], objectives, month);
+    if (m.length >= 10) return m;
+
+    // 1-4. 업종 제거 + 월
+    m = filterXlsx(data, [], [], [], objectives, month);
+    if (m.length >= 10) return m;
+
+    // 1-5. 조건 전부 제거, 월만
+    m = filterXlsx(data, [], [], [], [], month);
+    if (m.length >= 10) return m;
+  }
+
+  // ── Phase 2: 월 필터 제거 (기존 폴백) ──
+  // 2-1. 전체 조건
   let matched = filterXlsx(data, industries, genders, ageRanges, objectives);
   if (matched.length >= 10) return matched;
 
-  // 2. 연령 제거
+  // 2-2. 연령 제거
   matched = filterXlsx(data, industries, genders, [], objectives);
   if (matched.length >= 10) return matched;
 
-  // 3. 성별 제거
+  // 2-3. 성별 제거
   matched = filterXlsx(data, industries, [], [], objectives);
   if (matched.length >= 10) return matched;
 
-  // 4. 업종 제거 (objective만)
+  // 2-4. 업종 제거 (objective만)
   matched = filterXlsx(data, [], [], [], objectives);
   if (matched.length >= 10) return matched;
 
-  // 5. 전체 데이터
+  // 2-5. 전체 데이터
   return data;
 }
 
@@ -195,29 +234,82 @@ function calcReachFromCsv(budget: number): { reach: number; cpm: number; cpc: nu
 
 // ── 메인 predict 함수 ─────────────────────────────────
 export function predict(input: PredictInput): PredictResult {
-  const { industries, genders, ageRanges, objectives, budget } = input;
+  const { industries, genders, ageRanges, objectives, budget, month } = input;
   const xlsxData = loadXlsxData();
 
-  const matched = getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives);
-  const { reach, cpm, cpc, cpcLink, cpv, vtr, frequency } = matched.length > 0
-    ? calcReach(matched, budget)
-    : calcReachFromCsv(budget);
+  // ── 폴백: 가중평균 기반 매칭된 레코드 ──
+  const matched = getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives, month);
 
-  // 전월 대비 비교 (날짜 기준)
-  const now = new Date();
-  const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
-  const prevMatched = matched.filter((r) => r.날짜.startsWith(prevMonthStr));
+  // ── 1차: Ridge 회귀 예측 ──
+  let cpm: number, cpc: number, cpcLink: number, cpv: number, vtr: number;
+  let predictionMethod: PredictResult['predictionMethod'];
+  let r2Cpm: number | undefined, r2Cpc: number | undefined, r2Vtr: number | undefined;
+
+  let regResult: ReturnType<typeof predictByRegression> | null = null;
+  try {
+    regResult = predictByRegression(industries, genders, ageRanges, month);
+  } catch (e) {
+    // 회귀 실패 시 무시하고 가중평균으로 폴백
+  }
+
+  if (regResult && regResult.cpm > 0) {
+    // 회귀 성공: CPM/CPC/VTR은 회귀값, CPV/CPCLink는 가중평균(데이터 희소)
+    cpm     = regResult.cpm;
+    cpc     = regResult.cpc;
+    cpcLink = regResult.cpcLink > 0 ? regResult.cpcLink : Math.round(weightedCPCLink(matched));
+    vtr     = regResult.vtr;
+    cpv     = Math.round(weightedCPV(matched) * 10) / 10;
+    r2Cpm   = regResult.r2Cpm;
+    r2Cpc   = regResult.r2Cpc;
+    r2Vtr   = regResult.r2VTR;
+    predictionMethod = 'regression';
+  } else if (matched.length > 0) {
+    // 가중평균 폴백
+    const avg = calcFromRecords(matched, budget);
+    ({ cpm, cpc, cpcLink, cpv, vtr } = avg);
+    predictionMethod = 'weighted_avg';
+  } else {
+    // CSV 레거시 폴백
+    const fallback = calcReachFromCsv(budget);
+    ({ cpm, cpc, cpcLink, cpv, vtr } = fallback);
+    predictionMethod = 'fallback';
+  }
+
+  // ── 도달 계산: 회귀 CPM 기반 ──
+  const baseFreq = weightedFrequency(matched.length > 0 ? matched : xlsxData);
+  const { reach, frequency } = calcReachFromCPM(cpm, baseFreq, budget);
+
+  // ── 전월 대비 비교 ──
+  let prevMonthStr: string;
+  if (month) {
+    const [y, mo] = month.split('-').map(Number);
+    const prevDate = new Date(y, mo - 2, 1);
+    prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+  } else {
+    const now = new Date();
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+  }
 
   let reachChange: number | null = null;
-  let cpmChange: number | null = null;
-  let cpcChange: number | null = null;
+  let cpmChange:   number | null = null;
+  let cpcChange:   number | null = null;
 
-  if (prevMatched.length >= 5) {
-    const prev = calcReach(prevMatched, budget);
-    if (prev.reach > 0) reachChange = ((reach - prev.reach) / prev.reach) * 100;
-    if (prev.cpm > 0) cpmChange = ((cpm - prev.cpm) / prev.cpm) * 100;
-    if (prev.cpc > 0 && cpc > 0) cpcChange = ((cpc - prev.cpc) / prev.cpc) * 100;
+  try {
+    // 전월도 회귀 예측으로 비교 (method 일관성)
+    const prevReg = predictByRegression(industries, genders, ageRanges, prevMonthStr);
+    if (prevReg.cpm > 0) {
+      const prevMatched = getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives)
+        .filter(r => r.날짜.startsWith(prevMonthStr));
+      const prevBaseFreq = weightedFrequency(prevMatched.length > 0 ? prevMatched : xlsxData);
+      const { reach: prevReach } = calcReachFromCPM(prevReg.cpm, prevBaseFreq, budget);
+
+      if (prevReach > 0) reachChange = ((reach - prevReach) / prevReach) * 100;
+      if (prevReg.cpm > 0) cpmChange = ((cpm - prevReg.cpm) / prevReg.cpm) * 100;
+      if (prevReg.cpc > 0 && cpc > 0) cpcChange = ((cpc - prevReg.cpc) / prevReg.cpc) * 100;
+    }
+  } catch {
+    // 전월 회귀 실패: change null 유지
   }
 
   return {
@@ -232,5 +324,9 @@ export function predict(input: PredictInput): PredictResult {
     cpmChange,
     cpcChange,
     matchedCount: matched.length,
+    r2Cpm,
+    r2Cpc,
+    r2Vtr,
+    predictionMethod,
   };
 }
