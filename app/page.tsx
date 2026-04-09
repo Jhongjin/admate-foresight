@@ -16,10 +16,17 @@ const ALL_GENDERS = [
 ];
 
 const OBJECTIVE_LABELS: Record<string, string> = {
-  'OUTCOME_AWARENESS': '인지도',
-  'OUTCOME_ENGAGEMENT': '참여',
-  'LINK_CLICKS': '트래픽',
-  'OUTCOME_SALES': '전환/판매',
+  'OUTCOME_AWARENESS':  '인지도',
+  'OUTCOME_ENGAGEMENT': '참여/인게이지먼트',
+  'LINK_CLICKS':        '트래픽/링크클릭',
+  'OUTCOME_SALES':      '전환/판매',
+  'OUTCOME_LEADS':      '잠재고객',
+  'APP_INSTALLS':       '앱 설치',
+  'VIDEO_VIEWS':        '동영상 조회',
+  'REACH':              '도달',
+  'BRAND_AWARENESS':    '브랜드 인지',
+  'MESSAGES':           '메시지',
+  'STORE_VISITS':       '매장 방문',
 };
 
 const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
@@ -63,8 +70,11 @@ function formatMonth(m: string) {
 export default function SimulatorPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
-  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
-  const [month, setMonth] = useState<string>(''); // YYYY-MM, 빈 문자열 = 전체
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]); // YYYY-MM[], 최신순
+
+  // 기준 기간 (YYYY-MM)
+  const [monthFrom, setMonthFrom] = useState<string>('');
+  const [monthTo, setMonthTo] = useState<string>('');
 
   // Multi-select state (empty = 전체)
   const [industries, setIndustries] = useState<string[]>([]);
@@ -88,16 +98,19 @@ export default function SimulatorPage() {
       .then((f) => {
         setAvailableIndustries(f.industries);
         setAvailableObjectives(f.objectives ?? []);
-        const months: string[] = f.months ?? [];
+        const months: string[] = f.months ?? []; // 최신순
         setAvailableMonths(months);
-        // 기본값: 가장 최근 월
-        if (months.length > 0) setMonth(months[0]);
+        // 기본값: 전체 기간 (가장 오래된 ~ 가장 최근)
+        if (months.length > 0) {
+          setMonthTo(months[0]);
+          setMonthFrom(months[months.length - 1]);
+        }
       })
       .catch(console.error);
   }, []);
 
   const fetchPrediction = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; month?: string;
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; monthFrom?: string; monthTo?: string;
   }) => {
     setLoading(true);
     try {
@@ -112,7 +125,7 @@ export default function SimulatorPage() {
   }, []);
 
   const fetchRange = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; month?: string;
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; monthFrom?: string; monthTo?: string;
   }) => {
     setRangeLoading(true);
     try {
@@ -129,16 +142,16 @@ export default function SimulatorPage() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchPrediction({ industries, genders, ageRanges, objectives, budget, month: month || undefined });
+      fetchPrediction({ industries, genders, ageRanges, objectives, budget, monthFrom: monthFrom || undefined, monthTo: monthTo || undefined });
     }, 300);
-  }, [industries, genders, ageRanges, objectives, budget, month, fetchPrediction]);
+  }, [industries, genders, ageRanges, objectives, budget, monthFrom, monthTo, fetchPrediction]);
 
   useEffect(() => {
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
     rangeDebounceRef.current = setTimeout(() => {
-      fetchRange({ industries, genders, ageRanges, objectives, month: month || undefined });
+      fetchRange({ industries, genders, ageRanges, objectives, monthFrom: monthFrom || undefined, monthTo: monthTo || undefined });
     }, 400);
-  }, [industries, genders, ageRanges, objectives, month, fetchRange]);
+  }, [industries, genders, ageRanges, objectives, monthFrom, monthTo, fetchRange]);
 
   function toggleGender(value: string) {
     setGenders((prev) =>
@@ -167,8 +180,12 @@ export default function SimulatorPage() {
     ? '전체'
     : objectives.map((o) => OBJECTIVE_LABELS[o] ?? o).join(', ');
 
+  const periodLabel = monthFrom && monthTo
+    ? `${formatMonth(monthFrom)} ~ ${formatMonth(monthTo)}`
+    : monthFrom ? `${formatMonth(monthFrom)} ~` : monthTo ? `~ ${formatMonth(monthTo)}` : '전체';
+
   const tags = [
-    { label: '기준 월', value: month ? formatMonth(month) : '전체' },
+    { label: '기준 기간', value: periodLabel },
     { label: '업종', value: industryLabel },
     { label: 'Gender', value: genderLabel },
     { label: '캠페인 목표', value: objectiveLabel },
@@ -180,6 +197,8 @@ export default function SimulatorPage() {
   const chartData = rangeData.map((p) => ({
     ...p,
     label: formatBudget(p.budget),
+    impressions: p.cpm > 0 ? Math.round(p.budget / p.cpm * 1000) : 0,
+    clicks: p.cpc > 0 ? Math.round(p.budget / p.cpc) : 0,
     reachEfficiency: p.reach > 0 ? Math.round(p.reach / (p.budget / 10_000)) : 0,
   }));
 
@@ -232,6 +251,73 @@ export default function SimulatorPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-base font-semibold text-gray-800 mb-5">캠페인 설정</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          {/* 기준 기간 - 최상단 배치 */}
+          {availableMonths.length > 0 && (() => {
+            const sortedMonths = [...availableMonths].sort(); // 오름차순 YYYY-MM
+            const years = [...new Set(sortedMonths.map((m) => m.slice(0, 4)))];
+            const monthsForYear = (y: string) => sortedMonths.filter((m) => m.startsWith(y)).map((m) => m.slice(5));
+            const fromYear = monthFrom.slice(0, 4);
+            const fromMon = monthFrom.slice(5);
+            const toYear = monthTo.slice(0, 4);
+            const toMon = monthTo.slice(5);
+            const selectCls = 'px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-indigo-400 cursor-pointer';
+            return (
+              <div className="lg:col-span-3 space-y-1">
+                <label className="text-sm font-medium text-gray-700">
+                  기준 기간
+                  <span className="ml-1.5 text-xs font-normal text-gray-400">— 선택한 기간의 실데이터로 CPM·CPC·VTR 계산</span>
+                </label>
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  {/* 시작 */}
+                  <div className="flex items-center gap-1">
+                    <select
+                      value={fromYear}
+                      onChange={(e) => {
+                        const y = e.target.value;
+                        const months = monthsForYear(y);
+                        const mo = months.includes(fromMon) ? fromMon : months[0];
+                        setMonthFrom(`${y}-${mo}`);
+                      }}
+                      className={selectCls}
+                    >
+                      {years.map((y) => <option key={y} value={y}>{y}년</option>)}
+                    </select>
+                    <select
+                      value={fromMon}
+                      onChange={(e) => setMonthFrom(`${fromYear}-${e.target.value}`)}
+                      className={selectCls}
+                    >
+                      {monthsForYear(fromYear).map((m) => <option key={m} value={m}>{parseInt(m)}월</option>)}
+                    </select>
+                  </div>
+                  <span className="text-gray-400 text-sm font-medium px-1">~</span>
+                  {/* 종료 */}
+                  <div className="flex items-center gap-1">
+                    <select
+                      value={toYear}
+                      onChange={(e) => {
+                        const y = e.target.value;
+                        const months = monthsForYear(y);
+                        const mo = months.includes(toMon) ? toMon : months[months.length - 1];
+                        setMonthTo(`${y}-${mo}`);
+                      }}
+                      className={selectCls}
+                    >
+                      {years.map((y) => <option key={y} value={y}>{y}년</option>)}
+                    </select>
+                    <select
+                      value={toMon}
+                      onChange={(e) => setMonthTo(`${toYear}-${e.target.value}`)}
+                      className={selectCls}
+                    >
+                      {monthsForYear(toYear).map((m) => <option key={m} value={m}>{parseInt(m)}월</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Industry - multi-select dropdown */}
           <MultiSelectDropdown
@@ -350,43 +436,6 @@ export default function SimulatorPage() {
             )}
           </div>
 
-          {/* 기준 월 선택 */}
-          {availableMonths.length > 0 && (
-            <div className="space-y-1 lg:col-span-3">
-              <label className="text-sm font-medium text-gray-700">
-                기준 월
-                <span className="ml-1.5 text-xs font-normal text-gray-400">— 선택한 월의 실데이터로 CPM·CPC·VTR 계산</span>
-              </label>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setMonth('')}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                    month === ''
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                  }`}
-                >
-                  전체 (평균)
-                </button>
-                {availableMonths.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setMonth(m)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      month === m
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                    }`}
-                  >
-                    {formatMonth(m)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Budget */}
           <div className="lg:col-span-3">
             <BudgetSlider value={budget} onChange={setBudget} />
@@ -503,8 +552,8 @@ export default function SimulatorPage() {
               <tr className="border-b border-gray-100">
                 <th className="text-left py-2.5 pr-4 text-gray-500 font-medium">예산</th>
                 <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">예상 도달</th>
-                <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">CPM</th>
-                <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">CPC</th>
+                <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">예상 노출</th>
+                <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">예상 클릭</th>
                 <th className="text-right py-2.5 text-gray-500 font-medium">만원당 도달</th>
               </tr>
             </thead>
@@ -523,8 +572,8 @@ export default function SimulatorPage() {
                     <td className={`py-2.5 pr-4 text-right ${isSelected ? 'text-indigo-700' : 'text-gray-700'}`}>
                       {row.reach.toLocaleString()}명
                     </td>
-                    <td className="py-2.5 pr-4 text-right text-gray-700">₩{row.cpm.toLocaleString()}</td>
-                    <td className="py-2.5 pr-4 text-right text-gray-700">₩{row.cpc.toLocaleString()}</td>
+                    <td className="py-2.5 pr-4 text-right text-gray-700">{row.impressions.toLocaleString()}회</td>
+                    <td className="py-2.5 pr-4 text-right text-gray-700">{row.clicks.toLocaleString()}회</td>
                     <td className={`py-2.5 text-right font-mono ${isSelected ? 'text-indigo-700' : 'text-gray-700'}`}>
                       {row.reachEfficiency.toLocaleString()}명
                     </td>

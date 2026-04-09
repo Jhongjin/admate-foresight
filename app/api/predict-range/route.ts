@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { predict } from '@/lib/predictor';
+import { ensureDataLoaded } from '@/lib/xlsxLoader';
 
 const BUDGET_LEVELS = [
   1_000_000,
@@ -14,17 +15,19 @@ const BUDGET_LEVELS = [
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureDataLoaded();
     const body = await req.json();
     const {
       industries = [],
       genders = [],
       ageRanges = [],
       objectives = [],
-      month,
+      monthFrom,
+      monthTo,
     } = body;
 
     const results = BUDGET_LEVELS.map((budget) => {
-      const r = predict({ industries, genders, ageRanges, objectives, budget, month });
+      const r = predict({ industries, genders, ageRanges, objectives, budget, monthFrom, monthTo });
       return { budget, reach: r.reach, cpm: r.cpm, cpc: r.cpc };
     });
 

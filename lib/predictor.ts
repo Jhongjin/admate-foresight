@@ -8,7 +8,8 @@ export interface PredictInput {
   ageRanges: string[];
   objectives: string[];
   budget: number;
-  month?: string;         // YYYY-MM 형식. 지정 시 해당 월 데이터 우선 사용
+  monthFrom?: string;     // YYYY-MM, 기간 시작
+  monthTo?: string;       // YYYY-MM, 기간 종료
 }
 
 export interface PredictResult {
@@ -45,10 +46,13 @@ function filterXlsx(
   genders: string[],
   ageRanges: string[],
   objectives: string[],
-  month?: string,         // YYYY-MM, 지정 시 해당 월만
+  monthFrom?: string,     // YYYY-MM, 기간 시작
+  monthTo?: string,       // YYYY-MM, 기간 종료
 ): XlsxRecord[] {
   return data.filter((r) => {
-    if (month && !r.날짜.startsWith(month)) return false;
+    const rowMonth = r.날짜.substring(0, 7);
+    if (monthFrom && rowMonth < monthFrom) return false;
+    if (monthTo && rowMonth > monthTo) return false;
     if (objectives.length > 0 && !objectives.includes(r.목표)) return false;
     if (industries.length > 0 && !industries.includes(r.업종)) return false;
     if (genders.length > 0 && !genders.includes(r.성별)) return false;
@@ -152,56 +156,46 @@ function calcFromRecords(records: XlsxRecord[], budget: number): {
 }
 
 // ── XLSX 폴백 체인 ────────────────────────────────────
-// month 지정 시: 월 필터 포함 체인 먼저 시도 → 부족하면 월 필터 제거 후 재시도
 function getMatchedXlsx(
   data: XlsxRecord[],
   industries: string[],
   genders: string[],
   ageRanges: string[],
   objectives: string[],
-  month?: string,
+  monthFrom?: string,
+  monthTo?: string,
 ): XlsxRecord[] {
-  // ── Phase 1: 월 필터 포함 (month가 있을 때만) ──
-  if (month) {
-    // 1-1. 전체 조건 + 월
-    let m = filterXlsx(data, industries, genders, ageRanges, objectives, month);
+  // ── Phase 1: 기간 필터 포함 ──
+  if (monthFrom || monthTo) {
+    let m = filterXlsx(data, industries, genders, ageRanges, objectives, monthFrom, monthTo);
     if (m.length >= 10) return m;
 
-    // 1-2. 연령 제거 + 월
-    m = filterXlsx(data, industries, genders, [], objectives, month);
+    m = filterXlsx(data, industries, genders, [], objectives, monthFrom, monthTo);
     if (m.length >= 10) return m;
 
-    // 1-3. 성별 제거 + 월
-    m = filterXlsx(data, industries, [], [], objectives, month);
+    m = filterXlsx(data, industries, [], [], objectives, monthFrom, monthTo);
     if (m.length >= 10) return m;
 
-    // 1-4. 업종 제거 + 월
-    m = filterXlsx(data, [], [], [], objectives, month);
+    m = filterXlsx(data, [], [], [], objectives, monthFrom, monthTo);
     if (m.length >= 10) return m;
 
-    // 1-5. 조건 전부 제거, 월만
-    m = filterXlsx(data, [], [], [], [], month);
+    m = filterXlsx(data, [], [], [], [], monthFrom, monthTo);
     if (m.length >= 10) return m;
   }
 
-  // ── Phase 2: 월 필터 제거 (기존 폴백) ──
-  // 2-1. 전체 조건
+  // ── Phase 2: 기간 필터 제거 폴백 ──
   let matched = filterXlsx(data, industries, genders, ageRanges, objectives);
   if (matched.length >= 10) return matched;
 
-  // 2-2. 연령 제거
   matched = filterXlsx(data, industries, genders, [], objectives);
   if (matched.length >= 10) return matched;
 
-  // 2-3. 성별 제거
   matched = filterXlsx(data, industries, [], [], objectives);
   if (matched.length >= 10) return matched;
 
-  // 2-4. 업종 제거 (objective만)
   matched = filterXlsx(data, [], [], [], objectives);
   if (matched.length >= 10) return matched;
 
-  // 2-5. 전체 데이터
   return data;
 }
 
@@ -234,11 +228,14 @@ function calcReachFromCsv(budget: number): { reach: number; cpm: number; cpc: nu
 
 // ── 메인 predict 함수 ─────────────────────────────────
 export function predict(input: PredictInput): PredictResult {
-  const { industries, genders, ageRanges, objectives, budget, month } = input;
+  const { industries, genders, ageRanges, objectives, budget, monthFrom, monthTo } = input;
   const xlsxData = loadXlsxData();
 
   // ── 폴백: 가중평균 기반 매칭된 레코드 ──
-  const matched = getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives, month);
+  const matched = getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives, monthFrom, monthTo);
+
+  // 회귀 예측 기준 월: 기간 종료월 사용 (가장 최근 데이터 기준)
+  const selMonth = monthTo ?? monthFrom;
 
   // ── 1차: Ridge 회귀 예측 ──
   let cpm: number, cpc: number, cpcLink: number, cpv: number, vtr: number;
@@ -247,7 +244,7 @@ export function predict(input: PredictInput): PredictResult {
 
   let regResult: ReturnType<typeof predictByRegression> | null = null;
   try {
-    regResult = predictByRegression(industries, genders, ageRanges, month);
+    regResult = predictByRegression(industries, genders, ageRanges, selMonth);
   } catch (e) {
     // 회귀 실패 시 무시하고 가중평균으로 폴백
   }
@@ -279,10 +276,10 @@ export function predict(input: PredictInput): PredictResult {
   const baseFreq = weightedFrequency(matched.length > 0 ? matched : xlsxData);
   const { reach, frequency } = calcReachFromCPM(cpm, baseFreq, budget);
 
-  // ── 전월 대비 비교 ──
+  // ── 전월 대비 비교 (기간 종료월 기준) ──
   let prevMonthStr: string;
-  if (month) {
-    const [y, mo] = month.split('-').map(Number);
+  if (selMonth) {
+    const [y, mo] = selMonth.split('-').map(Number);
     const prevDate = new Date(y, mo - 2, 1);
     prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
   } else {

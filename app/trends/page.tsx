@@ -411,39 +411,6 @@ export default function TrendsPage() {
         )}
       </div>
 
-      {/* 상세 데이터 테이블 */}
-      {trendData.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 overflow-x-auto">
-          <h2 className="text-base font-semibold text-gray-800 mb-4">상세 데이터</h2>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-2 pr-4 text-gray-500 font-medium">업종</th>
-                <th className="text-left py-2 pr-4 text-gray-500 font-medium">월</th>
-                <th className="text-right py-2 pr-4 text-gray-500 font-medium">CPM</th>
-                <th className="text-right py-2 pr-4 text-gray-500 font-medium">CPC</th>
-                <th className="text-right py-2 pr-4 text-gray-500 font-medium">CTR</th>
-                <th className="text-right py-2 text-gray-500 font-medium">도달</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trendData.flatMap((d) =>
-                d.trends.map((pt) => (
-                  <tr key={`${d.industry}-${pt.month}`} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="py-2 pr-4 font-medium text-gray-800">{d.industry}</td>
-                    <td className="py-2 pr-4 text-gray-600">{pt.month}</td>
-                    <td className="py-2 pr-4 text-right text-gray-700">₩{pt.avgCPM.toLocaleString()}</td>
-                    <td className="py-2 pr-4 text-right text-gray-700">₩{pt.avgCPC.toLocaleString()}</td>
-                    <td className="py-2 pr-4 text-right text-gray-700">{pt.avgCTR.toFixed(3)}%</td>
-                    <td className="py-2 text-right text-gray-700">{pt.totalReach.toLocaleString()}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
       {/* ── 경쟁사 모니터링 바로가기 ── */}
       <div className="bg-indigo-50 rounded-2xl border border-indigo-100 p-5 flex items-center justify-between gap-4">
         <div>

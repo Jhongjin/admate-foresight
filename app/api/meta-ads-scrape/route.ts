@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chromium } from 'playwright';
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
 
 const INDUSTRY_KEYWORDS: Record<string, string> = {
   '식음료':      '식음료',
@@ -166,74 +168,77 @@ export async function GET(req: NextRequest) {
   // 항상 keyword_unordered로 시작 (page 타입은 페이지 선택 UI를 보여줘서 자동화 불가)
   const url = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(searchKeyword)}&search_type=keyword_unordered`;
 
-  let browser;
-  try {
-    browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-    });
+  // Next.js 번들링 환경에서 playwright가 chromium 경로를 못 찾는 문제 우회:
+  // 독립 Node.js 프로세스(scrape_worker.js)를 child_process로 실행
+  const workerPath = path.join(process.cwd(), 'scripts', 'scrape_worker.js');
 
-    const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      locale: 'ko-KR',
-      viewport: { width: 1280, height: 900 },
-    });
-
-    const page = await context.newPage();
-
-    // 이미지/폰트 등 불필요한 리소스 차단
-    await page.route('**/*.{woff,woff2,ttf}', (route) => route.abort());
-
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(3000);
-
-    // 스크롤을 내려서 lazy-load로 더 많은 광고 로드
-    for (let i = 0; i < 6; i++) {
-      await page.evaluate(() => window.scrollBy(0, 1200));
-      await page.waitForTimeout(800);
+  // Next.js 프로세스에서 chromium 경로를 미리 탐색해서 worker에 전달
+  // (worker 내부에서 fs.existsSync가 실패하는 문제 우회)
+  function findChromiumPath(): string {
+    const localAppData = process.env.LOCALAPPDATA || '';
+    const playwrightDir = path.join(localAppData, 'ms-playwright');
+    if (fs.existsSync(playwrightDir)) {
+      const dirs = fs.readdirSync(playwrightDir);
+      for (const dir of dirs) {
+        if (dir.startsWith('chromium_headless_shell')) {
+          const candidate = path.join(playwrightDir, dir, 'chrome-headless-shell-win64', 'chrome-headless-shell.exe');
+          if (fs.existsSync(candidate)) return candidate;
+        }
+      }
+      for (const dir of dirs) {
+        if (dir.startsWith('chromium-') && !dir.includes('headless')) {
+          const candidate = path.join(playwrightDir, dir, 'chrome-win64', 'chrome.exe');
+          if (fs.existsSync(candidate)) return candidate;
+        }
+      }
     }
-    await page.waitForTimeout(1500);
+    return '';
+  }
+  const chromiumPath = findChromiumPath();
 
-    const html = await page.content();
-    await browser.close();
-
-    // 여유 있게 파싱
-    const rawAds = extractAdsFromHtml(html, limit * 4);
+  try {
+    type AdResult = { id: string; page_name: string; body: string; title: string; caption: string; cta: string; snapshot_url: string; start_date: string; image_url: string; profile_image: string };
+    const rawAds: AdResult[] = await new Promise((resolve, reject) => {
+      let stdout = '';
+      let stderr = '';
+      const workerArgs = [workerPath, url, String(limit * 4)];
+      if (chromiumPath) workerArgs.push(chromiumPath);
+      const child = spawn(process.execPath, workerArgs, {
+        timeout: 55000,
+        windowsHide: true,
+        env: { ...process.env },
+      });
+      child.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+      child.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
+      child.on('close', (code: number) => {
+        try {
+          const parsed = JSON.parse(stdout);
+          if (parsed.error) return reject(new Error(parsed.error));
+          resolve(parsed.ads || []);
+        } catch {
+          reject(new Error(`exit=${code} stderr=${stderr.substring(0, 400)} stdout=${stdout.substring(0, 200)}`));
+        }
+      });
+      child.on('error', reject);
+    });
 
     let ads;
     if (isPageSearch) {
       const kwNorm = searchKeyword.toLowerCase().replace(/\s+/g, '');
-
-      // 정확 일치 → 부분 포함 → 나머지 순으로 정렬
       const exact   = rawAds.filter(ad => ad.page_name.toLowerCase().replace(/\s+/g, '') === kwNorm);
       const partial = rawAds.filter(ad => {
         const pn = ad.page_name.toLowerCase().replace(/\s+/g, '');
         return pn !== kwNorm && pn.includes(kwNorm);
       });
-      const rest    = rawAds.filter(ad => {
-        const pn = ad.page_name.toLowerCase().replace(/\s+/g, '');
-        return !pn.includes(kwNorm);
-      });
-
+      const rest = rawAds.filter(ad => !ad.page_name.toLowerCase().replace(/\s+/g, '').includes(kwNorm));
       const prioritized = [...exact, ...partial];
-      // 매칭 결과가 충분하면 매칭만, 부족하면 나머지로 채움
-      ads = (prioritized.length >= limit
-        ? prioritized
-        : [...prioritized, ...rest]
-      ).slice(0, limit);
+      ads = (prioritized.length >= limit ? prioritized : [...prioritized, ...rest]).slice(0, limit);
     } else {
       ads = rawAds.slice(0, limit);
     }
 
-    return NextResponse.json({
-      ads,
-      industry,
-      searchTerm: searchKeyword,
-      url,
-      total: ads.length,
-    });
+    return NextResponse.json({ ads, industry, searchTerm: searchKeyword, url, total: ads.length });
   } catch (err) {
-    if (browser) await browser.close().catch(() => null);
     console.error('[meta-ads-scrape] error:', err);
     return NextResponse.json(
       { error: '스크래핑 중 오류가 발생했습니다.', detail: String(err) },

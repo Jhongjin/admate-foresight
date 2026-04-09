@@ -4,7 +4,7 @@
     {
       "name": "Ad Planner",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "Ad_Planner-master"],
+      "runtimeArgs": ["run", "dev"],
       "port": 3000
     }
   ]

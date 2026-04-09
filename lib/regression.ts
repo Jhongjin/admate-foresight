@@ -40,6 +40,7 @@ function fitRidgeWLS(
   lambda: number,
 ): number[] {
   const n = X.length;
+  if (n === 0) return [];
   const p = X[0].length;
 
   // X'WX [p×p], X'Wy [p]
@@ -201,6 +202,11 @@ export function fitRegressionModels(): RegressionBundle {
     yFn: (r: XlsxRecord) => number,
     wFn: (r: XlsxRecord) => number,
   ): FittedModel {
+    // 데이터 없으면 영벡터 모델 반환
+    if (records.length === 0) {
+      console.warn('[Regression] fitOne: 빈 레코드, 영벡터 모델 반환');
+      return { beta: new Array(fn.length).fill(0), featureNames: fn, r2: 0, nObs: 0, lambda: LAMBDA };
+    }
     const X = records.map(r => buildRow(r, cats));
     const y = records.map(yFn);
     const w = records.map(wFn);
@@ -345,7 +351,7 @@ export function predictByRegression(
     cpm:     Math.round(Math.exp(logCpm)),
     cpc:     Math.round(Math.exp(logCpc)),
     cpcLink: Math.round(Math.exp(logCpcLink)),
-    vtr:     Math.round(Math.exp(logVtr) * 10000) / 100, // fraction → % (소수점 2자리)
+    vtr:     bundle.vtr.nObs === 0 ? 0 : Math.round(Math.exp(logVtr) * 10000) / 100, // fraction → % (소수점 2자리)
     r2Cpm:   bundle.cpm.r2,
     r2Cpc:   bundle.cpc.r2,
     r2VTR:   bundle.vtr.r2,
