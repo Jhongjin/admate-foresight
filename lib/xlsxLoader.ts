@@ -201,11 +201,13 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
   type DemoRow  = { 업종:string; 목표:string; 성별:string; 연령:string;
     avg_cpm:number; avg_cpc:number; sum_도달:number; sum_노출:number; sum_지출금액:number; };
 
-  console.log('[xlsxLoader] 집계 데이터 병렬 로딩 시작...');
+  const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '(없음)';
+  console.log('[xlsxLoader] 집계 데이터 병렬 로딩 시작... URL:', supaUrl.slice(0, 30));
   const [monthRows, demoRows] = await Promise.all([
     fetchRpcAllPages<MonthRow>(client, 'get_monthly_aggregates'),
     fetchRpcAllPages<DemoRow>(client,  'get_demographic_aggregates'),
   ]);
+  console.log(`[xlsxLoader] 로딩 완료 — monthly:${monthRows.length}행, demo:${demoRows.length}행`);
 
   const monthly: XlsxRecord[] = monthRows.map((r) => ({
     업종: r.업종 ?? '', 목표: r.목표 ?? '', 성별: '', 연령: '', 날짜: r.날짜 ?? '',
