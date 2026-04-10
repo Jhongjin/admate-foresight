@@ -1,4 +1,4 @@
-import { loadXlsxData, XlsxRecord } from './xlsxLoader';
+import { loadXlsxData, loadDemoData, XlsxRecord } from './xlsxLoader';
 
 export interface TrendPoint {
   month: string;
@@ -134,7 +134,7 @@ export function getBreakdown(
   byAge: BreakdownRow[];
   efficiencyRanks: EfficiencyRank[];
 } {
-  const data = loadXlsxData();
+  const data = loadDemoData();  // 성별/연령 전용 캐시
   const filtered = filterData(data, industries, genders, ageRanges, objectives);
 
   const allIndustries = [...new Set(filtered.map((r) => r.업종))];
@@ -295,9 +295,20 @@ export function getSeasonalityInsights(industries: string[] = []): SeasonalityEv
     const afterStart  = addDays(event.eventEnd, 1);
     const afterEnd    = addDays(event.eventEnd, WINDOW_DAYS);
 
-    const beforeData = filtered.filter((r) => r.날짜 >= beforeStart && r.날짜 <= beforeEnd);
-    const duringData = filtered.filter((r) => r.날짜 >= event.eventStart && r.날짜 <= event.eventEnd);
-    const afterData  = filtered.filter((r) => r.날짜 >= afterStart && r.날짜 <= afterEnd);
+    // 날짜가 YYYY-MM 월별 집계일 경우 앞 7자리(월)로 비교
+    const toMonth = (d: string) => d.substring(0, 7);
+    const rMonth  = (r: XlsxRecord) => r.날짜.length === 7 ? r.날짜 : r.날짜.substring(0, 7);
+    const usesMonthly = filtered.length > 0 && filtered[0].날짜.length === 7;
+
+    const beforeData = usesMonthly
+      ? filtered.filter((r) => rMonth(r) >= toMonth(beforeStart) && rMonth(r) <= toMonth(beforeEnd))
+      : filtered.filter((r) => r.날짜 >= beforeStart && r.날짜 <= beforeEnd);
+    const duringData = usesMonthly
+      ? filtered.filter((r) => rMonth(r) >= toMonth(event.eventStart) && rMonth(r) <= toMonth(event.eventEnd))
+      : filtered.filter((r) => r.날짜 >= event.eventStart && r.날짜 <= event.eventEnd);
+    const afterData = usesMonthly
+      ? filtered.filter((r) => rMonth(r) >= toMonth(afterStart) && rMonth(r) <= toMonth(afterEnd))
+      : filtered.filter((r) => r.날짜 >= afterStart && r.날짜 <= afterEnd);
 
     const before = { dateRange: `${beforeStart} ~ ${beforeEnd}`, ...aggregateWindow(beforeData) };
     const during = { dateRange: `${event.eventStart} ~ ${event.eventEnd}`, ...aggregateWindow(duringData) };

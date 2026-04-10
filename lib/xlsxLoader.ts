@@ -3,9 +3,7 @@ import * as XLSX from 'xlsx';
 
 export interface XlsxRecord {
   업종: string;
-  캠페인이름: string;
   목표: string;
-  최적화목표: string;
   성별: string;
   연령: string;
   도달: number;
@@ -123,107 +121,116 @@ export function extractIndustry(accountName: string): string {
   return '기타';
 }
 
-let cachedXlsxData: XlsxRecord[] | null = null;
+// ── 캐시 ────────────────────────────────────────────────────────────────────
+// monthly: 트렌드·예측·시즌용 (업종 × 목표 × 날짜)
+// demo   : 성별/연령 브레이크다운용 (업종 × 목표 × 성별 × 연령)
+let cachedXlsxData: XlsxRecord[] | null = null;   // monthly
+let cachedDemoData: XlsxRecord[] | null = null;    // demographic
 let initPromise: Promise<void> | null = null;
 
-/** 서버 시작 시 Supabase에서 로드한 데이터를 메모리에 주입 */
-export function setXlsxData(data: XlsxRecord[]): void {
-  cachedXlsxData = data;
-}
+export function setXlsxData(data: XlsxRecord[]): void { cachedXlsxData = data; }
+export function setDemoData(data: XlsxRecord[]): void  { cachedDemoData = data; }
 
 /** 첫 요청 시 자동으로 Supabase 로딩 (lazy init) */
 export async function ensureDataLoaded(): Promise<void> {
-  if (cachedXlsxData !== null) return;
+  if (cachedXlsxData !== null && cachedDemoData !== null) return;
   if (!initPromise) {
-    initPromise = loadFromSupabase().then((data) => {
-      cachedXlsxData = data;
-      // 회귀 모델도 즉시 피팅
+    initPromise = loadFromSupabase().then(({ monthly, demo }) => {
+      cachedXlsxData = monthly;
+      cachedDemoData = demo;
       import('./regression').then(({ fitRegressionModels }) => fitRegressionModels());
     }).catch((e) => {
       console.error('[xlsxLoader] Supabase 로딩 실패:', e);
-      initPromise = null; // 실패 시 재시도 허용
+      initPromise = null;
     });
   }
   await initPromise;
 }
 
-// Supabase row → XlsxRecord 변환
-function fromSupabaseRow(row: Record<string, unknown>): XlsxRecord {
-  return {
-    업종:       (row['업종']      as string) ?? '',
-    캠페인이름: (row['캠페인이름'] as string) ?? '',
-    목표:       (row['목표']      as string) ?? '',
-    최적화목표: (row['최적화목표'] as string) ?? '',
-    성별:       (row['성별']      as string) ?? '',
-    연령:       (row['연령']      as string) ?? '',
-    도달:       (row['도달']      as number) ?? 0,
-    노출:       (row['노출']      as number) ?? 0,
-    지출금액:   (row['지출금액']  as number) ?? 0,
-    빈도:       (row['빈도']      as number) ?? 0,
-    CPM:        (row['cpm']       as number) ?? 0,
-    CPC:        (row['cpc']       as number) ?? 0,
-    CPC링크:    (row['cpc_link']  as number) ?? 0,
-    영상조회수: (row['영상조회수'] as number) ?? 0,
-    영상조회비용:(row['영상조회비용'] as number) ?? 0,
-    날짜:       (row['날짜']      as string) ?? '',
-  };
+// ── RPC 헬퍼 ─────────────────────────────────────────────────────────────────
+async function fetchRpcAllPages<T>(
+  client: ReturnType<typeof import('@supabase/supabase-js')['createClient']>,
+  fnName: string,
+  args: Record<string, unknown> = {},
+): Promise<T[]> {
+  // 1) 총 행 수를 먼저 확인하기 위해 첫 페이지 요청 (count 헤더)
+  const PAGE = 1_000;
+  const first = await client.rpc(fnName, { ...args, p_limit: PAGE, p_offset: 0 });
+  if (first.error) throw new Error(`RPC ${fnName} 오류: ${first.error.message}`);
+  const firstRows = (first.data ?? []) as T[];
+
+  if (firstRows.length < PAGE) return firstRows; // 한 페이지면 끝
+
+  // 2) 나머지 페이지 수 파악 후 병렬 로딩 (BATCH=30 → Cloudflare 502 방지)
+  // 총 행 수를 카운트 RPC로 가져옴
+  const cntFn = fnName + '_count';
+  const { data: cntData, error: cntErr } = await client.rpc(cntFn);
+  const total = cntErr ? firstRows.length : (Number(cntData) || firstRows.length);
+
+  const offsets: number[] = [];
+  for (let i = PAGE; i < total; i += PAGE) offsets.push(i);
+
+  const BATCH = 30;
+  const allRows: T[] = [...firstRows];
+  for (let i = 0; i < offsets.length; i += BATCH) {
+    const batch = offsets.slice(i, i + BATCH);
+    const results = await Promise.all(
+      batch.map((offset) => client.rpc(fnName, { ...args, p_limit: PAGE, p_offset: offset }))
+    );
+    for (const { data, error } of results) {
+      if (error) throw new Error(`RPC ${fnName} 오류: ${error.message}`);
+      for (const row of (data ?? []) as T[]) allRows.push(row);
+    }
+    console.log(`[xlsxLoader] ${fnName} 로딩 중... ${allRows.length}/${total}`);
+  }
+  return allRows;
 }
 
-/** Supabase에서 전체 데이터를 페이지 단위로 가져옴 */
-export async function loadFromSupabase(): Promise<XlsxRecord[]> {
+/** Supabase RPC 두 함수를 병렬 로딩 */
+export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo: XlsxRecord[] }> {
   const { createClient } = await import('@supabase/supabase-js');
   const client = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   );
 
-  // Supabase 기본 최대 행 수는 1000. 총 행 수를 먼저 파악 후 병렬 로딩
-  const PAGE = 1_000;
+  type MonthRow = { 업종:string; 목표:string; 날짜:string;
+    avg_cpm:number; avg_cpc:number; avg_cpc_link:number; avg_영상조회비용:number;
+    sum_도달:number; sum_노출:number; sum_지출금액:number; avg_빈도:number; sum_영상조회수:number; };
+  type DemoRow  = { 업종:string; 목표:string; 성별:string; 연령:string;
+    avg_cpm:number; avg_cpc:number; sum_도달:number; sum_노출:number; sum_지출금액:number; };
 
-  // 1) 총 행 수 조회
-  const { count, error: cntErr } = await client
-    .from('ad_data')
-    .select('*', { count: 'exact', head: true });
-  if (cntErr) throw new Error(`Supabase count 오류: ${cntErr.message}`);
-  const total = count ?? 0;
-  console.log(`[xlsxLoader] Supabase 총 행 수: ${total}`);
+  console.log('[xlsxLoader] 집계 데이터 병렬 로딩 시작...');
+  const [monthRows, demoRows] = await Promise.all([
+    fetchRpcAllPages<MonthRow>(client, 'get_monthly_aggregates'),
+    fetchRpcAllPages<DemoRow>(client,  'get_demographic_aggregates'),
+  ]);
 
-  // 2) 페이지 목록 생성 후 병렬 로딩 (10개씩 묶음)
-  const pages: number[] = [];
-  for (let from = 0; from < total; from += PAGE) pages.push(from);
+  const monthly: XlsxRecord[] = monthRows.map((r) => ({
+    업종: r.업종 ?? '', 목표: r.목표 ?? '', 성별: '', 연령: '', 날짜: r.날짜 ?? '',
+    CPM: Number(r.avg_cpm) || 0, CPC: Number(r.avg_cpc) || 0,
+    CPC링크: Number(r.avg_cpc_link) || 0, 영상조회비용: Number(r.avg_영상조회비용) || 0,
+    도달: Number(r.sum_도달) || 0, 노출: Number(r.sum_노출) || 0,
+    지출금액: Number(r.sum_지출금액) || 0, 빈도: Number(r.avg_빈도) || 0,
+    영상조회수: Number(r.sum_영상조회수) || 0,
+  }));
 
-  const BATCH = 10;
-  const all: XlsxRecord[] = new Array(total);
-  let loadedCount = 0;
+  const demo: XlsxRecord[] = demoRows.map((r) => ({
+    업종: r.업종 ?? '', 목표: r.목표 ?? '', 성별: r.성별 ?? '', 연령: r.연령 ?? '', 날짜: '',
+    CPM: Number(r.avg_cpm) || 0, CPC: Number(r.avg_cpc) || 0,
+    CPC링크: 0, 영상조회비용: 0,
+    도달: Number(r.sum_도달) || 0, 노출: Number(r.sum_노출) || 0,
+    지출금액: Number(r.sum_지출금액) || 0, 빈도: 0, 영상조회수: 0,
+  }));
 
-  for (let i = 0; i < pages.length; i += BATCH) {
-    const batch = pages.slice(i, i + BATCH);
-    const results = await Promise.all(
-      batch.map((from) =>
-        client.from('ad_data').select('*').range(from, from + PAGE - 1)
-      )
-    );
-    for (let j = 0; j < results.length; j++) {
-      const { data, error } = results[j];
-      if (error) throw new Error(`Supabase 오류: ${error.message}`);
-      if (data) {
-        const from = batch[j];
-        for (let k = 0; k < data.length; k++) all[from + k] = fromSupabaseRow(data[k] as Record<string, unknown>);
-        loadedCount += data.length;
-      }
-    }
-    console.log(`[xlsxLoader] 로딩 중... ${loadedCount}/${total}`);
-  }
-
-  const filtered = all.slice(0, loadedCount).filter(r => r && r.도달 > 0 && r.노출 > 0 && r.CPM > 0);
-  console.log(`[xlsxLoader] Supabase 로딩 완료 (${loadedCount}행, 필터 후 ${filtered.length}행)`);
-  return filtered;
+  console.log(`[xlsxLoader] 완료 — monthly:${monthly.length}행, demo:${demo.length}행`);
+  return { monthly, demo };
 }
 
-/** 메모리 캐시에서 데이터 반환 (instrumentation.ts에서 Supabase 로드 후 setXlsxData로 주입) */
-export function loadXlsxData(): XlsxRecord[] {
-  return cachedXlsxData ?? [];
-}
+/** 트렌드·예측·시즌 용도 (날짜 있음, 성별/연령 없음) */
+export function loadXlsxData(): XlsxRecord[] { return cachedXlsxData ?? []; }
+/** 성별/연령 브레이크다운 전용 */
+export function loadDemoData(): XlsxRecord[]  { return cachedDemoData ?? []; }
 
 export function getObjectives(): string[] {
   const data = loadXlsxData();

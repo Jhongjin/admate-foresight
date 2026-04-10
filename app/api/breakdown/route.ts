@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ensureDataLoaded } from '@/lib/xlsxLoader';
 import { getBreakdown } from '@/lib/trendsData';
 
 function parseList(val: string | null): string[] {
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest) {
     const ageRanges  = parseList(searchParams.get('ageRanges'));
     const objectives = parseList(searchParams.get('objectives'));
 
+    await ensureDataLoaded();
     const data = getBreakdown(industries, genders, ageRanges, objectives);
     return NextResponse.json(data);
   } catch (err) {
