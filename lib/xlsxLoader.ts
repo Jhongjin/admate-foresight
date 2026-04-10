@@ -147,13 +147,15 @@ export async function ensureDataLoaded(): Promise<void> {
 
 // ── RPC 헬퍼 ─────────────────────────────────────────────────────────────────
 async function fetchRpcAllPages<T>(
-  client: ReturnType<typeof import('@supabase/supabase-js')['createClient']>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
   fnName: string,
   args: Record<string, unknown> = {},
 ): Promise<T[]> {
   // 1) 총 행 수를 먼저 확인하기 위해 첫 페이지 요청 (count 헤더)
   const PAGE = 1_000;
-  const first = await client.rpc(fnName, { ...args, p_limit: PAGE, p_offset: 0 });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const first = await (client.rpc as any)(fnName, { ...args, p_limit: PAGE, p_offset: 0 });
   if (first.error) throw new Error(`RPC ${fnName} 오류: ${first.error.message}`);
   const firstRows = (first.data ?? []) as T[];
 
@@ -162,7 +164,8 @@ async function fetchRpcAllPages<T>(
   // 2) 나머지 페이지 수 파악 후 병렬 로딩 (BATCH=30 → Cloudflare 502 방지)
   // 총 행 수를 카운트 RPC로 가져옴
   const cntFn = fnName + '_count';
-  const { data: cntData, error: cntErr } = await client.rpc(cntFn);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: cntData, error: cntErr } = await (client.rpc as any)(cntFn);
   const total = cntErr ? firstRows.length : (Number(cntData) || firstRows.length);
 
   const offsets: number[] = [];
@@ -173,7 +176,7 @@ async function fetchRpcAllPages<T>(
   for (let i = 0; i < offsets.length; i += BATCH) {
     const batch = offsets.slice(i, i + BATCH);
     const results = await Promise.all(
-      batch.map((offset) => client.rpc(fnName, { ...args, p_limit: PAGE, p_offset: offset }))
+      batch.map((offset) => (client.rpc as any)(fnName, { ...args, p_limit: PAGE, p_offset: offset }))
     );
     for (const { data, error } of results) {
       if (error) throw new Error(`RPC ${fnName} 오류: ${error.message}`);
