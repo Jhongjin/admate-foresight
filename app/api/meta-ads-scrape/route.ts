@@ -101,7 +101,7 @@ function extractAdsFromHtml(html: string, limit: number) {
     // body 텍스트 추출
     // 구조: "body":{"text":"..."}  또는  "cards":[{"body":"..."}]
     const bodyObjMatch = chunk.match(/"body":\{"text":"([^"]+)"/);
-    const cardBodyMatch = chunk.match(/"cards":\[.*?"body":"([^"]{5,}?)"/s);
+    const cardBodyMatch = chunk.match(/"cards":\[[\s\S]*?"body":"([^"]{5,}?)"/);
     const body = decodeUnicode(
       (bodyObjMatch?.[1] || cardBodyMatch?.[1] || '').replace(/\\n/g, ' ').replace(/\\t/g, ' ')
     );
