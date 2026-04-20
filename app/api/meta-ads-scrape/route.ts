@@ -127,22 +127,37 @@ async function scrapeOnVercel(url: string, limit: number): Promise<AdResult[]> {
   let browser: any;
   try {
     const { chromium } = await import('playwright-core');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sparticuz = (await import('@sparticuz/chromium')) as any;
-    const chromiumArgs: string[] = sparticuz.default?.args ?? sparticuz.args ?? [];
-    const execPath: string = await (sparticuz.default?.executablePath ?? sparticuz.executablePath)();
 
-    console.log('[meta-ads-scrape] Vercel: sparticuz execPath:', execPath?.slice(0, 60));
+    // @sparticuz/chromium CJS 패키지: module.exports = Chromium 클래스 자체
+    // ESM dynamic import → { default: ChromiumClass }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sparticuzMod = await import('@sparticuz/chromium') as any;
+    const ChromiumClass = sparticuzMod.default ?? sparticuzMod;
+
+    console.log('[meta-ads-scrape] Vercel: resolving chromium executablePath...');
+    const t0 = Date.now();
+    const execPath: string = await ChromiumClass.executablePath();
+    console.log(`[meta-ads-scrape] Vercel: execPath resolved in ${Date.now() - t0}ms → ${String(execPath).slice(0, 80)}`);
+
+    const browserArgs: string[] = ChromiumClass.args ?? [];
 
     browser = await chromium.launch({
-      args: [...chromiumArgs, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: [
+        ...browserArgs,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+      ],
       executablePath: execPath,
       headless: true,
     });
+    console.log(`[meta-ads-scrape] Vercel: browser launched in ${Date.now() - t0}ms`);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       locale: 'ko-KR',
       viewport: { width: 1280, height: 900 },
     });
@@ -150,16 +165,18 @@ async function scrapeOnVercel(url: string, limit: number): Promise<AdResult[]> {
     const page = await context.newPage();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await page.route('**/*.{woff,woff2,ttf,png,jpg,jpeg,gif,webp,svg,ico,css,mp4,mp3,wav}', (route: any) => route.abort());
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(2000);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    await page.waitForTimeout(1500);
 
-    for (let i = 0; i < 4; i++) {
+    // 스크롤로 더 많은 광고 로드
+    for (let i = 0; i < 3; i++) {
       await page.evaluate(() => window.scrollBy(0, 1500));
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(400);
     }
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(800);
 
     const html: string = await page.content();
+    console.log(`[meta-ads-scrape] Vercel: page scraped in ${Date.now() - t0}ms, html length: ${html.length}`);
     await browser.close();
 
     return extractAdsFromHtml(html, limit);
@@ -255,9 +272,17 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ads, industry, searchTerm: searchKeyword, url, total: ads.length });
   } catch (err) {
-    console.error('[meta-ads-scrape] error:', err);
+    const errStr = String(err);
+    console.error('[meta-ads-scrape] error:', errStr);
     return NextResponse.json(
-      { error: '스크래핑 중 오류가 발생했습니다.', detail: String(err) },
+      {
+        error: '스크래핑 중 오류가 발생했습니다.',
+        detail: errStr,
+        env: isVercel ? 'vercel' : 'local',
+        tip: isVercel
+          ? 'Vercel: @sparticuz/chromium 실행 실패. Vercel 함수 로그를 확인하세요.'
+          : '로컬: scrape_worker.js 실행 실패. playwright chromium이 설치되어 있는지 확인하세요.',
+      },
       { status: 500 }
     );
   }
