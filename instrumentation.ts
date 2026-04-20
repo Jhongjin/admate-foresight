@@ -4,7 +4,9 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    // NODE_TLS_REJECT_UNAUTHORIZED = '0' 제거:
+    // Supabase는 정식 SSL 인증서를 사용하므로 TLS 검증 비활성화 불필요.
+    // 비활성화 시 프로세스 전체의 HTTPS 인증서 검증이 꺼져 보안 위험 발생.
     const { loadFromSupabase, setXlsxData, setDemoData } = await import('./lib/xlsxLoader');
     const { fitRegressionModels } = await import('./lib/regression');
 
