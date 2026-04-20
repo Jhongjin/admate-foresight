@@ -17,7 +17,9 @@ interface MetaAd {
 }
 
 /* ─── 상수 ─── */
+const ALL_LABEL = '전체';
 const INDUSTRIES = [
+  ALL_LABEL,
   '식음료', '의약/건기식', '패션', '뷰티', '생활/잡화', '기관/단체',
   '교육', '금융', '여행', '게임', '부동산', '자동차', '엔터', '가전제품', '유통', '화장품', '서비스',
 ];
@@ -84,7 +86,7 @@ function Skeleton() {
 
 /* ─── 메인 페이지 ─── */
 export default function CompetitorPage() {
-  const [industry, setIndustry] = useState('');
+  const [industry, setIndustry] = useState<string>(ALL_LABEL);
   const [keyword, setKeyword]   = useState('');
 
   const [ads, setAds]           = useState<MetaAd[]>([]);
@@ -93,22 +95,15 @@ export default function CompetitorPage() {
   const [searchLabel, setSearchLabel] = useState('');
   const [searchTerm, setSearchTerm]   = useState('');
 
-  // 페이지 진입 시 기본 업종(식음료) 자동 로드
-  useEffect(() => {
-    setIndustry('식음료');
-    setSearchLabel('식음료');
-    fetchMeta('식음료', '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   async function fetchMeta(ind: string, kw: string) {
     setLoading(true);
     setError('');
     setAds([]);
     try {
       const params = new URLSearchParams({ limit: '30' });
-      if (ind) params.set('industry', ind);
-      if (kw)  params.set('keyword', kw);
+      // 전체 선택 시 industry 파라미터 생략 → API 기본값(브랜드) 사용
+      if (ind && ind !== ALL_LABEL) params.set('industry', ind);
+      if (kw) params.set('keyword', kw);
       const res  = await fetch(`/api/meta-ads-scrape?${params}`);
       const data = await res.json();
       if (!res.ok) { setError(data.error || '오류가 발생했습니다.'); return; }
@@ -121,23 +116,27 @@ export default function CompetitorPage() {
     }
   }
 
-  function search(ind: string, kw: string) {
-    if (!ind && !kw.trim()) return;
-    setSearchLabel(ind || kw.trim());
-    fetchMeta(ind, kw);
-  }
+  // 페이지 진입 시 전체업종 자동 로드
+  useEffect(() => {
+    setSearchLabel(ALL_LABEL);
+    fetchMeta(ALL_LABEL, '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleIndustryClick(ind: string) {
-    const next = industry === ind ? '' : ind;
-    setIndustry(next);
+    if (industry === ind) return; // 같은 업종 클릭 시 무시
+    setIndustry(ind);
     setKeyword('');
-    if (next) search(next, '');
-    else { setAds([]); setSearchLabel(''); }
+    setSearchLabel(ind);
+    fetchMeta(ind, '');
   }
 
   function handleKeywordSearch() {
+    const kw = keyword.trim();
+    if (!kw) return;
     setIndustry('');
-    search('', keyword.trim());
+    setSearchLabel(kw);
+    fetchMeta('', kw);
   }
 
   return (
@@ -178,39 +177,40 @@ export default function CompetitorPage() {
         <div>
           <label className="text-sm font-medium text-gray-700 block mb-2">업종별 빠른 탐색</label>
           <div className="flex flex-wrap gap-2">
-            {INDUSTRIES.map((ind) => (
-              <button key={ind} type="button" onClick={() => handleIndustryClick(ind)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                  industry === ind
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                }`}>
-                {ind}
-              </button>
-            ))}
+            {INDUSTRIES.map((ind) => {
+              const isAll = ind === ALL_LABEL;
+              const isActive = industry === ind && !keyword.trim();
+              return (
+                <button
+                  key={ind}
+                  type="button"
+                  onClick={() => handleIndustryClick(ind)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    isActive
+                      ? isAll
+                        ? 'bg-gray-800 text-white border-gray-800'
+                        : 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  }`}
+                >
+                  {isAll ? '🌐 전체업종' : ind}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
-
-      {/* 초기 안내 */}
-      {!loading && ads.length === 0 && !error && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 flex flex-col items-center gap-3 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
-            <svg className="w-7 h-7 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm3.5 6H14c-.55 0-1 .45-1 1v1.5h2.5l-.5 2.5H13V19h-2.5v-6H9v-2.5h1.5V9c0-1.93 1.57-3.5 3.5-3.5h1.5V8z"/>
-            </svg>
-          </div>
-          <p className="text-gray-500 text-sm font-medium">업종을 선택하거나 키워드를 검색하세요</p>
-          <p className="text-gray-400 text-xs">Meta 광고 라이브러리에서 실제 집행 중인 소재를 불러옵니다</p>
-        </div>
-      )}
 
       {/* 로딩 */}
       {loading && (
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-3.5 h-3.5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-            <span className="text-xs text-blue-500">Meta 광고 소재 수집 중...</span>
+            <span className="text-xs text-blue-500">
+              Meta 광고 소재 수집 중
+              {searchLabel && searchLabel !== ALL_LABEL ? ` — ${searchLabel}` : ' (전체업종)'}
+              ...
+            </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} />)}
@@ -224,7 +224,11 @@ export default function CompetitorPage() {
           <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
             <div>
               <h2 className="text-base font-semibold text-gray-800">
-                <span className="text-indigo-600">{searchLabel}</span> 광고 소재
+                {searchLabel === ALL_LABEL
+                  ? <span className="text-gray-700">전체업종</span>
+                  : <span className="text-indigo-600">{searchLabel}</span>
+                }
+                {' '}광고 소재
                 <span className="ml-2 text-sm font-normal text-gray-400">{ads.length}개</span>
               </h2>
             </div>

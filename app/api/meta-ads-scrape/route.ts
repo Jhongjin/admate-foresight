@@ -121,7 +121,15 @@ function extractAdsFromHtml(html: string, limit: number): AdResult[] {
   return results;
 }
 
-/** Vercel 서버리스: playwright-core + @sparticuz/chromium 으로 직접 실행 */
+// Vercel에서 @sparticuz/chromium bin 폴더가 배포에 포함되지 않는 문제 우회:
+// 런타임에 GitHub Releases에서 Chromium 바이너리를 /tmp로 다운로드하는 방식 사용.
+// 환경변수 CHROMIUM_REMOTE_URL을 Vercel 프로젝트 설정에 추가하면 해당 URL 사용,
+// 없으면 기본 v147 URL 사용 (/tmp/chromium에 캐시되므로 두 번째 요청부터 빠름).
+const CHROMIUM_REMOTE_URL =
+  process.env.CHROMIUM_REMOTE_URL ??
+  'https://github.com/Sparticuz/chromium/releases/download/v147.0.0/chromium-v147.0.0-pack.tar';
+
+/** Vercel 서버리스: playwright-core + @sparticuz/chromium 런타임 다운로드 방식 */
 async function scrapeOnVercel(url: string, limit: number): Promise<AdResult[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let browser: any;
@@ -129,14 +137,14 @@ async function scrapeOnVercel(url: string, limit: number): Promise<AdResult[]> {
     const { chromium } = await import('playwright-core');
 
     // @sparticuz/chromium CJS 패키지: module.exports = Chromium 클래스 자체
-    // ESM dynamic import → { default: ChromiumClass }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sparticuzMod = await import('@sparticuz/chromium') as any;
     const ChromiumClass = sparticuzMod.default ?? sparticuzMod;
 
-    console.log('[meta-ads-scrape] Vercel: resolving chromium executablePath...');
+    // /tmp/chromium 이미 있으면 재사용(warm start), 없으면 GitHub에서 다운로드
+    console.log('[meta-ads-scrape] Vercel: resolving chromium executablePath via remote URL...');
     const t0 = Date.now();
-    const execPath: string = await ChromiumClass.executablePath();
+    const execPath: string = await ChromiumClass.executablePath(CHROMIUM_REMOTE_URL);
     console.log(`[meta-ads-scrape] Vercel: execPath resolved in ${Date.now() - t0}ms → ${String(execPath).slice(0, 80)}`);
 
     const browserArgs: string[] = ChromiumClass.args ?? [];
