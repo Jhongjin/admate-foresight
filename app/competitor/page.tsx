@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /* ─── 타입 ─── */
 interface MetaAd {
@@ -92,6 +92,14 @@ export default function CompetitorPage() {
   const [error, setError]       = useState('');
   const [searchLabel, setSearchLabel] = useState('');
   const [searchTerm, setSearchTerm]   = useState('');
+
+  // 페이지 진입 시 기본 업종(식음료) 자동 로드
+  useEffect(() => {
+    setIndustry('식음료');
+    setSearchLabel('식음료');
+    fetchMeta('식음료', '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function fetchMeta(ind: string, kw: string) {
     setLoading(true);

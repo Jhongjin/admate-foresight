@@ -3,6 +3,11 @@ import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
+// Vercel serverless 환경에서 timeout 설정 (60초 = Hobby 최대, Pro는 300초까지 가능)
+export const maxDuration = 60;
+
+const isVercel = !!process.env.VERCEL;
+
 const INDUSTRY_KEYWORDS: Record<string, string> = {
   '식음료':      '식음료',
   '의약/건기식': '건강기능식품',
@@ -24,52 +29,34 @@ const INDUSTRY_KEYWORDS: Record<string, string> = {
   '기타':        '브랜드',
 };
 
-interface AdCard {
-  body?: string;
-  title?: string;
-  link_url?: string;
-  cta_type?: string;
-  resized_image_url?: string;
-  original_image_url?: string;
+interface AdResult {
+  id: string;
+  page_name: string;
+  body: string;
+  title: string;
+  caption: string;
+  cta: string;
+  snapshot_url: string;
+  start_date: string;
+  image_url: string;
+  profile_image: string;
 }
 
-interface AdSnapshot {
-  page_name?: string;
-  page_profile_picture_url?: string;
-  caption?: string;
-  cta_text?: string;
-  body?: { markup?: { __html?: string }; text?: string };
-  cards?: AdCard[];
-  images?: { resized_image_url?: string; original_image_url?: string }[];
-  videos?: { video_preview_image_url?: string }[];
-  start_date?: number;
-  end_date?: number;
+function decodeUnicode(str: string): string {
+  return str.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) =>
+    String.fromCharCode(parseInt(code, 16))
+  );
 }
 
-interface RawAdNode {
-  ad_archive_id?: string;
-  page_id?: string;
-  start_date?: number;
-  end_date?: number;
-  snapshot?: AdSnapshot;
+function unescapeUrl(str: string): string {
+  return str.replace(/\\\//g, '/').replace(/\\u([0-9a-fA-F]{4})/g, (_, code) =>
+    String.fromCharCode(parseInt(code, 16))
+  );
 }
 
-function extractAdsFromHtml(html: string, limit: number) {
-  // HTML 내 embedded JSON에서 ad_archive_id 블록들을 추출
-  const results: {
-    id: string;
-    page_name: string;
-    body: string;
-    title: string;
-    caption: string;
-    cta: string;
-    snapshot_url: string;
-    start_date: string;
-    image_url: string;
-    profile_image: string;
-  }[] = [];
+function extractAdsFromHtml(html: string, limit: number): AdResult[] {
+  const results: AdResult[] = [];
 
-  // 1) 모든 ad_archive_id 위치 수집 (중복 제거)
   const allMatches: { id: string; index: number }[] = [];
   const seenForPos = new Set<string>();
   {
@@ -90,46 +77,36 @@ function extractAdsFromHtml(html: string, limit: number) {
     if (seenIds.has(archiveId)) continue;
     seenIds.add(archiveId);
 
-    // 다음 ad 시작점까지만 청크로 사용 (없으면 +25000)
     const nextIndex = allMatches[i + 1]?.index ?? matchIndex + 25000;
     const chunk = html.substring(Math.max(0, matchIndex - 200), nextIndex);
 
-    // page_name 추출
     const pageNameMatch = chunk.match(/"page_name":"([^"]+)"/);
     const pageName = pageNameMatch ? decodeUnicode(pageNameMatch[1]) : '';
 
-    // body 텍스트 추출
-    // 구조: "body":{"text":"..."}  또는  "cards":[{"body":"..."}]
     const bodyObjMatch = chunk.match(/"body":\{"text":"([^"]+)"/);
     const cardBodyMatch = chunk.match(/"cards":\[[\s\S]*?"body":"([^"]{5,}?)"/);
     const body = decodeUnicode(
       (bodyObjMatch?.[1] || cardBodyMatch?.[1] || '').replace(/\\n/g, ' ').replace(/\\t/g, ' ')
     );
 
-    // 타이틀 (cards 안 title, null이 아닌 경우만)
-    const cardTitleMatch = chunk.match(/"cards":\[.*?"title":"([^"]{3,}?)"/s);
+    const cardTitleMatch = chunk.match(/"cards":\[[\s\S]*?"title":"([^"]{3,}?)"/);
     const simpleTitleMatch = chunk.match(/"title":"([^"]{3,2000})"/);
     const title = decodeUnicode(cardTitleMatch?.[1] || simpleTitleMatch?.[1] || '');
 
-    // caption (도메인)
     const captionMatch = chunk.match(/"caption":"([^"]{3,200})"/);
     const caption = decodeUnicode(captionMatch?.[1] || '');
 
-    // CTA 텍스트
     const ctaMatch = chunk.match(/"cta_text":"([^"]+)"/);
     const cta = decodeUnicode(ctaMatch?.[1] || '');
 
-    // 이미지 URL
     const imgMatch = chunk.match(/"resized_image_url":"(https:\\\/\\\/[^"]+)"/);
     const imgMatch2 = chunk.match(/"original_image_url":"(https:\\\/\\\/[^"]+)"/);
     const videoThumbMatch = chunk.match(/"video_preview_image_url":"(https:\\\/\\\/[^"]+)"/);
     const imageUrl = unescapeUrl(imgMatch?.[1] || imgMatch2?.[1] || videoThumbMatch?.[1] || '');
 
-    // 프로필 이미지
     const profileMatch = chunk.match(/"page_profile_picture_url":"(https:\\\/\\\/[^"]+)"/);
     const profileImage = unescapeUrl(profileMatch?.[1] || '');
 
-    // 시작일 (start_date는 멀리 있으므로 넓은 범위 탐색)
     const startDateMatch = chunk.match(/"start_date":(\d{9,10})/);
     const startDate = startDateMatch
       ? new Date(parseInt(startDateMatch[1]) * 1000).toISOString().slice(0, 10)
@@ -144,36 +121,58 @@ function extractAdsFromHtml(html: string, limit: number) {
   return results;
 }
 
-function decodeUnicode(str: string): string {
-  return str.replace(/\\u([0-9a-fA-F]{4})/g, (_, code) =>
-    String.fromCharCode(parseInt(code, 16))
-  );
+/** Vercel 서버리스: playwright-core + @sparticuz/chromium 으로 직접 실행 */
+async function scrapeOnVercel(url: string, limit: number): Promise<AdResult[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let browser: any;
+  try {
+    const { chromium } = await import('playwright-core');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sparticuz = (await import('@sparticuz/chromium')) as any;
+    const chromiumArgs: string[] = sparticuz.default?.args ?? sparticuz.args ?? [];
+    const execPath: string = await (sparticuz.default?.executablePath ?? sparticuz.executablePath)();
+
+    console.log('[meta-ads-scrape] Vercel: sparticuz execPath:', execPath?.slice(0, 60));
+
+    browser = await chromium.launch({
+      args: [...chromiumArgs, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      executablePath: execPath,
+      headless: true,
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      locale: 'ko-KR',
+      viewport: { width: 1280, height: 900 },
+    });
+
+    const page = await context.newPage();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await page.route('**/*.{woff,woff2,ttf,png,jpg,jpeg,gif,webp,svg,ico,css,mp4,mp3,wav}', (route: any) => route.abort());
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    for (let i = 0; i < 4; i++) {
+      await page.evaluate(() => window.scrollBy(0, 1500));
+      await page.waitForTimeout(500);
+    }
+    await page.waitForTimeout(1000);
+
+    const html: string = await page.content();
+    await browser.close();
+
+    return extractAdsFromHtml(html, limit);
+  } catch (err) {
+    if (browser) await browser.close().catch(() => null);
+    throw err;
+  }
 }
 
-function unescapeUrl(str: string): string {
-  return str.replace(/\\\//g, '/').replace(/\\u([0-9a-fA-F]{4})/g, (_, code) =>
-    String.fromCharCode(parseInt(code, 16))
-  );
-}
-
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const industry = searchParams.get('industry') || '';
-  const kw       = searchParams.get('keyword')  || '';
-  const limit    = Math.min(parseInt(searchParams.get('limit') || '30'), 60);
-
-  const isPageSearch = !industry && !!kw;
-  const searchKeyword = kw || INDUSTRY_KEYWORDS[industry] || industry || '브랜드';
-
-  // 항상 keyword_unordered로 시작 (page 타입은 페이지 선택 UI를 보여줘서 자동화 불가)
-  const url = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(searchKeyword)}&search_type=keyword_unordered`;
-
-  // Next.js 번들링 환경에서 playwright가 chromium 경로를 못 찾는 문제 우회:
-  // 독립 Node.js 프로세스(scrape_worker.js)를 child_process로 실행
+/** 로컬 개발: child_process spawn으로 scrape_worker.js 실행 */
+async function scrapeLocal(url: string, limit: number): Promise<AdResult[]> {
   const workerPath = path.join(process.cwd(), 'scripts', 'scrape_worker.js');
 
-  // Next.js 프로세스에서 chromium 경로를 미리 탐색해서 worker에 전달
-  // (worker 내부에서 fs.existsSync가 실패하는 문제 우회)
   function findChromiumPath(): string {
     const localAppData = process.env.LOCALAPPDATA || '';
     const playwrightDir = path.join(localAppData, 'ms-playwright');
@@ -196,33 +195,50 @@ export async function GET(req: NextRequest) {
   }
   const chromiumPath = findChromiumPath();
 
-  try {
-    type AdResult = { id: string; page_name: string; body: string; title: string; caption: string; cta: string; snapshot_url: string; start_date: string; image_url: string; profile_image: string };
-    const rawAds: AdResult[] = await new Promise((resolve, reject) => {
-      let stdout = '';
-      let stderr = '';
-      const workerArgs = [workerPath, url, String(limit * 4)];
-      if (chromiumPath) workerArgs.push(chromiumPath);
-      const child = spawn(process.execPath, workerArgs, {
-        timeout: 55000,
-        windowsHide: true,
-        env: { ...process.env },
-      });
-      child.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
-      child.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
-      child.on('close', (code: number) => {
-        try {
-          const parsed = JSON.parse(stdout);
-          if (parsed.error) return reject(new Error(parsed.error));
-          resolve(parsed.ads || []);
-        } catch {
-          reject(new Error(`exit=${code} stderr=${stderr.substring(0, 400)} stdout=${stdout.substring(0, 200)}`));
-        }
-      });
-      child.on('error', reject);
+  return new Promise((resolve, reject) => {
+    let stdout = '';
+    let stderr = '';
+    const workerArgs = [workerPath, url, String(limit * 4)];
+    if (chromiumPath) workerArgs.push(chromiumPath);
+    const child = spawn(process.execPath, workerArgs, {
+      timeout: 55000,
+      windowsHide: true,
+      env: { ...process.env },
     });
+    child.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+    child.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
+    child.on('close', (code: number) => {
+      try {
+        const parsed = JSON.parse(stdout);
+        if (parsed.error) return reject(new Error(parsed.error));
+        resolve(parsed.ads || []);
+      } catch {
+        reject(new Error(`exit=${code} stderr=${stderr.substring(0, 400)} stdout=${stdout.substring(0, 200)}`));
+      }
+    });
+    child.on('error', reject);
+  });
+}
 
-    let ads;
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const industry = searchParams.get('industry') || '';
+  const kw       = searchParams.get('keyword')  || '';
+  const limit    = Math.min(parseInt(searchParams.get('limit') || '30'), 60);
+
+  const isPageSearch = !industry && !!kw;
+  const searchKeyword = kw || INDUSTRY_KEYWORDS[industry] || industry || '브랜드';
+
+  const url = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(searchKeyword)}&search_type=keyword_unordered`;
+
+  try {
+    console.log(`[meta-ads-scrape] env=Vercel:${isVercel} industry="${industry}" kw="${kw}" → keyword="${searchKeyword}"`);
+
+    const rawAds = isVercel
+      ? await scrapeOnVercel(url, limit * 4)
+      : await scrapeLocal(url, limit);
+
+    let ads: AdResult[];
     if (isPageSearch) {
       const kwNorm = searchKeyword.toLowerCase().replace(/\s+/g, '');
       const exact   = rawAds.filter(ad => ad.page_name.toLowerCase().replace(/\s+/g, '') === kwNorm);
