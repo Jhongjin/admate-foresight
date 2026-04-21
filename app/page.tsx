@@ -7,27 +7,9 @@ import {
 } from 'recharts';
 import KPICard from '@/components/KPICard';
 import BudgetSlider from '@/components/BudgetSlider';
+import DurationSlider, { STEPS as DURATION_STEPS } from '@/components/DurationSlider';
 import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
-
-const DURATION_OPTIONS = [
-  { label: '1주', days: 7 },
-  { label: '2주', days: 14 },
-  { label: '3주', days: 21 },
-  { label: '4주', days: 28 },
-  { label: '1개월', days: 30 },
-  { label: '2개월', days: 60 },
-  { label: '3개월', days: 90 },
-  { label: '4개월', days: 120 },
-  { label: '5개월', days: 150 },
-  { label: '6개월', days: 180 },
-  { label: '7개월', days: 210 },
-  { label: '8개월', days: 240 },
-  { label: '9개월', days: 270 },
-  { label: '10개월', days: 300 },
-  { label: '11개월', days: 330 },
-  { label: '12개월', days: 360 },
-];
 
 const ALL_GENDERS = [
   { value: 'male', label: '남성' },
@@ -188,7 +170,7 @@ export default function SimulatorPage() {
     ? '전체'
     : objectives.map((o) => OBJECTIVE_LABELS[o] ?? o).join(', ');
 
-  const durationLabel = DURATION_OPTIONS.find(d => d.days === campaignDays)?.label ?? `${campaignDays}일`;
+  const durationLabel = DURATION_STEPS.find(d => d.days === campaignDays)?.label ?? `${campaignDays}일`;
 
   const tags = [
     { label: '총 예산', value: `₩${budget.toLocaleString()}` },
@@ -270,25 +252,7 @@ export default function SimulatorPage() {
           <div className="border-t border-gray-50" />
 
           {/* 2. 캠페인 기간 */}
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">캠페인 기간</label>
-            <div className="flex gap-2 pt-1 flex-wrap">
-              {DURATION_OPTIONS.map(({ label, days }) => (
-                <button
-                  key={days}
-                  type="button"
-                  onClick={() => setCampaignDays(days)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                    campaignDays === days
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <DurationSlider days={campaignDays} onChange={setCampaignDays} />
 
           <div className="border-t border-gray-50" />
 
