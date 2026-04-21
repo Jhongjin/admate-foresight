@@ -13,9 +13,20 @@ import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 const DURATION_OPTIONS = [
   { label: '1주', days: 7 },
   { label: '2주', days: 14 },
+  { label: '3주', days: 21 },
+  { label: '4주', days: 28 },
   { label: '1개월', days: 30 },
   { label: '2개월', days: 60 },
   { label: '3개월', days: 90 },
+  { label: '4개월', days: 120 },
+  { label: '5개월', days: 150 },
+  { label: '6개월', days: 180 },
+  { label: '7개월', days: 210 },
+  { label: '8개월', days: 240 },
+  { label: '9개월', days: 270 },
+  { label: '10개월', days: 300 },
+  { label: '11개월', days: 330 },
+  { label: '12개월', days: 360 },
 ];
 
 const ALL_GENDERS = [
@@ -242,7 +253,7 @@ export default function SimulatorPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">성과 예측 시뮬레이터 v2</h1>
+        <h1 className="text-2xl font-bold text-gray-900">성과 예측 시뮬레이터</h1>
         <p className="text-sm text-gray-500 mt-1">캠페인 조건을 입력하면 예상 성과를 실시간으로 예측합니다.</p>
       </div>
 
@@ -260,10 +271,7 @@ export default function SimulatorPage() {
 
           {/* 2. 캠페인 기간 */}
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">
-              캠페인 기간
-              <span className="ml-1.5 text-xs font-normal text-gray-400">— 총 집행 기간에 맞춰 예상 도달이 자동 계산됩니다</span>
-            </label>
+            <label className="text-sm font-medium text-gray-700">캠페인 기간</label>
             <div className="flex gap-2 pt-1 flex-wrap">
               {DURATION_OPTIONS.map(({ label, days }) => (
                 <button
@@ -306,7 +314,6 @@ export default function SimulatorPage() {
                 </button>
               )}
             </div>
-            {objectives.length === 0 && <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>}
           </div>
 
           <div className="border-t border-gray-50" />
@@ -347,7 +354,6 @@ export default function SimulatorPage() {
                     초기화
                   </button>
                 )}
-                {genders.length === 0 && <span className="text-xs text-gray-400 self-center">선택 없음 = 전체</span>}
               </div>
             </div>
 
@@ -372,7 +378,6 @@ export default function SimulatorPage() {
                     초기화
                   </button>
                 )}
-                {ageRanges.length === 0 && <span className="text-xs text-gray-400 self-center">선택 없음 = 전체</span>}
               </div>
             </div>
           </div>
