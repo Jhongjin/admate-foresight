@@ -243,7 +243,7 @@ export default function SimulatorPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">성과 예측 시뮬레이터</h1>
+        <h1 className="text-2xl font-bold text-gray-900">성과 예측 시뮬레이터 v2</h1>
         <p className="text-sm text-gray-500 mt-1">캠페인 조건을 입력하면 예상 성과를 실시간으로 예측합니다.</p>
       </div>
 
