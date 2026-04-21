@@ -259,13 +259,13 @@ export default function SimulatorPage() {
                 type="number"
                 value={budgetInput}
                 min={1_000_000}
-                max={100_000_000}
-                step={500_000}
+                max={5_000_000_000}
+                step={1_000_000}
                 onChange={(e) => setBudgetInput(e.target.value)}
                 onBlur={(e) => {
                   const v = parseInt(e.target.value.replace(/,/g, ''), 10);
                   if (!isNaN(v)) {
-                    const clamped = Math.min(100_000_000, Math.max(1_000_000, v));
+                    const clamped = Math.min(5_000_000_000, Math.max(1_000_000, v));
                     setBudget(clamped);
                     setBudgetInput(String(clamped));
                   } else {

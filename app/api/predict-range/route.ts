@@ -4,13 +4,15 @@ import { ensureDataLoaded } from '@/lib/xlsxLoader';
 
 const BUDGET_LEVELS = [
   1_000_000,
-  3_000_000,
   5_000_000,
   10_000_000,
-  20_000_000,
   30_000_000,
-  50_000_000,
   100_000_000,
+  300_000_000,
+  500_000_000,
+  1_000_000_000,
+  3_000_000_000,
+  5_000_000_000,
 ];
 
 export async function POST(req: NextRequest) {
