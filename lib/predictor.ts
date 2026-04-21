@@ -250,12 +250,17 @@ export function predict(input: PredictInput): PredictResult {
   }
 
   if (regResult && regResult.cpm > 0) {
-    // 회귀 성공: CPM/CPC/VTR은 회귀값, CPV/CPCLink는 가중평균(데이터 희소)
+    // 회귀 성공: CPM/CPC는 회귀값, VTR/CPV/CPCLink는 필터링된 가중평균
+    // (VTR은 회귀 계수가 Ridge로 수렴해 필터 변화에 둔감 → 가중평균이 더 정확)
     cpm     = regResult.cpm;
     cpc     = regResult.cpc;
     cpcLink = regResult.cpcLink > 0 ? regResult.cpcLink : Math.round(weightedCPCLink(matched));
-    vtr     = regResult.vtr;
     cpv     = Math.round(weightedCPV(matched) * 10) / 10;
+    // VTR: 영상 데이터가 있는 행만 가중평균 → 없으면 회귀값 폴백
+    const videoMatched = matched.filter(r => r.영상조회수 > 0 && r.노출 > 0);
+    vtr = videoMatched.length >= 5
+      ? Math.round(calcVTR(videoMatched) * 100) / 100
+      : regResult.vtr;
     r2Cpm   = regResult.r2Cpm;
     r2Cpc   = regResult.r2Cpc;
     r2Vtr   = regResult.r2VTR;
