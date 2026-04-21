@@ -1,5 +1,5 @@
 import { loadAdData } from './csvLoader';
-import { XlsxRecord, loadXlsxData } from './xlsxLoader';
+import { XlsxRecord, loadXlsxData, loadDemoData } from './xlsxLoader';
 import { predictByRegression } from './regression';
 
 export interface PredictInput {
@@ -256,11 +256,28 @@ export function predict(input: PredictInput): PredictResult {
     cpc     = regResult.cpc;
     cpcLink = regResult.cpcLink > 0 ? regResult.cpcLink : Math.round(weightedCPCLink(matched));
     cpv     = Math.round(weightedCPV(matched) * 10) / 10;
-    // VTR: 영상 데이터가 있는 행만 가중평균 → 없으면 회귀값 폴백
+    // VTR 계산: 성별/연령 → 데모 데이터, 목표/업종 → 월간 데이터, 폴백 → 회귀
+    const demoData = loadDemoData();
+    const demoVideoRecs = demoData.filter(r => {
+      if (r.영상조회수 <= 0 || r.노출 <= 0) return false;
+      if (industries.length > 0 && !industries.includes(r.업종)) return false;
+      if (objectives.length > 0 && !objectives.includes(r.목표)) return false;
+      if (genders.length > 0 && !genders.includes(r.성별)) return false;
+      if (ageRanges.length > 0 && !ageRanges.includes(r.연령)) return false;
+      return true;
+    });
+    const allVideoRecs = xlsxData.filter(r => r.영상조회수 > 0 && r.노출 > 0);
     const videoMatched = matched.filter(r => r.영상조회수 > 0 && r.노출 > 0);
-    vtr = videoMatched.length >= 5
-      ? Math.round(calcVTR(videoMatched) * 100) / 100
-      : regResult.vtr;
+    const hasGenderAge = genders.length > 0 || ageRanges.length > 0;
+    if (hasGenderAge && demoVideoRecs.length > 0) {
+      vtr = Math.round(calcVTR(demoVideoRecs) * 100) / 100;
+    } else if (videoMatched.length > 0) {
+      vtr = Math.round(calcVTR(videoMatched) * 100) / 100;
+    } else if (allVideoRecs.length > 0) {
+      vtr = Math.round(calcVTR(allVideoRecs) * 100) / 100;
+    } else {
+      vtr = regResult.vtr;
+    }
     r2Cpm   = regResult.r2Cpm;
     r2Cpc   = regResult.r2Cpc;
     r2Vtr   = regResult.r2VTR;

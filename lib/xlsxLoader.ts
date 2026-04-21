@@ -199,7 +199,8 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
     avg_cpm:number; avg_cpc:number; avg_cpc_link:number; avg_영상조회비용:number;
     sum_도달:number; sum_노출:number; sum_지출금액:number; avg_빈도:number; sum_영상조회수:number; };
   type DemoRow  = { 업종:string; 목표:string; 성별:string; 연령:string;
-    avg_cpm:number; avg_cpc:number; sum_도달:number; sum_노출:number; sum_지출금액:number; };
+    avg_cpm:number; avg_cpc:number; sum_도달:number; sum_노출:number; sum_지출금액:number;
+    sum_영상조회수:number; };
 
   const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '(없음)';
   console.log('[xlsxLoader] 집계 데이터 병렬 로딩 시작... URL:', supaUrl.slice(0, 30));
@@ -223,7 +224,8 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
     CPM: Number(r.avg_cpm) || 0, CPC: Number(r.avg_cpc) || 0,
     CPC링크: 0, 영상조회비용: 0,
     도달: Number(r.sum_도달) || 0, 노출: Number(r.sum_노출) || 0,
-    지출금액: Number(r.sum_지출금액) || 0, 빈도: 0, 영상조회수: 0,
+    지출금액: Number(r.sum_지출금액) || 0, 빈도: 0,
+    영상조회수: Number(r.sum_영상조회수) || 0,
   }));
 
   console.log(`[xlsxLoader] 완료 — monthly:${monthly.length}행, demo:${demo.length}행`);
