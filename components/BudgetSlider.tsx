@@ -21,7 +21,7 @@ export default function BudgetSlider({ value, onChange }: BudgetSliderProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-gray-700">월 예산 (Budget)</label>
+        <label className="text-sm font-medium text-gray-700">총 캠페인 예산</label>
         <span className="text-sm font-bold text-indigo-600">₩{value.toLocaleString()}</span>
       </div>
 

@@ -10,6 +10,14 @@ import BudgetSlider from '@/components/BudgetSlider';
 import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 
+const DURATION_OPTIONS = [
+  { label: '1주', days: 7 },
+  { label: '2주', days: 14 },
+  { label: '1개월', days: 30 },
+  { label: '2개월', days: 60 },
+  { label: '3개월', days: 90 },
+];
+
 const ALL_GENDERS = [
   { value: 'male', label: '남성' },
   { value: 'female', label: '여성' },
@@ -61,20 +69,13 @@ function formatBudget(v: number) {
   return `${v / 10_000}만`;
 }
 
-function formatMonth(m: string) {
-  if (!m) return '전체';
-  const [y, mo] = m.split('-');
-  return `${y}년 ${parseInt(mo)}월`;
-}
 
 export default function SimulatorPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
-  const [availableMonths, setAvailableMonths] = useState<string[]>([]); // YYYY-MM[], 최신순
 
-  // 기준 기간 (YYYY-MM)
-  const [monthFrom, setMonthFrom] = useState<string>('');
-  const [monthTo, setMonthTo] = useState<string>('');
+  // 캠페인 기간 (일수)
+  const [campaignDays, setCampaignDays] = useState(30);
 
   // Multi-select state (empty = 전체)
   const [industries, setIndustries] = useState<string[]>([]);
@@ -98,13 +99,6 @@ export default function SimulatorPage() {
       .then((f) => {
         setAvailableIndustries(f.industries);
         setAvailableObjectives(f.objectives ?? []);
-        const months: string[] = f.months ?? []; // 최신순
-        setAvailableMonths(months);
-        // 기본값: 전체 기간 (가장 오래된 ~ 가장 최근)
-        if (months.length > 0) {
-          setMonthTo(months[0]);
-          setMonthFrom(months[months.length - 1]);
-        }
       })
       .catch(console.error);
   }, []);
@@ -139,19 +133,22 @@ export default function SimulatorPage() {
     finally { setRangeLoading(false); }
   }, []);
 
+  // 총 예산 → 월 환산 예산 (predict API는 월 기준)
+  const monthlyBudget = Math.round(budget * (30 / campaignDays));
+
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchPrediction({ industries, genders, ageRanges, objectives, budget, monthFrom: monthFrom || undefined, monthTo: monthTo || undefined });
+      fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
     }, 300);
-  }, [industries, genders, ageRanges, objectives, budget, monthFrom, monthTo, fetchPrediction]);
+  }, [industries, genders, ageRanges, objectives, monthlyBudget, fetchPrediction]);
 
   useEffect(() => {
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
     rangeDebounceRef.current = setTimeout(() => {
-      fetchRange({ industries, genders, ageRanges, objectives, monthFrom: monthFrom || undefined, monthTo: monthTo || undefined });
+      fetchRange({ industries, genders, ageRanges, objectives });
     }, 400);
-  }, [industries, genders, ageRanges, objectives, monthFrom, monthTo, fetchRange]);
+  }, [industries, genders, ageRanges, objectives, fetchRange]);
 
   function toggleGender(value: string) {
     setGenders((prev) =>
@@ -180,20 +177,22 @@ export default function SimulatorPage() {
     ? '전체'
     : objectives.map((o) => OBJECTIVE_LABELS[o] ?? o).join(', ');
 
-  const periodLabel = monthFrom && monthTo
-    ? `${formatMonth(monthFrom)} ~ ${formatMonth(monthTo)}`
-    : monthFrom ? `${formatMonth(monthFrom)} ~` : monthTo ? `~ ${formatMonth(monthTo)}` : '전체';
+  const durationLabel = DURATION_OPTIONS.find(d => d.days === campaignDays)?.label ?? `${campaignDays}일`;
 
   const tags = [
-    { label: '예산', value: `₩${budget.toLocaleString()}` },
-    { label: '캠페인 기간', value: periodLabel },
+    { label: '총 예산', value: `₩${budget.toLocaleString()}` },
+    { label: '캠페인 기간', value: durationLabel },
     { label: '캠페인 목표', value: objectiveLabel },
     { label: '업종', value: industryLabel },
     { label: '성별', value: genderLabel },
     { label: '연령대', value: ageLabel },
   ];
 
-  // Chart data
+  // 기간 스케일 팩터 (월 기준 예측값 → 캠페인 기간 환산)
+  const durationFactor = campaignDays / 30;
+  const totalReach = result ? Math.round(result.reach * durationFactor) : 0;
+
+  // Chart data (range chart는 월 기준 유지)
   const chartData = rangeData.map((p) => ({
     ...p,
     label: formatBudget(p.budget),
@@ -260,43 +259,28 @@ export default function SimulatorPage() {
           <div className="border-t border-gray-50" />
 
           {/* 2. 캠페인 기간 */}
-          {availableMonths.length > 0 && (() => {
-            const sortedMonths = [...availableMonths].sort();
-            const years = [...new Set(sortedMonths.map((m) => m.slice(0, 4)))];
-            const monthsForYear = (y: string) => sortedMonths.filter((m) => m.startsWith(y)).map((m) => m.slice(5));
-            const fromYear = monthFrom.slice(0, 4);
-            const fromMon  = monthFrom.slice(5);
-            const toYear   = monthTo.slice(0, 4);
-            const toMon    = monthTo.slice(5);
-            const selectCls = 'px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-indigo-400 cursor-pointer';
-            return (
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">
-                  캠페인 기간
-                  <span className="ml-1.5 text-xs font-normal text-gray-400">— 집행 예정 기간을 설정하면 해당 시즌 데이터 기반으로 예측합니다</span>
-                </label>
-                <div className="flex items-center gap-2 pt-1 flex-wrap">
-                  <div className="flex items-center gap-1">
-                    <select value={fromYear} onChange={(e) => { const y = e.target.value; const months = monthsForYear(y); const mo = months.includes(fromMon) ? fromMon : months[0]; setMonthFrom(`${y}-${mo}`); }} className={selectCls}>
-                      {years.map((y) => <option key={y} value={y}>{y}년</option>)}
-                    </select>
-                    <select value={fromMon} onChange={(e) => setMonthFrom(`${fromYear}-${e.target.value}`)} className={selectCls}>
-                      {monthsForYear(fromYear).map((m) => <option key={m} value={m}>{parseInt(m)}월</option>)}
-                    </select>
-                  </div>
-                  <span className="text-gray-400 text-sm font-medium px-1">~</span>
-                  <div className="flex items-center gap-1">
-                    <select value={toYear} onChange={(e) => { const y = e.target.value; const months = monthsForYear(y); const mo = months.includes(toMon) ? toMon : months[months.length - 1]; setMonthTo(`${y}-${mo}`); }} className={selectCls}>
-                      {years.map((y) => <option key={y} value={y}>{y}년</option>)}
-                    </select>
-                    <select value={toMon} onChange={(e) => setMonthTo(`${toYear}-${e.target.value}`)} className={selectCls}>
-                      {monthsForYear(toYear).map((m) => <option key={m} value={m}>{parseInt(m)}월</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">
+              캠페인 기간
+              <span className="ml-1.5 text-xs font-normal text-gray-400">— 총 집행 기간에 맞춰 예상 도달이 자동 계산됩니다</span>
+            </label>
+            <div className="flex gap-2 pt-1 flex-wrap">
+              {DURATION_OPTIONS.map(({ label, days }) => (
+                <button
+                  key={days}
+                  type="button"
+                  onClick={() => setCampaignDays(days)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                    campaignDays === days
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="border-t border-gray-50" />
 
@@ -441,7 +425,7 @@ export default function SimulatorPage() {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <KPICard title="예상 도달 (Reach)" value={result ? result.reach.toLocaleString() : '—'}
+          <KPICard title={`예상 도달 (${durationLabel})`} value={result ? totalReach.toLocaleString() : '—'}
             change={result?.reachChange ?? null} icon="👥" loading={loading} />
           <KPICard title="예상 CPM" value={result ? `₩${result.cpm.toLocaleString()}` : '—'}
             change={result?.cpmChange ?? null} icon="📊" loading={loading} />
