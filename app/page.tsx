@@ -185,12 +185,12 @@ export default function SimulatorPage() {
     : monthFrom ? `${formatMonth(monthFrom)} ~` : monthTo ? `~ ${formatMonth(monthTo)}` : '전체';
 
   const tags = [
-    { label: '기준 기간', value: periodLabel },
-    { label: '업종', value: industryLabel },
-    { label: 'Gender', value: genderLabel },
-    { label: '캠페인 목표', value: objectiveLabel },
-    { label: 'Age', value: ageLabel },
     { label: '예산', value: `₩${budget.toLocaleString()}` },
+    { label: '캠페인 기간', value: periodLabel },
+    { label: '캠페인 목표', value: objectiveLabel },
+    { label: '업종', value: industryLabel },
+    { label: '성별', value: genderLabel },
+    { label: '연령대', value: ageLabel },
   ];
 
   // Chart data
@@ -250,67 +250,46 @@ export default function SimulatorPage() {
       {/* Campaign Settings */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-base font-semibold text-gray-800 mb-5">캠페인 설정</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
 
-          {/* 기준 기간 - 최상단 배치 */}
+          {/* 1. 캠페인 예산 */}
+          <div>
+            <BudgetSlider value={budget} onChange={setBudget} />
+          </div>
+
+          <div className="border-t border-gray-50" />
+
+          {/* 2. 캠페인 기간 */}
           {availableMonths.length > 0 && (() => {
-            const sortedMonths = [...availableMonths].sort(); // 오름차순 YYYY-MM
+            const sortedMonths = [...availableMonths].sort();
             const years = [...new Set(sortedMonths.map((m) => m.slice(0, 4)))];
             const monthsForYear = (y: string) => sortedMonths.filter((m) => m.startsWith(y)).map((m) => m.slice(5));
             const fromYear = monthFrom.slice(0, 4);
-            const fromMon = monthFrom.slice(5);
-            const toYear = monthTo.slice(0, 4);
-            const toMon = monthTo.slice(5);
+            const fromMon  = monthFrom.slice(5);
+            const toYear   = monthTo.slice(0, 4);
+            const toMon    = monthTo.slice(5);
             const selectCls = 'px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:border-indigo-400 cursor-pointer';
             return (
-              <div className="lg:col-span-3 space-y-1">
+              <div className="space-y-1">
                 <label className="text-sm font-medium text-gray-700">
-                  기준 기간
-                  <span className="ml-1.5 text-xs font-normal text-gray-400">— 선택한 기간의 실데이터로 CPM·CPC·VTR 계산</span>
+                  캠페인 기간
+                  <span className="ml-1.5 text-xs font-normal text-gray-400">— 집행 예정 기간을 설정하면 해당 시즌 데이터 기반으로 예측합니다</span>
                 </label>
                 <div className="flex items-center gap-2 pt-1 flex-wrap">
-                  {/* 시작 */}
                   <div className="flex items-center gap-1">
-                    <select
-                      value={fromYear}
-                      onChange={(e) => {
-                        const y = e.target.value;
-                        const months = monthsForYear(y);
-                        const mo = months.includes(fromMon) ? fromMon : months[0];
-                        setMonthFrom(`${y}-${mo}`);
-                      }}
-                      className={selectCls}
-                    >
+                    <select value={fromYear} onChange={(e) => { const y = e.target.value; const months = monthsForYear(y); const mo = months.includes(fromMon) ? fromMon : months[0]; setMonthFrom(`${y}-${mo}`); }} className={selectCls}>
                       {years.map((y) => <option key={y} value={y}>{y}년</option>)}
                     </select>
-                    <select
-                      value={fromMon}
-                      onChange={(e) => setMonthFrom(`${fromYear}-${e.target.value}`)}
-                      className={selectCls}
-                    >
+                    <select value={fromMon} onChange={(e) => setMonthFrom(`${fromYear}-${e.target.value}`)} className={selectCls}>
                       {monthsForYear(fromYear).map((m) => <option key={m} value={m}>{parseInt(m)}월</option>)}
                     </select>
                   </div>
                   <span className="text-gray-400 text-sm font-medium px-1">~</span>
-                  {/* 종료 */}
                   <div className="flex items-center gap-1">
-                    <select
-                      value={toYear}
-                      onChange={(e) => {
-                        const y = e.target.value;
-                        const months = monthsForYear(y);
-                        const mo = months.includes(toMon) ? toMon : months[months.length - 1];
-                        setMonthTo(`${y}-${mo}`);
-                      }}
-                      className={selectCls}
-                    >
+                    <select value={toYear} onChange={(e) => { const y = e.target.value; const months = monthsForYear(y); const mo = months.includes(toMon) ? toMon : months[months.length - 1]; setMonthTo(`${y}-${mo}`); }} className={selectCls}>
                       {years.map((y) => <option key={y} value={y}>{y}년</option>)}
                     </select>
-                    <select
-                      value={toMon}
-                      onChange={(e) => setMonthTo(`${toYear}-${e.target.value}`)}
-                      className={selectCls}
-                    >
+                    <select value={toMon} onChange={(e) => setMonthTo(`${toYear}-${e.target.value}`)} className={selectCls}>
                       {monthsForYear(toYear).map((m) => <option key={m} value={m}>{parseInt(m)}월</option>)}
                     </select>
                   </div>
@@ -319,7 +298,36 @@ export default function SimulatorPage() {
             );
           })()}
 
-          {/* Industry - multi-select dropdown */}
+          <div className="border-t border-gray-50" />
+
+          {/* 3. 캠페인 목표 */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">캠페인 목표</label>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {availableObjectives.map((obj) => {
+                const active = objectives.includes(obj);
+                return (
+                  <button key={obj} type="button" onClick={() => toggleObjective(obj)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    }`}>
+                    {OBJECTIVE_LABELS[obj] ?? obj}
+                  </button>
+                );
+              })}
+              {objectives.length > 0 && (
+                <button type="button" onClick={() => setObjectives([])}
+                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                  초기화
+                </button>
+              )}
+            </div>
+            {objectives.length === 0 && <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>}
+          </div>
+
+          <div className="border-t border-gray-50" />
+
+          {/* 4. 타겟 업종 */}
           <MultiSelectDropdown
             label="타겟 업종"
             options={availableIndustries}
@@ -328,118 +336,63 @@ export default function SimulatorPage() {
             placeholder="전체"
           />
 
-          {/* Gender - pill checkboxes */}
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">성별</label>
-            <div className="flex gap-2 pt-1">
-              {ALL_GENDERS.map(({ value, label }) => {
-                const active = genders.includes(value);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => toggleGender(value)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      active
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                    }`}
-                  >
-                    {label}
+          <div className="border-t border-gray-50" />
+
+          {/* 5. 타겟팅 (성별 + 연령대 묶음) */}
+          <div className="space-y-4">
+            <label className="text-sm font-medium text-gray-700">타겟팅</label>
+
+            {/* 성별 */}
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500 font-medium">성별</p>
+              <div className="flex gap-2 pt-0.5">
+                {ALL_GENDERS.map(({ value, label }) => {
+                  const active = genders.includes(value);
+                  return (
+                    <button key={value} type="button" onClick={() => toggleGender(value)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                        active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                      }`}>
+                      {label}
+                    </button>
+                  );
+                })}
+                {genders.length > 0 && (
+                  <button type="button" onClick={() => setGenders([])}
+                    className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                    초기화
                   </button>
-                );
-              })}
-              {genders.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setGenders([])}
-                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors"
-                >
-                  초기화
-                </button>
-              )}
+                )}
+                {genders.length === 0 && <span className="text-xs text-gray-400 self-center">선택 없음 = 전체</span>}
+              </div>
             </div>
-            {genders.length === 0 && (
-              <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>
-            )}
+
+            {/* 연령대 */}
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500 font-medium">연령대</p>
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                {ALL_AGE_RANGES.map((age) => {
+                  const active = ageRanges.includes(age);
+                  return (
+                    <button key={age} type="button" onClick={() => toggleAgeRange(age)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                        active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                      }`}>
+                      {age}
+                    </button>
+                  );
+                })}
+                {ageRanges.length > 0 && (
+                  <button type="button" onClick={() => setAgeRanges([])}
+                    className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                    초기화
+                  </button>
+                )}
+                {ageRanges.length === 0 && <span className="text-xs text-gray-400 self-center">선택 없음 = 전체</span>}
+              </div>
+            </div>
           </div>
 
-          {/* Campaign Objective */}
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">캠페인 목표</label>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {availableObjectives.map((obj) => {
-                const active = objectives.includes(obj);
-                return (
-                  <button
-                    key={obj}
-                    type="button"
-                    onClick={() => toggleObjective(obj)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      active
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                    }`}
-                  >
-                    {OBJECTIVE_LABELS[obj] ?? obj}
-                  </button>
-                );
-              })}
-              {objectives.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setObjectives([])}
-                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors"
-                >
-                  초기화
-                </button>
-              )}
-            </div>
-            {objectives.length === 0 && (
-              <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>
-            )}
-          </div>
-
-          {/* Age range - multi-select pills */}
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">연령대</label>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {ALL_AGE_RANGES.map((age) => {
-                const active = ageRanges.includes(age);
-                return (
-                  <button
-                    key={age}
-                    type="button"
-                    onClick={() => toggleAgeRange(age)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      active
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                    }`}
-                  >
-                    {age}
-                  </button>
-                );
-              })}
-              {ageRanges.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setAgeRanges([])}
-                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors"
-                >
-                  초기화
-                </button>
-              )}
-            </div>
-            {ageRanges.length === 0 && (
-              <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>
-            )}
-          </div>
-
-          {/* Budget */}
-          <div className="lg:col-span-3">
-            <BudgetSlider value={budget} onChange={setBudget} />
-          </div>
         </div>
       </div>
 
