@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(curl -s -X POST http://localhost:3000/api/export -H \"Content-Type: application/json\" -d @\"C:/Users/user/Downloads/Ad_Planner-master/Ad_Planner-master/scripts/test_input.json\" -o \"C:/Users/user/Downloads/export_test.xlsx\" -w \"%{http_code} size=%{size_download}\")",
+      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/export -H \"Content-Type: application/json\" -d \"{\"\"result\"\":{\"\"reach\"\":1526981,\"\"cpm\"\":3336,\"\"cpc\"\":960,\"\"reachChange\"\":null,\"\"cpmChange\"\":null,\"\"cpcChange\"\":null,\"\"matchedCount\"\":2287},\"\"rangeData\"\":[{\"\"budget\"\":1000000,\"\"reach\"\":152698,\"\"cpm\"\":3336,\"\"cpc\"\":960},{\"\"budget\"\":10000000,\"\"reach\"\":1526981,\"\"cpm\"\":3336,\"\"cpc\"\":960}],\"\"conditions\"\":{\"\"industry\"\":\"\"\\\\uc804\\\\uccb4\"\",\"\"gender\"\":\"\"\\\\uc804\\\\uccb4\"\",\"\"age\"\":\"\"18~65\\\\uc138\"\",\"\"budget\"\":10000000},\"\"dateStr\"\":\"\"2026-03-29\"\"}\" -o \"C:/Users/user/Downloads/export_test2.xlsx\" -w \"\\\\nHTTP %{http_code} | size=%{size_download}bytes\")",
+      "Bash(python -c \"import os; print\\(os.path.getsize\\(''/c/Users/user/Downloads/export_test2.xlsx''\\), ''bytes''\\)\")",
+      "Bash(ls /c/Users/user/Downloads/export_test*.xlsx)",
+      "Bash(curl -s -X POST http://localhost:3000/api/export -H \"Content-Type: application/json\" -d @scripts/test_input.json -o /tmp/export_test.xlsx -w \"%{http_code} size=%{size_download}\")"
+    ]
+  }
+}
