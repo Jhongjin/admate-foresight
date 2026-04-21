@@ -6,7 +6,6 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import KPICard from '@/components/KPICard';
-import BudgetSlider from '@/components/BudgetSlider';
 import DurationSlider, { STEPS as DURATION_STEPS } from '@/components/DurationSlider';
 import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
@@ -77,6 +76,8 @@ export default function SimulatorPage() {
   const [ageRanges, setAgeRanges] = useState<string[]>([]);
   const [budget, setBudget] = useState(10_000_000);
 
+  const [budgetInput, setBudgetInput] = useState('10000000');
+
   const [result, setResult] = useState<PredictResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [rangeData, setRangeData] = useState<RangePoint[]>([]);
@@ -142,6 +143,11 @@ export default function SimulatorPage() {
       fetchRange({ industries, genders, ageRanges, objectives });
     }, 400);
   }, [industries, genders, ageRanges, objectives, fetchRange]);
+
+  // 테이블 클릭 등 외부에서 budget 변경 시 input 동기화
+  useEffect(() => {
+    setBudgetInput(String(budget));
+  }, [budget]);
 
   function toggleGender(value: string) {
     setGenders((prev) =>
@@ -240,13 +246,39 @@ export default function SimulatorPage() {
       </div>
 
       {/* Campaign Settings */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-base font-semibold text-gray-800 mb-5">캠페인 설정</h2>
-        <div className="space-y-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">캠페인 설정</h2>
+        <div className="space-y-4">
 
           {/* 1. 캠페인 예산 */}
-          <div>
-            <BudgetSlider value={budget} onChange={setBudget} />
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700 shrink-0 w-24">총 캠페인 예산</label>
+            <div className="flex items-center border border-gray-200 rounded-lg px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500 bg-white flex-1 max-w-xs">
+              <span className="text-sm text-gray-400 mr-1">₩</span>
+              <input
+                type="number"
+                value={budgetInput}
+                min={1_000_000}
+                max={100_000_000}
+                step={500_000}
+                onChange={(e) => setBudgetInput(e.target.value)}
+                onBlur={(e) => {
+                  const v = parseInt(e.target.value.replace(/,/g, ''), 10);
+                  if (!isNaN(v)) {
+                    const clamped = Math.min(100_000_000, Math.max(1_000_000, v));
+                    setBudget(clamped);
+                    setBudgetInput(String(clamped));
+                  } else {
+                    setBudgetInput(String(budget));
+                  }
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                className="flex-1 text-sm text-gray-800 font-medium focus:outline-none min-w-0"
+              />
+            </div>
+            <span className="text-sm font-bold text-indigo-600">
+              {budget >= 100_000_000 ? `${budget / 100_000_000}억` : budget >= 10_000 ? `${(budget / 10_000).toLocaleString()}만원` : `${budget.toLocaleString()}원`}
+            </span>
           </div>
 
           <div className="border-t border-gray-50" />
@@ -256,33 +288,7 @@ export default function SimulatorPage() {
 
           <div className="border-t border-gray-50" />
 
-          {/* 3. 캠페인 목표 */}
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">캠페인 목표</label>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {availableObjectives.map((obj) => {
-                const active = objectives.includes(obj);
-                return (
-                  <button key={obj} type="button" onClick={() => toggleObjective(obj)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                    }`}>
-                    {OBJECTIVE_LABELS[obj] ?? obj}
-                  </button>
-                );
-              })}
-              {objectives.length > 0 && (
-                <button type="button" onClick={() => setObjectives([])}
-                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
-                  초기화
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="border-t border-gray-50" />
-
-          {/* 4. 타겟 업종 */}
+          {/* 3. 타겟 업종 */}
           <MultiSelectDropdown
             label="타겟 업종"
             options={availableIndustries}
@@ -293,19 +299,45 @@ export default function SimulatorPage() {
 
           <div className="border-t border-gray-50" />
 
+          {/* 4. 캠페인 목표 */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">캠페인 목표</label>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {availableObjectives.map((obj) => {
+                const active = objectives.includes(obj);
+                return (
+                  <button key={obj} type="button" onClick={() => toggleObjective(obj)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    }`}>
+                    {OBJECTIVE_LABELS[obj] ?? obj}
+                  </button>
+                );
+              })}
+              {objectives.length > 0 && (
+                <button type="button" onClick={() => setObjectives([])}
+                  className="px-3 py-1 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                  초기화
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="border-t border-gray-50" />
+
           {/* 5. 타겟팅 (성별 + 연령대 묶음) */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700">타겟팅</label>
 
             {/* 성별 */}
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500 font-medium">성별</p>
-              <div className="flex gap-2 pt-0.5">
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-gray-400 font-medium w-8 shrink-0">성별</p>
+              <div className="flex gap-1.5">
                 {ALL_GENDERS.map(({ value, label }) => {
                   const active = genders.includes(value);
                   return (
                     <button key={value} type="button" onClick={() => toggleGender(value)}
-                      className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                         active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
                       }`}>
                       {label}
@@ -314,7 +346,7 @@ export default function SimulatorPage() {
                 })}
                 {genders.length > 0 && (
                   <button type="button" onClick={() => setGenders([])}
-                    className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                    className="px-2 py-1 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
                     초기화
                   </button>
                 )}
@@ -322,14 +354,14 @@ export default function SimulatorPage() {
             </div>
 
             {/* 연령대 */}
-            <div className="space-y-1">
-              <p className="text-xs text-gray-500 font-medium">연령대</p>
-              <div className="flex flex-wrap gap-2 pt-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-xs text-gray-400 font-medium w-8 shrink-0">연령</p>
+              <div className="flex flex-wrap gap-1.5">
                 {ALL_AGE_RANGES.map((age) => {
                   const active = ageRanges.includes(age);
                   return (
                     <button key={age} type="button" onClick={() => toggleAgeRange(age)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                         active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
                       }`}>
                       {age}
@@ -338,7 +370,7 @@ export default function SimulatorPage() {
                 })}
                 {ageRanges.length > 0 && (
                   <button type="button" onClick={() => setAgeRanges([])}
-                    className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                    className="px-2 py-1 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
                     초기화
                   </button>
                 )}
@@ -489,7 +521,7 @@ export default function SimulatorPage() {
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-gray-400 mt-3">* 행을 클릭하면 해당 예산으로 슬라이더가 이동합니다.</p>
+        <p className="text-xs text-gray-400 mt-3">* 행을 클릭하면 해당 예산이 적용됩니다.</p>
       </div>
 
       {/* Info Note */}
