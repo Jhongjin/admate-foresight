@@ -16,18 +16,33 @@ const ALL_GENDERS = [
 ];
 
 const OBJECTIVE_LABELS: Record<string, string> = {
-  'OUTCOME_AWARENESS':  '인지도',
-  'OUTCOME_ENGAGEMENT': '참여/인게이지먼트',
-  'LINK_CLICKS':        '트래픽/링크클릭',
-  'OUTCOME_SALES':      '전환/판매',
-  'OUTCOME_LEADS':      '잠재고객',
-  'APP_INSTALLS':       '앱 설치',
-  'VIDEO_VIEWS':        '동영상 조회',
-  'REACH':              '도달',
-  'BRAND_AWARENESS':    '브랜드 인지',
-  'MESSAGES':           '메시지',
-  'STORE_VISITS':       '매장 방문',
+  'OUTCOME_AWARENESS':     '인지도',
+  'LINK_CLICKS':           '트래픽',
+  'OUTCOME_ENGAGEMENT':    '참여',
+  'OUTCOME_LEADS':         '잠재고객',
+  'APP_INSTALLS':          '앱 홍보',
+  'OUTCOME_APP_PROMOTION': '앱 홍보',
+  'OUTCOME_SALES':         '판매',
+  'ADVANTAGE_APP':         '어드밴티지+ 앱',
+  'ADVANTAGE_SHOPPING':    '어드밴티지+ 쇼핑',
+  'VIDEO_VIEWS':           '동영상 조회',
+  'REACH':                 '도달',
+  'BRAND_AWARENESS':       '브랜드 인지',
+  'MESSAGES':              '메시지',
+  'STORE_VISITS':          '매장 방문',
 };
+
+// 항상 표시할 고정 목표 (이미지 순서 기준)
+const FIXED_OBJECTIVES = [
+  'OUTCOME_AWARENESS',
+  'LINK_CLICKS',
+  'OUTCOME_ENGAGEMENT',
+  'OUTCOME_LEADS',
+  'APP_INSTALLS',
+  'OUTCOME_SALES',
+  'ADVANTAGE_APP',
+  'ADVANTAGE_SHOPPING',
+];
 
 const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
 
@@ -303,7 +318,10 @@ export default function SimulatorPage() {
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">캠페인 목표</label>
             <div className="flex flex-wrap gap-1.5 pt-1">
-              {availableObjectives.map((obj) => {
+              {[
+                ...FIXED_OBJECTIVES,
+                ...availableObjectives.filter((o) => !FIXED_OBJECTIVES.includes(o)),
+              ].map((obj) => {
                 const active = objectives.includes(obj);
                 return (
                   <button key={obj} type="button" onClick={() => toggleObjective(obj)}
