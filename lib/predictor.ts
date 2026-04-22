@@ -1,4 +1,3 @@
-'use client';
 import { loadAdData } from './csvLoader';
 import { XlsxRecord, loadXlsxData, loadDemoData } from './xlsxLoader';
 import { predictByRegression } from './regression';
