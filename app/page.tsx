@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
@@ -68,6 +68,15 @@ interface PredictResult {
   marketAvg?: MarketAvg;
 }
 
+interface ScenarioResult {
+  label: string;
+  description: string;
+  cpm: number;
+  reach: number;
+  vtr: number;
+  cpc: number;
+}
+
 interface RangePoint {
   budget: number;
   reach: number;
@@ -78,6 +87,15 @@ interface RangePoint {
 function formatBudget(v: number) {
   if (v >= 100_000_000) return `${v / 100_000_000}억`;
   return `${v / 10_000}만`;
+}
+
+function formatBudgetFull(v: number): string {
+  if (v >= 100_000_000) {
+    const eok = Math.floor(v / 100_000_000);
+    const rem = v % 100_000_000;
+    return rem === 0 ? `${eok}억원` : `${eok}억 ${(rem / 10_000).toLocaleString()}만원`;
+  }
+  return `${(v / 10_000).toLocaleString()}만원`;
 }
 
 
@@ -102,9 +120,12 @@ export default function SimulatorPage() {
   const [rangeData, setRangeData] = useState<RangePoint[]>([]);
   const [rangeLoading, setRangeLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [scenarios, setScenarios] = useState<ScenarioResult[]>([]);
+  const [scenarioLoading, setScenarioLoading] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rangeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scenarioDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     fetch('/api/filters')
@@ -168,6 +189,60 @@ export default function SimulatorPage() {
     setBudgetInput(String(budget));
   }, [budget]);
 
+  // 타겟 확장 시나리오 fetch
+  useEffect(() => {
+    if (scenarioDebounceRef.current) clearTimeout(scenarioDebounceRef.current);
+    scenarioDebounceRef.current = setTimeout(async () => {
+      const hasFilter = genders.length > 0 || ageRanges.length > 0 || industries.length > 0;
+      if (!hasFilter) { setScenarios([]); return; }
+
+      const expansions: Array<{ label: string; description: string; body: object }> = [];
+      if (genders.length > 0) {
+        expansions.push({
+          label: '성별 전체 확장',
+          description: `${genders.map(g => g === 'male' ? '남성' : '여성').join('/')} → 전체`,
+          body: { industries, genders: [], ageRanges, objectives, budget: monthlyBudget },
+        });
+      }
+      if (ageRanges.length > 0) {
+        expansions.push({
+          label: '연령 전체 확장',
+          description: `${ageRanges.join(', ')} → 전체`,
+          body: { industries, genders, ageRanges: [], objectives, budget: monthlyBudget },
+        });
+      }
+      if (industries.length > 0) {
+        expansions.push({
+          label: '업종 전체 확장',
+          description: `${industries.join(', ')} → 전체`,
+          body: { industries: [], genders, ageRanges, objectives, budget: monthlyBudget },
+        });
+      }
+
+      setScenarioLoading(true);
+      try {
+        const results = await Promise.all(
+          expansions.map(e =>
+            fetch('/api/predict', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(e.body),
+            }).then(r => r.json())
+          )
+        );
+        setScenarios(expansions.map((e, i) => ({
+          label: e.label,
+          description: e.description,
+          cpm: results[i].cpm ?? 0,
+          reach: results[i].reach ?? 0,
+          vtr: results[i].vtr ?? 0,
+          cpc: results[i].cpc ?? 0,
+        })));
+      } catch (e) { console.error(e); }
+      finally { setScenarioLoading(false); }
+    }, 600);
+  }, [industries, genders, ageRanges, objectives, monthlyBudget]);
+
   function toggleGender(value: string) {
     setGenders((prev) =>
       prev.includes(value) ? prev.filter((g) => g !== value) : [...prev, value]
@@ -209,6 +284,44 @@ export default function SimulatorPage() {
   // 기간 스케일 팩터 (월 기준 예측값 → 캠페인 기간 환산)
   const durationFactor = campaignDays / 30;
   const totalReach = result ? Math.round(result.reach * durationFactor) : 0;
+
+  // ── 변곡점 분석 (rangeData 한계효율 기반) ──────────────────
+  const inflectionAnalysis = useMemo(() => {
+    if (rangeData.length < 2 || !result) return null;
+    const marginals: { budget: number; marginal: number }[] = [];
+    for (let i = 1; i < rangeData.length; i++) {
+      const prev = rangeData[i - 1];
+      const curr = rangeData[i];
+      const delta = curr.budget - prev.budget;
+      if (delta <= 0) continue;
+      marginals.push({ budget: curr.budget, marginal: (curr.reach - prev.reach) / (delta / 10_000) });
+    }
+    if (marginals.length === 0) return null;
+    const init = marginals[0].marginal;
+    const inflectionPoint = marginals.find(d => d.marginal < init * 0.5);
+    const freq = result.frequency;
+    const status: 'good' | 'ok' | 'warn' | 'over' =
+      freq < 1.3 ? 'good' : freq < 1.8 ? 'ok' : freq < 2.5 ? 'warn' : 'over';
+    return { inflectionBudget: inflectionPoint?.budget ?? null, currentBudget: monthlyBudget, frequency: freq, status };
+  }, [rangeData, result, monthlyBudget]);
+
+  // ── 기회비용 (20% 증액 시 추가 도달) ─────────────────────
+  const opportunityCost = useMemo(() => {
+    if (!result || rangeData.length < 2 || result.frequency >= 1.8) return null;
+    const b120 = monthlyBudget * 1.2;
+    const lower = [...rangeData].reverse().find(d => d.budget <= b120);
+    const upper = rangeData.find(d => d.budget > b120);
+    let reach120 = 0;
+    if (lower && upper) {
+      const ratio = (b120 - lower.budget) / (upper.budget - lower.budget);
+      reach120 = lower.reach + ratio * (upper.reach - lower.reach);
+    } else if (lower) {
+      reach120 = lower.reach * Math.pow(b120 / lower.budget, 0.82);
+    } else return null;
+    const additionalReach = Math.max(0, Math.round((reach120 - result.reach) * durationFactor));
+    if (additionalReach < 100) return null;
+    return { additionalReach, additionalBudget: Math.round(budget * 0.2) };
+  }, [rangeData, result, monthlyBudget, budget, durationFactor]);
 
   // Chart data (range chart는 월 기준 유지)
   const chartData = rangeData.map((p) => ({
@@ -523,6 +636,137 @@ export default function SimulatorPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* 전략 어드바이스 */}
+      {result && (inflectionAnalysis || opportunityCost || scenarios.length > 0 || scenarioLoading) && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-semibold text-gray-800 mb-1">전략 어드바이스</h2>
+          <p className="text-xs text-gray-400 mb-5">예측 데이터 기반 캠페인 최적화 인사이트</p>
+          <div className="space-y-4">
+
+            {/* A. 예산 변곡점 */}
+            {inflectionAnalysis && (() => {
+              const { inflectionBudget, currentBudget, frequency, status } = inflectionAnalysis;
+              const isNearOrOver = inflectionBudget && currentBudget >= inflectionBudget * 0.85;
+              const color = status === 'good' ? 'emerald' : status === 'ok' ? 'blue' : status === 'warn' ? 'amber' : 'red';
+              const borderColor = { emerald: 'border-emerald-400', blue: 'border-blue-400', amber: 'border-amber-400', red: 'border-red-400' }[color];
+              const bgColor = { emerald: 'bg-emerald-50', blue: 'bg-blue-50', amber: 'bg-amber-50', red: 'bg-red-50' }[color];
+              const icon = { good: '✅', ok: '📊', warn: '⚠️', over: '🚨' }[status];
+
+              let text = '';
+              if (status === 'over') {
+                text = `현재 빈도(${frequency.toFixed(1)}회)가 2.5회를 초과했습니다. 동일 타겟에 반복 노출로 광고 피로도가 높아져 CPC 상승이 예상됩니다. 타겟 확장 또는 예산 축소를 검토하세요.`;
+              } else if (status === 'warn') {
+                text = `빈도(${frequency.toFixed(1)}회)가 상승 중입니다.${inflectionBudget ? ` 월 ${formatBudgetFull(inflectionBudget)} 구간에서 만원당 도달 효율이 절반 수준으로 감소합니다.` : ''} 추가 증액 전 타겟 범위 확장을 고려하세요.`;
+              } else if (isNearOrOver && inflectionBudget) {
+                text = `현재 예산이 효율 변곡점(월 ${formatBudgetFull(inflectionBudget)})에 근접해 있습니다. 추가 증액 시 만원당 도달이 절반 이하로 감소할 수 있습니다.`;
+              } else if (inflectionBudget) {
+                text = `월 ${formatBudgetFull(inflectionBudget)}까지는 효율을 유지하며 증액이 가능합니다. 현재 빈도(${frequency.toFixed(1)}회)도 안정적입니다.`;
+              } else {
+                text = `분석 범위 내에서 급격한 효율 저하 구간이 없습니다. 현재 빈도(${frequency.toFixed(1)}회)도 안정적입니다.`;
+              }
+
+              return (
+                <div className={`rounded-xl p-4 border-l-4 ${borderColor} ${bgColor}`}>
+                  <p className="text-sm font-semibold text-gray-800 mb-1">{icon} 예산 효율 변곡점</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
+                  {inflectionBudget && (
+                    <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+                      <span>현재 월 예산 <strong className="text-gray-700">{formatBudgetFull(currentBudget)}</strong></span>
+                      <span>·</span>
+                      <span>변곡점 <strong className="text-gray-700">{formatBudgetFull(inflectionBudget)}</strong></span>
+                      <span>·</span>
+                      <span>빈도 <strong className="text-gray-700">{frequency.toFixed(2)}회</strong></span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* B. 기회비용 */}
+            {opportunityCost && (
+              <div className="rounded-xl p-4 border-l-4 border-emerald-400 bg-emerald-50">
+                <p className="text-sm font-semibold text-gray-800 mb-1">💡 기회비용 (Opportunity Cost)</p>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  현재 타겟 모수에 여유가 있습니다. 예산을 20% 증액(+₩{opportunityCost.additionalBudget.toLocaleString()})하면,
+                  효율 저하 없이 약 <strong className="text-emerald-700">{opportunityCost.additionalReach.toLocaleString()}명</strong>을 추가로 도달할 수 있습니다.
+                </p>
+              </div>
+            )}
+
+            {/* C. 타겟 확장 시나리오 */}
+            {(scenarioLoading || scenarios.length > 0) && (
+              <div className="rounded-xl p-4 border border-gray-100 bg-gray-50">
+                <p className="text-sm font-semibold text-gray-800 mb-3">🎯 타겟 확장 시나리오 비교</p>
+                {scenarioLoading ? (
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" />
+                    시나리오 계산 중...
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-2 pr-3 text-gray-500 font-medium">시나리오</th>
+                          <th className="text-right py-2 pr-3 text-gray-500 font-medium">CPM</th>
+                          <th className="text-right py-2 pr-3 text-gray-500 font-medium">예상 도달</th>
+                          <th className="text-right py-2 pr-3 text-gray-500 font-medium">VTR</th>
+                          <th className="text-right py-2 text-gray-500 font-medium">CPC</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* 현재 타겟 row */}
+                        <tr className="border-b border-gray-100 bg-indigo-50">
+                          <td className="py-2 pr-3 font-semibold text-indigo-700">현재 타겟</td>
+                          <td className="py-2 pr-3 text-right font-mono text-indigo-700">₩{result.cpm.toLocaleString()}</td>
+                          <td className="py-2 pr-3 text-right font-mono text-indigo-700">{totalReach.toLocaleString()}명</td>
+                          <td className="py-2 pr-3 text-right font-mono text-indigo-700">{result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—'}</td>
+                          <td className="py-2 text-right font-mono text-indigo-700">{result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—'}</td>
+                        </tr>
+                        {scenarios.map((s) => {
+                          const cpmBetter = s.cpm > 0 && s.cpm < result.cpm;
+                          const reachMore = s.reach * durationFactor > totalReach;
+                          return (
+                            <tr key={s.label} className="border-b border-gray-100 hover:bg-white transition-colors">
+                              <td className="py-2 pr-3">
+                                <p className="font-medium text-gray-700">{s.label}</p>
+                                <p className="text-gray-400 text-[11px]">{s.description}</p>
+                              </td>
+                              <td className="py-2 pr-3 text-right font-mono">
+                                <span className={cpmBetter ? 'text-emerald-600 font-semibold' : 'text-red-500'}>
+                                  ₩{s.cpm.toLocaleString()}
+                                </span>
+                                {result.cpm > 0 && (
+                                  <span className="ml-1 text-[11px] text-gray-400">
+                                    ({((s.cpm - result.cpm) / result.cpm * 100).toFixed(1)}%)
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 pr-3 text-right font-mono">
+                                <span className={reachMore ? 'text-emerald-600 font-semibold' : 'text-red-500'}>
+                                  {Math.round(s.reach * durationFactor).toLocaleString()}명
+                                </span>
+                              </td>
+                              <td className="py-2 pr-3 text-right font-mono text-gray-600">
+                                {s.vtr > 0 ? `${s.vtr.toFixed(2)}%` : '—'}
+                              </td>
+                              <td className="py-2 text-right font-mono text-gray-600">
+                                {s.cpc > 0 ? `₩${s.cpc.toLocaleString()}` : '—'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
       )}
