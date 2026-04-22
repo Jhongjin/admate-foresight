@@ -522,60 +522,6 @@ export default function SimulatorPage() {
         <ConditionTags tags={tags} />
       </div>
 
-      {/* KPI Cards */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-800">예측 결과</h2>
-          <div className="flex items-center gap-3">
-            {result && !loading && (
-              <span className="text-xs text-gray-400 flex items-center gap-2">
-                {result.predictionMethod === 'regression' ? (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 font-medium">
-                    📈 회귀모델
-                    {result.r2Cpm !== undefined && (
-                      <span className="text-indigo-400">R²={result.r2Cpm.toFixed(2)}</span>
-                    )}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
-                    📊 가중평균
-                  </span>
-                )}
-                매칭 {result.matchedCount}건 · 빈도 {result.frequency?.toFixed(2)}
-              </span>
-            )}
-            <button
-              onClick={exportToExcel}
-              disabled={!result || loading || exporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {exporting ? (
-                <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              ) : (
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              )}
-              {exporting ? '생성 중...' : 'Excel 내보내기'}
-            </button>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <KPICard title={`예상 도달 (${durationLabel})`} value={result ? totalReach.toLocaleString() : '—'}
-            change={null} icon="👥" loading={loading} />
-          <KPICard title="예상 CPM" value={result ? `₩${result.cpm.toLocaleString()}` : '—'}
-            change={null} icon="📊" loading={loading} />
-          <KPICard title="CPC(전체)" value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
-            change={null} icon="🖱️" loading={loading} />
-          <KPICard title="CPC(링크)" value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
-            change={null} icon="🔗" loading={loading} />
-          <KPICard title="동영상 3초 조회당 비용" value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
-            change={null} icon="🎬" loading={loading} />
-          <KPICard title="VTR(3s)" value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
-            change={null} icon="▶️" loading={loading} />
-        </div>
-      </div>
-
       {/* 시장 비교 */}
       {result?.marketAvg && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -770,6 +716,43 @@ export default function SimulatorPage() {
           </div>
         </div>
       )}
+
+      {/* KPI Cards */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-gray-800">예측 결과</h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={exportToExcel}
+              disabled={!result || loading || exporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {exporting ? (
+                <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+              {exporting ? '생성 중...' : 'Excel 내보내기'}
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <KPICard title={`예상 도달 (${durationLabel})`} value={result ? totalReach.toLocaleString() : '—'}
+            change={null} icon="👥" loading={loading} />
+          <KPICard title="예상 CPM" value={result ? `₩${result.cpm.toLocaleString()}` : '—'}
+            change={null} icon="📊" loading={loading} />
+          <KPICard title="CPC(전체)" value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
+            change={null} icon="🖱️" loading={loading} />
+          <KPICard title="CPC(링크)" value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
+            change={null} icon="🔗" loading={loading} />
+          <KPICard title="동영상 3초 조회당 비용" value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
+            change={null} icon="🎬" loading={loading} />
+          <KPICard title="VTR(3s)" value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
+            change={null} icon="▶️" loading={loading} />
+        </div>
+      </div>
 
       {/* Budget Range Chart */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
