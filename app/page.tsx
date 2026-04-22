@@ -46,6 +46,12 @@ const FIXED_OBJECTIVES = [
 
 const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
 
+interface MarketAvg {
+  cpm: number; cpc: number; vtr: number; count: number;
+  score: number; grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  cpmDiff: number; cpcDiff: number; vtrDiff: number;
+}
+
 interface PredictResult {
   reach: number;
   cpm: number;
@@ -54,14 +60,12 @@ interface PredictResult {
   cpv: number;
   vtr: number;
   frequency: number;
-  reachChange: number | null;
-  cpmChange: number | null;
-  cpcChange: number | null;
   matchedCount: number;
   r2Cpm?: number;
   r2Cpc?: number;
   r2Vtr?: number;
   predictionMethod?: 'regression' | 'weighted_avg' | 'fallback';
+  marketAvg?: MarketAvg;
 }
 
 interface RangePoint {
@@ -445,11 +449,11 @@ export default function SimulatorPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <KPICard title={`예상 도달 (${durationLabel})`} value={result ? totalReach.toLocaleString() : '—'}
-            change={result?.reachChange ?? null} icon="👥" loading={loading} />
+            change={null} icon="👥" loading={loading} />
           <KPICard title="예상 CPM" value={result ? `₩${result.cpm.toLocaleString()}` : '—'}
-            change={result?.cpmChange ?? null} icon="📊" loading={loading} />
+            change={null} icon="📊" loading={loading} />
           <KPICard title="CPC(전체)" value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
-            change={result?.cpcChange ?? null} icon="🖱️" loading={loading} />
+            change={null} icon="🖱️" loading={loading} />
           <KPICard title="CPC(링크)" value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
             change={null} icon="🔗" loading={loading} />
           <KPICard title="동영상 3초 조회당 비용" value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
@@ -458,6 +462,70 @@ export default function SimulatorPage() {
             change={null} icon="▶️" loading={loading} />
         </div>
       </div>
+
+      {/* 시장 비교 */}
+      {result?.marketAvg && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-semibold text-gray-800 mb-4">시장 비교</h2>
+          <p className="text-xs text-gray-400 mb-5">
+            {industries.length > 0 ? `${industries.join(', ')} 업종` : '전체 업종'} 평균 대비 예측 성과
+          </p>
+
+          {/* 종합 점수 */}
+          <div className="flex items-center gap-5 mb-6">
+            <div className="flex flex-col items-center justify-center w-20 h-20 rounded-full border-4 border-indigo-100 bg-indigo-50 shrink-0">
+              <span className="text-2xl font-bold text-indigo-600">{result.marketAvg.grade}</span>
+              <span className="text-xs text-indigo-400 font-medium">{result.marketAvg.score}점</span>
+            </div>
+            <div className="flex-1">
+              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${
+                    result.marketAvg.score >= 65 ? 'bg-emerald-500' : result.marketAvg.score >= 50 ? 'bg-amber-400' : 'bg-red-400'
+                  }`}
+                  style={{ width: `${result.marketAvg.score}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1.5">
+                {result.marketAvg.score >= 80 ? '업종 최상위 효율 구간입니다.'
+                  : result.marketAvg.score >= 65 ? '업종 평균보다 우수한 효율입니다.'
+                  : result.marketAvg.score >= 50 ? '업종 평균 수준입니다.'
+                  : result.marketAvg.score >= 35 ? '일부 지표가 업종 평균보다 낮습니다.'
+                  : '주요 지표가 업종 평균을 하회합니다.'}
+              </p>
+            </div>
+          </div>
+
+          {/* 지표별 비교 */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'CPM', predicted: result.cpm, market: result.marketAvg.cpm, diff: result.marketAvg.cpmDiff, lowerBetter: true, fmt: (v: number) => `₩${v.toLocaleString()}` },
+              { label: 'CPC', predicted: result.cpc, market: result.marketAvg.cpc, diff: result.marketAvg.cpcDiff, lowerBetter: true, fmt: (v: number) => v > 0 ? `₩${v.toLocaleString()}` : '—' },
+              { label: 'VTR', predicted: result.vtr, market: result.marketAvg.vtr, diff: result.marketAvg.vtrDiff, lowerBetter: false, fmt: (v: number) => v > 0 ? `${v.toFixed(2)}%` : '—' },
+            ].map(({ label, predicted, market, diff, lowerBetter, fmt }) => {
+              const isBetter = lowerBetter ? diff < 0 : diff > 0;
+              const isNeutral = Math.abs(diff) < 2;
+              return (
+                <div key={label} className="bg-gray-50 rounded-xl p-3.5">
+                  <p className="text-xs text-gray-500 mb-1">{label}</p>
+                  <p className="text-base font-bold text-gray-900">{fmt(predicted)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">업종 평균 {fmt(market)}</p>
+                  {market > 0 && (
+                    <span className={`inline-block mt-1.5 text-xs font-semibold px-1.5 py-0.5 rounded ${
+                      isNeutral ? 'bg-gray-100 text-gray-500'
+                        : isBetter ? 'bg-emerald-50 text-emerald-600'
+                        : 'bg-red-50 text-red-500'
+                    }`}>
+                      {isNeutral ? '평균' : isBetter ? `▼ ${Math.abs(diff)}%` : `▲ ${Math.abs(diff)}%`}
+                      {!isNeutral && <span className="font-normal ml-1">{isBetter ? '절감' : '초과'}</span>}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Budget Range Chart */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">

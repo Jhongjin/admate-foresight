@@ -12,6 +12,18 @@ export interface PredictInput {
   monthTo?: string;       // YYYY-MM, 기간 종료
 }
 
+export interface MarketAvg {
+  cpm: number;
+  cpc: number;
+  vtr: number;
+  count: number;
+  score: number;           // 0-100 종합 점수
+  grade: 'A' | 'B' | 'C' | 'D' | 'F';
+  cpmDiff: number;         // 업종 평균 대비 % (음수 = 더 저렴)
+  cpcDiff: number;
+  vtrDiff: number;
+}
+
 export interface PredictResult {
   reach: number;
   cpm: number;
@@ -29,6 +41,7 @@ export interface PredictResult {
   r2Cpc?: number;
   r2Vtr?: number;
   predictionMethod: 'regression' | 'weighted_avg' | 'fallback';
+  marketAvg: MarketAvg;
 }
 
 // ── 상수 ──────────────────────────────────────────────
@@ -331,6 +344,40 @@ export function predict(input: PredictInput): PredictResult {
     // 전월 회귀 실패: change null 유지
   }
 
+  // ── 시장 비교 (동일 업종 평균 대비) ─────────────────────
+  const industryData = industries.length > 0
+    ? xlsxData.filter((r) => industries.includes(r.업종))
+    : xlsxData;
+  const industryVideoData = industryData.filter((r) => r.영상조회수 > 0 && r.노출 > 0);
+
+  const mktCpm = weightedCPM(industryData);
+  const mktCpc = weightedCPC(industryData);
+  const mktVtr = calcVTR(industryVideoData);
+
+  // 각 지표별 차이 (음수 = 예측치가 더 낮음(좋음), VTR은 양수=좋음)
+  const cpmDiff = mktCpm > 0 ? ((cpm - mktCpm) / mktCpm) * 100 : 0;
+  const cpcDiff = mktCpc > 0 && cpc > 0 ? ((cpc - mktCpc) / mktCpc) * 100 : 0;
+  const vtrDiff = mktVtr > 0 && vtr > 0 ? ((vtr - mktVtr) / mktVtr) * 100 : 0;
+
+  // 종합 점수: CPM 절감 40%, VTR 우수 30%, CPC 절감 30%
+  // 50점 기준 → 각 지표 개선률(%)의 절반을 가감
+  const rawScore = 50 + (-cpmDiff * 0.4 + vtrDiff * 0.3 + -cpcDiff * 0.3) * 0.5;
+  const marketScore = Math.round(Math.min(100, Math.max(0, rawScore)));
+  const marketGrade: MarketAvg['grade'] =
+    marketScore >= 80 ? 'A' : marketScore >= 65 ? 'B' : marketScore >= 50 ? 'C' : marketScore >= 35 ? 'D' : 'F';
+
+  const marketAvg: MarketAvg = {
+    cpm: Math.round(mktCpm),
+    cpc: Math.round(mktCpc),
+    vtr: Math.round(mktVtr * 100) / 100,
+    count: industryData.length,
+    score: marketScore,
+    grade: marketGrade,
+    cpmDiff: Math.round(cpmDiff * 10) / 10,
+    cpcDiff: Math.round(cpcDiff * 10) / 10,
+    vtrDiff: Math.round(vtrDiff * 10) / 10,
+  };
+
   return {
     reach,
     cpm,
@@ -347,5 +394,6 @@ export function predict(input: PredictInput): PredictResult {
     r2Cpc,
     r2Vtr,
     predictionMethod,
+    marketAvg,
   };
 }
