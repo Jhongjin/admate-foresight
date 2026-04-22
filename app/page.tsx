@@ -113,7 +113,7 @@ export default function SimulatorPage() {
   }, []);
 
   const fetchRange = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; monthFrom?: string; monthTo?: string;
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; monthFrom?: string; monthTo?: string;
   }) => {
     setRangeLoading(true);
     try {
@@ -140,9 +140,9 @@ export default function SimulatorPage() {
   useEffect(() => {
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
     rangeDebounceRef.current = setTimeout(() => {
-      fetchRange({ industries, genders, ageRanges, objectives });
+      fetchRange({ industries, genders, ageRanges, objectives, budget });
     }, 400);
-  }, [industries, genders, ageRanges, objectives, fetchRange]);
+  }, [industries, genders, ageRanges, objectives, budget, fetchRange]);
 
   // 테이블 클릭 등 외부에서 budget 변경 시 input 동기화
   useEffect(() => {

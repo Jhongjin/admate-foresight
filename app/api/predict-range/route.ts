@@ -2,18 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { predict } from '@/lib/predictor';
 import { ensureDataLoaded } from '@/lib/xlsxLoader';
 
-const BUDGET_LEVELS = [
+// 기본 구간 (1억 이하)
+const BASE_LEVELS = [
   1_000_000,
+  3_000_000,
   5_000_000,
   10_000_000,
+  20_000_000,
   30_000_000,
+  50_000_000,
   100_000_000,
+];
+
+// 1억 초과 구간 후보
+const HIGHER_LEVELS = [
+  200_000_000,
   300_000_000,
   500_000_000,
   1_000_000_000,
+  2_000_000_000,
   3_000_000_000,
   5_000_000_000,
 ];
+
+function buildLevels(budget: number): number[] {
+  if (budget <= 100_000_000) return BASE_LEVELS;
+
+  // 1억 초과: 후보 중 budget 미만인 것 + budget 자체 포함
+  const extras = HIGHER_LEVELS.filter((l) => l < budget);
+  const levels = [...BASE_LEVELS, ...extras];
+  // 정확히 budget이 없으면 추가
+  if (!levels.includes(budget)) levels.push(budget);
+  return levels;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,11 +45,14 @@ export async function POST(req: NextRequest) {
       genders = [],
       ageRanges = [],
       objectives = [],
+      budget: currentBudget = 0,
       monthFrom,
       monthTo,
     } = body;
 
-    const results = BUDGET_LEVELS.map((budget) => {
+    const levels = buildLevels(currentBudget);
+
+    const results = levels.map((budget) => {
       const r = predict({ industries, genders, ageRanges, objectives, budget, monthFrom, monthTo });
       return { budget, reach: r.reach, cpm: r.cpm, cpc: r.cpc };
     });
