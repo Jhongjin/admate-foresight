@@ -1,3 +1,4 @@
+'use client';
 import { loadAdData } from './csvLoader';
 import { XlsxRecord, loadXlsxData, loadDemoData } from './xlsxLoader';
 import { predictByRegression } from './regression';
@@ -8,8 +9,8 @@ export interface PredictInput {
   ageRanges: string[];
   objectives: string[];
   budget: number;
-  monthFrom?: string;     // YYYY-MM, 기간 시작
-  monthTo?: string;       // YYYY-MM, 기간 종료
+  monthFrom?: string;
+  monthTo?: string;
 }
 
 export interface MarketAvg {
@@ -17,50 +18,140 @@ export interface MarketAvg {
   cpc: number;
   vtr: number;
   count: number;
-  score: number;           // 0-100 종합 점수
+  score: number;
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  cpmDiff: number;         // 업종 평균 대비 % (음수 = 더 저렴)
+  cpmDiff: number;
   cpcDiff: number;
   vtrDiff: number;
+  top20pctCpm: number;   // 상위 20% 효율선 (하위 20th percentile CPM)
+  top20pctCpc: number;
 }
 
 export interface PredictResult {
   reach: number;
   cpm: number;
-  cpc: number;          // CPC(전체)
-  cpcLink: number;      // CPC(링크)
-  cpv: number;          // 동영상 3초 조회당 비용
-  vtr: number;          // VTR(3s) %
+  cpc: number;
+  cpcLink: number;
+  cpv: number;
+  vtr: number;
   frequency: number;
   reachChange: number | null;
   cpmChange: number | null;
   cpcChange: number | null;
   matchedCount: number;
-  // 회귀 모델 정보
   r2Cpm?: number;
   r2Cpc?: number;
   r2Vtr?: number;
   predictionMethod: 'regression' | 'weighted_avg' | 'fallback';
   marketAvg: MarketAvg;
+  // 고도화 필드
+  seasonalityMultiplier: number;
+  seasonalityReason: string;
+  qualityIndex: number;      // 0-100
+  qualityPenaltyPct: number; // 적용된 CPC 패널티 %
+  saturationWarning: boolean;
+  insights: string[];        // 전략적 조언 3줄
 }
 
-// ── 상수 ──────────────────────────────────────────────
-// BETA: diminishing returns 지수 (0.864)
-// FREQ_GAMMA: 빈도(frequency)의 예산 탄력성 (0.044, 132개 캠페인 log-log 회귀, R²=0.024)
-// 총 도달 지수 = BETA - FREQ_GAMMA = 0.864 - 0.044 = 0.820 (지출 구간 데이터 피팅값 유지)
+// ════════════════════════════════════════════════════════════
+// 상수
+// ════════════════════════════════════════════════════════════
 const BETA = 0.864;
 const FREQ_GAMMA = 0.044;
-const REF_BUDGET = 1_000_000; // 100만원 기준
+const REF_BUDGET = 1_000_000;
+const SAT_FREQ_THRESHOLD = 2.0;   // 포화 시작 빈도
+const SAT_CPM_RATE = 0.25;        // 빈도 초과분당 CPM 할증률
 
-// ── XLSX 필터 ─────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// 1. 시즌성 가중치 (Seasonality)
+// ════════════════════════════════════════════════════════════
+function getSeasonality(): { multiplier: number; reason: string } {
+  const now = new Date();
+  const m = now.getMonth() + 1; // 1-12
+  const d = now.getDate();
+
+  if (m === 12) return { multiplier: 1.4, reason: '연말 성수기 (12월)' };
+  if (m === 11) return { multiplier: 1.3, reason: '블랙프라이데이 시즌 (11월)' };
+  // 설날: 대체로 1월 말 ~ 2월 초
+  if ((m === 1 && d >= 22) || (m === 2 && d <= 16))
+    return { multiplier: 1.2, reason: '설날 연휴 시즌' };
+  // 추석: 대체로 9월 중순 ~ 10월 초
+  if ((m === 9 && d >= 15) || (m === 10 && d <= 10))
+    return { multiplier: 1.2, reason: '추석 연휴 시즌' };
+
+  return { multiplier: 1.0, reason: '' };
+}
+
+// ════════════════════════════════════════════════════════════
+// 2. 포화 모델 (Saturation — frequency 기반 CPM 할증)
+// ════════════════════════════════════════════════════════════
+function applySaturation(baseCpm: number, frequency: number): number {
+  if (frequency <= SAT_FREQ_THRESHOLD) return baseCpm;
+  // 빈도 2.0 초과분에 비례 할증, 최대 70%
+  const overRatio = (frequency - SAT_FREQ_THRESHOLD) / SAT_FREQ_THRESHOLD;
+  const surcharge = 1 + overRatio * SAT_CPM_RATE;
+  return baseCpm * Math.min(surcharge, 1.7);
+}
+
+// ════════════════════════════════════════════════════════════
+// 3. 품질 지수 (Quality Index) — 타겟 좁음 + CTR 이력
+// ════════════════════════════════════════════════════════════
+function computeQuality(
+  genders: string[],
+  ageRanges: string[],
+  industries: string[],
+  matched: XlsxRecord[],
+  baseline: XlsxRecord[],
+): { index: number; penaltyMultiplier: number; penaltyPct: number; reason: string } {
+  const filterDims =
+    (genders.length > 0 ? 1 : 0) +
+    (ageRanges.length > 0 ? 1 : 0) +
+    (industries.length > 0 ? 1 : 0);
+  const isNarrow = filterDims >= 2 && matched.length < 100;
+
+  // CTR 추정: CPM / (CPC × 1000)
+  const baseCpm = weightedCPM(baseline);
+  const baseCpc = weightedCPC(baseline);
+  const baseCtr = baseCpc > 0 ? baseCpm / (baseCpc * 1000) : 0;
+
+  const mCpm = weightedCPM(matched);
+  const mCpc = weightedCPC(matched);
+  const matchCtr = mCpc > 0 && matched.length > 0 ? mCpm / (mCpc * 1000) : baseCtr;
+
+  const ctrRatio = baseCtr > 0 ? matchCtr / baseCtr : 1;
+
+  let penalty = 1.0;
+  let reason = '';
+  if (isNarrow && ctrRatio < 0.75) {
+    penalty = 1.25; reason = '좁은 타겟 + 낮은 CTR 이력';
+  } else if (isNarrow) {
+    penalty = 1.12; reason = '좁은 타겟 설정';
+  } else if (ctrRatio < 0.7) {
+    penalty = 1.18; reason = '낮은 CTR 이력 조합';
+  }
+
+  const rawIndex = Math.round(
+    Math.min(100, Math.max(0, 50 + (ctrRatio - 1) * 60 + (isNarrow ? -8 : 0)))
+  );
+  return {
+    index: rawIndex,
+    penaltyMultiplier: penalty,
+    penaltyPct: Math.round((penalty - 1) * 100),
+    reason,
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// 기존 헬퍼
+// ════════════════════════════════════════════════════════════
 function filterXlsx(
   data: XlsxRecord[],
   industries: string[],
   genders: string[],
   ageRanges: string[],
   objectives: string[],
-  monthFrom?: string,     // YYYY-MM, 기간 시작
-  monthTo?: string,       // YYYY-MM, 기간 종료
+  monthFrom?: string,
+  monthTo?: string,
 ): XlsxRecord[] {
   return data.filter((r) => {
     const rowMonth = r.날짜.substring(0, 7);
@@ -74,7 +165,6 @@ function filterXlsx(
   });
 }
 
-// ── 가중평균 계산 ─────────────────────────────────────
 function weightedCPM(records: XlsxRecord[]): number {
   const totalImp = records.reduce((s, r) => s + r.노출, 0);
   if (totalImp === 0) return 0;
@@ -82,7 +172,6 @@ function weightedCPM(records: XlsxRecord[]): number {
 }
 
 function weightedCPC(records: XlsxRecord[]): number {
-  // CPC가 0인 행(클릭 없는 인지도 캠페인)은 제외
   const clickRecs = records.filter((r) => r.CPC > 0);
   if (clickRecs.length === 0) return 0;
   const clickSpend = clickRecs.reduce((s, r) => s + r.지출금액, 0);
@@ -113,27 +202,20 @@ function calcVTR(records: XlsxRecord[]): number {
   return (totalViews / totalImp) * 100;
 }
 
-// frequency를 reach 가중치로 평균
-// 수학적으로: Σ(freq_i × reach_i) / Σ(reach_i) = Σ(impressions_i) / Σ(reach_i)
-// = 집계 빈도와 동일
 function weightedFrequency(records: XlsxRecord[]): number {
   const totalReach = records.reduce((s, r) => s + r.도달, 0);
   if (totalReach === 0) return 1;
   return records.reduce((s, r) => s + r.빈도 * r.도달, 0) / totalReach;
 }
 
-// ── 도달 계산 (CPM 값 주입 방식) ─────────────────────
-// cpmVal: 회귀 or 가중평균으로 결정된 CPM
 function calcReachFromCPM(
   cpmVal: number,
   baseFreq: number,
   budget: number,
 ): { reach: number; frequency: number } {
   const adjustedFreq = baseFreq * Math.pow(budget / REF_BUDGET, FREQ_GAMMA);
-
-  if (cpmVal === 0 || adjustedFreq === 0) {
+  if (cpmVal === 0 || adjustedFreq === 0)
     return { reach: 0, frequency: Math.round(adjustedFreq * 100) / 100 };
-  }
 
   const linearReach = (budget / cpmVal) * 1000 / adjustedFreq;
   const diminishingFactor = budget > 0 ? Math.pow(budget / REF_BUDGET, BETA - 1) : 1;
@@ -144,11 +226,7 @@ function calcReachFromCPM(
   };
 }
 
-// ── 가중평균 기반 전체 계산 (폴백용) ────────────────
-function calcFromRecords(records: XlsxRecord[], budget: number): {
-  cpm: number; cpc: number; cpcLink: number; cpv: number; vtr: number;
-  reach: number; frequency: number;
-} {
+function calcFromRecords(records: XlsxRecord[], budget: number) {
   const cpm     = weightedCPM(records);
   const cpc     = weightedCPC(records);
   const cpcLink = weightedCPCLink(records);
@@ -156,120 +234,145 @@ function calcFromRecords(records: XlsxRecord[], budget: number): {
   const vtr     = calcVTR(records);
   const baseFreq = weightedFrequency(records);
   const { reach, frequency } = calcReachFromCPM(cpm, baseFreq, budget);
-
   return {
-    cpm: Math.round(cpm),
-    cpc: Math.round(cpc),
-    cpcLink: Math.round(cpcLink),
-    cpv: Math.round(cpv * 10) / 10,
-    vtr: Math.round(vtr * 100) / 100,
-    reach,
-    frequency,
+    cpm: Math.round(cpm), cpc: Math.round(cpc),
+    cpcLink: Math.round(cpcLink), cpv: Math.round(cpv * 10) / 10,
+    vtr: Math.round(vtr * 100) / 100, reach, frequency,
   };
 }
 
-// ── XLSX 폴백 체인 ────────────────────────────────────
 function getMatchedXlsx(
   data: XlsxRecord[],
-  industries: string[],
-  genders: string[],
-  ageRanges: string[],
-  objectives: string[],
-  monthFrom?: string,
-  monthTo?: string,
+  industries: string[], genders: string[], ageRanges: string[], objectives: string[],
+  monthFrom?: string, monthTo?: string,
 ): XlsxRecord[] {
-  // ── Phase 1: 기간 필터 포함 ──
   if (monthFrom || monthTo) {
     let m = filterXlsx(data, industries, genders, ageRanges, objectives, monthFrom, monthTo);
     if (m.length >= 10) return m;
-
     m = filterXlsx(data, industries, genders, [], objectives, monthFrom, monthTo);
     if (m.length >= 10) return m;
-
     m = filterXlsx(data, industries, [], [], objectives, monthFrom, monthTo);
     if (m.length >= 10) return m;
-
     m = filterXlsx(data, [], [], [], objectives, monthFrom, monthTo);
     if (m.length >= 10) return m;
-
     m = filterXlsx(data, [], [], [], [], monthFrom, monthTo);
     if (m.length >= 10) return m;
   }
-
-  // ── Phase 2: 기간 필터 제거 폴백 ──
   let matched = filterXlsx(data, industries, genders, ageRanges, objectives);
   if (matched.length >= 10) return matched;
-
   matched = filterXlsx(data, industries, genders, [], objectives);
   if (matched.length >= 10) return matched;
-
   matched = filterXlsx(data, industries, [], [], objectives);
   if (matched.length >= 10) return matched;
-
   matched = filterXlsx(data, [], [], [], objectives);
   if (matched.length >= 10) return matched;
-
   return data;
 }
 
-// ── CSV 폴백 (XLSX 데이터가 없는 경우 레거시) ─────────
-function calcReachFromCsv(budget: number): { reach: number; cpm: number; cpc: number; cpcLink: number; cpv: number; vtr: number; frequency: number } {
+function calcReachFromCsv(budget: number) {
   const csvData = loadAdData();
   const totalReach = csvData.reduce((s, r) => s + r.도달, 0);
   const totalImp = csvData.reduce((s, r) => s + r.노출, 0);
   const totalClicks = csvData.reduce((s, r) => s + r.클릭, 0);
-
-  const cpm = totalImp > 0
-    ? csvData.reduce((s, r) => s + r.CPM * r.노출, 0) / totalImp : 0;
-  const cpc = totalClicks > 0
-    ? csvData.reduce((s, r) => s + r.CPC * r.클릭, 0) / totalClicks : 0;
+  const cpm = totalImp > 0 ? csvData.reduce((s, r) => s + r.CPM * r.노출, 0) / totalImp : 0;
+  const cpc = totalClicks > 0 ? csvData.reduce((s, r) => s + r.CPC * r.클릭, 0) / totalClicks : 0;
   const frequency = totalReach > 0 ? totalImp / totalReach : 1;
   const linearReach = cpm > 0 ? (budget / cpm) * 1000 / frequency : 0;
-  const diminishingFactor = budget > 0
-    ? Math.pow(budget / REF_BUDGET, BETA - 1) : 1;
-
+  const diminishingFactor = budget > 0 ? Math.pow(budget / REF_BUDGET, BETA - 1) : 1;
   return {
     reach: Math.round(linearReach * diminishingFactor),
-    cpm: Math.round(cpm),
-    cpc: Math.round(cpc),
-    cpcLink: 0,
-    cpv: 0,
-    vtr: 0,
+    cpm: Math.round(cpm), cpc: Math.round(cpc),
+    cpcLink: 0, cpv: 0, vtr: 0,
     frequency: Math.round(frequency * 100) / 100,
   };
 }
 
-// ── 메인 predict 함수 ─────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// 4. 인사이트 텍스트 생성
+// ════════════════════════════════════════════════════════════
+function generateInsights(p: {
+  cpm: number; cpc: number; frequency: number; budget: number;
+  seasonality: { multiplier: number; reason: string };
+  quality: { index: number; penaltyPct: number; reason: string };
+  genders: string[]; ageRanges: string[]; industries: string[];
+  mktAvgCpm: number; top20pctCpm: number;
+  saturationWarning: boolean;
+}): string[] {
+  const insights: string[] = [];
+
+  // ① 예산 효율 / 포화도
+  if (p.saturationWarning) {
+    insights.push(
+      `타겟 모수 대비 예산이 과다하게 설정되어 있습니다. 빈도(${p.frequency.toFixed(1)}회)가 ${SAT_FREQ_THRESHOLD}회를 넘어 CPM 할증이 적용되었습니다. 타겟 확장 또는 예산 20% 축소를 검토하세요.`
+    );
+  } else if (p.frequency < 1.3) {
+    insights.push(
+      `현재 예산 규모는 타겟 모수 대비 여유가 있습니다. 빈도(${p.frequency.toFixed(1)}회)가 낮아 효율 저하 없이 예산을 20% 증액해 도달을 확대할 수 있습니다.`
+    );
+  } else {
+    insights.push(
+      `현재 예산 규모는 타겟 모수 대비 적정합니다. 빈도(${p.frequency.toFixed(1)}회)가 안정적인 구간으로 예측됩니다.`
+    );
+  }
+
+  // ② 시즌성
+  if (p.seasonality.multiplier > 1.0) {
+    const pct = Math.round((p.seasonality.multiplier - 1) * 100);
+    insights.push(
+      `${p.seasonality.reason} 영향으로 CPM을 ${pct}% 상향 조정하여 보수적으로 예측했습니다. 실제 집행 시 예비 예산을 ${pct}% 이상 확보하는 것을 권장합니다.`
+    );
+  } else {
+    insights.push(
+      `현재는 비성수기로 CPM 시즌 보정이 적용되지 않았습니다. 11~12월 집행 예정이라면 CPM을 30~40% 높게 책정하여 예산 계획을 세우세요.`
+    );
+  }
+
+  // ③ 타겟 품질 / 벤치마크
+  if (p.quality.penaltyPct > 0) {
+    insights.push(
+      `${p.quality.reason}으로 CPC에 ${p.quality.penaltyPct}% 패널티가 적용되었습니다. 타겟 범위를 넓히거나 광고 소재 CTR을 개선하면 CPC를 약 ${p.quality.penaltyPct}% 낮출 수 있습니다.`
+    );
+  } else if (p.top20pctCpm > 0 && p.cpm <= p.top20pctCpm) {
+    insights.push(
+      `예측 CPM(₩${p.cpm.toLocaleString()})이 업종 상위 20% 효율선(₩${p.top20pctCpm.toLocaleString()}) 이하입니다. 현재 타겟·목표 설정이 매우 효율적입니다.`
+    );
+  } else if (p.top20pctCpm > 0) {
+    insights.push(
+      `예측 CPM(₩${p.cpm.toLocaleString()})은 업종 평균(₩${p.mktAvgCpm.toLocaleString()}) 수준입니다. 상위 20% 효율선(₩${p.top20pctCpm.toLocaleString()})에 진입하려면 타겟 세분화 또는 목표 최적화가 필요합니다.`
+    );
+  } else {
+    insights.push(
+      `예측 CPM(₩${p.cpm.toLocaleString()})은 업종 평균(₩${p.mktAvgCpm.toLocaleString()}) 대비 효율적입니다.`
+    );
+  }
+
+  return insights;
+}
+
+// ════════════════════════════════════════════════════════════
+// MAIN predict 함수
+// ════════════════════════════════════════════════════════════
 export function predict(input: PredictInput): PredictResult {
   const { industries, genders, ageRanges, objectives, budget, monthFrom, monthTo } = input;
   const xlsxData = loadXlsxData();
 
-  // ── 폴백: 가중평균 기반 매칭된 레코드 ──
+  // ── 매칭 데이터 ──
   const matched = getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives, monthFrom, monthTo);
-
-  // 회귀 예측 기준 월: 기간 종료월 사용 (가장 최근 데이터 기준)
   const selMonth = monthTo ?? monthFrom;
 
   // ── 1차: Ridge 회귀 예측 ──
   let cpm: number, cpc: number, cpcLink: number, cpv: number, vtr: number;
   let predictionMethod: PredictResult['predictionMethod'];
   let r2Cpm: number | undefined, r2Cpc: number | undefined, r2Vtr: number | undefined;
-
   let regResult: ReturnType<typeof predictByRegression> | null = null;
-  try {
-    regResult = predictByRegression(industries, genders, ageRanges, selMonth);
-  } catch (e) {
-    // 회귀 실패 시 무시하고 가중평균으로 폴백
-  }
+
+  try { regResult = predictByRegression(industries, genders, ageRanges, selMonth); } catch {}
 
   if (regResult && regResult.cpm > 0) {
-    // 회귀 성공: CPM/CPC는 회귀값, VTR/CPV/CPCLink는 필터링된 가중평균
-    // (VTR은 회귀 계수가 Ridge로 수렴해 필터 변화에 둔감 → 가중평균이 더 정확)
     cpm     = regResult.cpm;
     cpc     = regResult.cpc;
     cpcLink = regResult.cpcLink > 0 ? regResult.cpcLink : Math.round(weightedCPCLink(matched));
     cpv     = Math.round(weightedCPV(matched) * 10) / 10;
-    // VTR 계산: 성별/연령 → 데모 데이터, 목표/업종 → 월간 데이터, 폴백 → 회귀
     const demoData = loadDemoData();
     const demoVideoRecs = demoData.filter(r => {
       if (r.영상조회수 <= 0 || r.노출 <= 0) return false;
@@ -291,115 +394,129 @@ export function predict(input: PredictInput): PredictResult {
     } else {
       vtr = regResult.vtr;
     }
-    r2Cpm   = regResult.r2Cpm;
-    r2Cpc   = regResult.r2Cpc;
-    r2Vtr   = regResult.r2VTR;
+    r2Cpm = regResult.r2Cpm; r2Cpc = regResult.r2Cpc; r2Vtr = regResult.r2VTR;
     predictionMethod = 'regression';
   } else if (matched.length > 0) {
-    // 가중평균 폴백
     const avg = calcFromRecords(matched, budget);
     ({ cpm, cpc, cpcLink, cpv, vtr } = avg);
     predictionMethod = 'weighted_avg';
   } else {
-    // CSV 레거시 폴백
     const fallback = calcReachFromCsv(budget);
     ({ cpm, cpc, cpcLink, cpv, vtr } = fallback);
     predictionMethod = 'fallback';
   }
 
-  // ── 도달 계산: 회귀 CPM 기반 ──
+  // ── 시즌성 가중치 적용 ──────────────────────────────────
+  const seasonality = getSeasonality();
+  cpm = Math.round(cpm * seasonality.multiplier);
+
+  // ── 도달 계산 (포화 모델 포함) ──────────────────────────
   const baseFreq = weightedFrequency(matched.length > 0 ? matched : xlsxData);
-  const { reach, frequency } = calcReachFromCPM(cpm, baseFreq, budget);
+  const { reach: rawReach, frequency } = calcReachFromCPM(cpm, baseFreq, budget);
 
-  // ── 전월 대비 비교 (기간 종료월 기준) ──
-  let prevMonthStr: string;
-  if (selMonth) {
-    const [y, mo] = selMonth.split('-').map(Number);
-    const prevDate = new Date(y, mo - 2, 1);
-    prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-  } else {
-    const now = new Date();
-    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-  }
+  // 포화 할증: frequency > SAT_FREQ_THRESHOLD 시 effective CPM 상승 → reach 감소
+  const saturatedCpm = applySaturation(cpm, frequency);
+  const saturationWarning = saturatedCpm > cpm;
+  const reach = saturationWarning
+    ? Math.round(rawReach * (cpm / saturatedCpm))
+    : rawReach;
 
-  let reachChange: number | null = null;
-  let cpmChange:   number | null = null;
-  let cpcChange:   number | null = null;
-
-  try {
-    // 전월도 회귀 예측으로 비교 (method 일관성)
-    const prevReg = predictByRegression(industries, genders, ageRanges, prevMonthStr);
-    if (prevReg.cpm > 0) {
-      const prevMatched = getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives)
-        .filter(r => r.날짜.startsWith(prevMonthStr));
-      const prevBaseFreq = weightedFrequency(prevMatched.length > 0 ? prevMatched : xlsxData);
-      const { reach: prevReach } = calcReachFromCPM(prevReg.cpm, prevBaseFreq, budget);
-
-      if (prevReach > 0) reachChange = ((reach - prevReach) / prevReach) * 100;
-      if (prevReg.cpm > 0) cpmChange = ((cpm - prevReg.cpm) / prevReg.cpm) * 100;
-      if (prevReg.cpc > 0 && cpc > 0) cpcChange = ((cpc - prevReg.cpc) / prevReg.cpc) * 100;
-    }
-  } catch {
-    // 전월 회귀 실패: change null 유지
-  }
-
-  // ── 시장 비교 ─────────────────────────────────────────────
-  // 베이스라인: 동일 업종+목표 기준, 성별/연령 필터는 제거
-  // → "이 타겟팅이 업종+목표 기준 전체 대비 얼마나 효율적인가?" 측정
-  // 데이터가 부족하면 단계적으로 범위 확대
+  // ── 품질 지수 ───────────────────────────────────────────
   let baselineData = filterXlsx(xlsxData, industries, [], [], objectives);
   if (baselineData.length < 10) {
     baselineData = industries.length > 0
       ? xlsxData.filter((r) => industries.includes(r.업종))
       : xlsxData;
   }
-  const baselineVideoData = baselineData.filter((r) => r.영상조회수 > 0 && r.노출 > 0);
+  const quality = computeQuality(genders, ageRanges, industries, matched, baselineData);
+  cpc     = Math.round(cpc * quality.penaltyMultiplier);
+  cpcLink = cpcLink > 0 ? Math.round(cpcLink * quality.penaltyMultiplier) : 0;
 
+  // ── 전월 대비 (내부 참고용, UI 미표시) ─────────────────
+  let reachChange: number | null = null;
+  let cpmChange:   number | null = null;
+  let cpcChange:   number | null = null;
+  try {
+    let prevMonthStr: string;
+    if (selMonth) {
+      const [y, mo] = selMonth.split('-').map(Number);
+      const prevDate = new Date(y, mo - 2, 1);
+      prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    } else {
+      const now = new Date();
+      const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    }
+    const prevReg = predictByRegression(industries, genders, ageRanges, prevMonthStr);
+    if (prevReg.cpm > 0) {
+      const prevBaseFreq = weightedFrequency(
+        getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives)
+          .filter(r => r.날짜.startsWith(prevMonthStr))
+          .length > 0
+          ? getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives)
+              .filter(r => r.날짜.startsWith(prevMonthStr))
+          : xlsxData
+      );
+      const { reach: prevReach } = calcReachFromCPM(prevReg.cpm, prevBaseFreq, budget);
+      if (prevReach > 0) reachChange = ((reach - prevReach) / prevReach) * 100;
+      if (prevReg.cpm > 0) cpmChange = ((cpm - prevReg.cpm) / prevReg.cpm) * 100;
+      if (prevReg.cpc > 0 && cpc > 0) cpcChange = ((cpc - prevReg.cpc) / prevReg.cpc) * 100;
+    }
+  } catch {}
+
+  // ── 시장 비교 (Top 20% 포함) ────────────────────────────
+  const baselineVideoData = baselineData.filter((r) => r.영상조회수 > 0 && r.노출 > 0);
   const mktCpm = weightedCPM(baselineData);
   const mktCpc = weightedCPC(baselineData);
   const mktVtr = calcVTR(baselineVideoData);
 
-  // 각 지표별 차이 (음수 = 예측치가 더 낮음(좋음), VTR은 양수=좋음)
+  // Top 20% 효율선 (CPM·CPC 낮을수록 효율적 → 하위 20th percentile)
+  const sortedCpms = baselineData.map(r => r.CPM).filter(v => v > 0).sort((a, b) => a - b);
+  const top20pctCpm = sortedCpms[Math.floor(sortedCpms.length * 0.2)] ?? 0;
+  const sortedCpcs = baselineData.map(r => r.CPC).filter(v => v > 0).sort((a, b) => a - b);
+  const top20pctCpc = sortedCpcs[Math.floor(sortedCpcs.length * 0.2)] ?? 0;
+
   const cpmDiff = mktCpm > 0 ? ((cpm - mktCpm) / mktCpm) * 100 : 0;
   const cpcDiff = mktCpc > 0 && cpc > 0 ? ((cpc - mktCpc) / mktCpc) * 100 : 0;
   const vtrDiff = mktVtr > 0 && vtr > 0 ? ((vtr - mktVtr) / mktVtr) * 100 : 0;
-
-  // 종합 점수: CPM 절감 40%, VTR 우수 30%, CPC 절감 30%
-  // 50점 기준 → 타겟팅 없을 때는 자기 자신과 비교 → 자연스럽게 50점 근방
   const rawScore = 50 + (-cpmDiff * 0.4 + vtrDiff * 0.3 + -cpcDiff * 0.3) * 0.5;
   const marketScore = Math.round(Math.min(100, Math.max(0, rawScore)));
   const marketGrade: MarketAvg['grade'] =
     marketScore >= 80 ? 'A' : marketScore >= 65 ? 'B' : marketScore >= 50 ? 'C' : marketScore >= 35 ? 'D' : 'F';
 
   const marketAvg: MarketAvg = {
-    cpm: Math.round(mktCpm),
-    cpc: Math.round(mktCpc),
+    cpm: Math.round(mktCpm), cpc: Math.round(mktCpc),
     vtr: Math.round(mktVtr * 100) / 100,
     count: baselineData.length,
-    score: marketScore,
-    grade: marketGrade,
+    score: marketScore, grade: marketGrade,
     cpmDiff: Math.round(cpmDiff * 10) / 10,
     cpcDiff: Math.round(cpcDiff * 10) / 10,
     vtrDiff: Math.round(vtrDiff * 10) / 10,
+    top20pctCpm: Math.round(top20pctCpm),
+    top20pctCpc: Math.round(top20pctCpc),
   };
 
+  // ── 인사이트 생성 ─────────────────────────────────────
+  const insights = generateInsights({
+    cpm, cpc, frequency, budget, seasonality, quality,
+    genders, ageRanges, industries,
+    mktAvgCpm: Math.round(mktCpm),
+    top20pctCpm: Math.round(top20pctCpm),
+    saturationWarning,
+  });
+
   return {
-    reach,
-    cpm,
-    cpc,
-    cpcLink,
-    cpv,
-    vtr,
-    frequency,
-    reachChange,
-    cpmChange,
-    cpcChange,
+    reach, cpm, cpc, cpcLink, cpv, vtr, frequency,
+    reachChange, cpmChange, cpcChange,
     matchedCount: matched.length,
-    r2Cpm,
-    r2Cpc,
-    r2Vtr,
+    r2Cpm, r2Cpc, r2Vtr,
     predictionMethod,
     marketAvg,
+    seasonalityMultiplier: seasonality.multiplier,
+    seasonalityReason: seasonality.reason,
+    qualityIndex: quality.index,
+    qualityPenaltyPct: quality.penaltyPct,
+    saturationWarning,
+    insights,
   };
 }
