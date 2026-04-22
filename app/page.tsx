@@ -527,7 +527,8 @@ export default function SimulatorPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-4">시장 비교</h2>
           <p className="text-xs text-gray-400 mb-5">
-            {industries.length > 0 ? `${industries.join(', ')} 업종` : '전체 업종'} 평균 대비 예측 성과
+            {industries.length > 0 ? `${industries.join(', ')} 업종` : '전체 업종'}
+            {objectives.length > 0 ? ` · ${objectives.map(o => OBJECTIVE_LABELS[o] ?? o).join('/')}` : ''} 기준 (성별·연령 무관) 대비 현재 타겟팅 효율
           </p>
 
           {/* 종합 점수 */}
