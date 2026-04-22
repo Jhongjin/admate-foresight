@@ -50,6 +50,8 @@ interface MarketAvg {
   cpm: number; cpc: number; vtr: number; count: number;
   score: number; grade: 'A' | 'B' | 'C' | 'D' | 'F';
   cpmDiff: number; cpcDiff: number; vtrDiff: number;
+  top20pctCpm: number;
+  top20pctCpc: number;
 }
 
 interface PredictResult {
@@ -66,6 +68,13 @@ interface PredictResult {
   r2Vtr?: number;
   predictionMethod?: 'regression' | 'weighted_avg' | 'fallback';
   marketAvg?: MarketAvg;
+  // 고도화 필드
+  insights?: string[];
+  seasonalityMultiplier?: number;
+  seasonalityReason?: string;
+  qualityIndex?: number;
+  qualityPenaltyPct?: number;
+  saturationWarning?: boolean;
 }
 
 interface ScenarioResult {
@@ -525,7 +534,26 @@ export default function SimulatorPage() {
       {/* 시장 비교 */}
       {result?.marketAvg && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-4">시장 비교</h2>
+          <div className="flex items-start justify-between mb-2">
+            <h2 className="text-base font-semibold text-gray-800">시장 비교</h2>
+            <div className="flex gap-2 flex-wrap justify-end">
+              {result.seasonalityMultiplier && result.seasonalityMultiplier > 1 && (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+                  🌙 {result.seasonalityReason} · CPM {Math.round((result.seasonalityMultiplier - 1) * 100)}% 할증
+                </span>
+              )}
+              {result.saturationWarning && (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-200 font-medium">
+                  🚨 포화 구간 CPM 할증 적용
+                </span>
+              )}
+              {result.qualityPenaltyPct !== undefined && result.qualityPenaltyPct > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium">
+                  ⚠️ CPC 패널티 +{result.qualityPenaltyPct}%
+                </span>
+              )}
+            </div>
+          </div>
           <p className="text-xs text-gray-400 mb-5">
             {industries.length > 0 ? `${industries.join(', ')} 업종` : '전체 업종'}
             {objectives.length > 0 ? ` · ${objectives.map(o => OBJECTIVE_LABELS[o] ?? o).join('/')}` : ''} 기준 (성별·연령 무관) 대비 현재 타겟팅 효율
@@ -553,23 +581,34 @@ export default function SimulatorPage() {
                   : result.marketAvg.score >= 35 ? '일부 지표가 업종 평균보다 낮습니다.'
                   : '주요 지표가 업종 평균을 하회합니다.'}
               </p>
+              {result.qualityIndex !== undefined && (
+                <p className="text-xs text-gray-400 mt-1">
+                  품질 지수 <strong className={`font-semibold ${result.qualityIndex >= 60 ? 'text-emerald-600' : result.qualityIndex >= 40 ? 'text-amber-600' : 'text-red-500'}`}>{result.qualityIndex}점</strong>
+                </p>
+              )}
             </div>
           </div>
 
           {/* 지표별 비교 */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'CPM', predicted: result.cpm, market: result.marketAvg.cpm, diff: result.marketAvg.cpmDiff, lowerBetter: true, fmt: (v: number) => `₩${v.toLocaleString()}` },
-              { label: 'CPC', predicted: result.cpc, market: result.marketAvg.cpc, diff: result.marketAvg.cpcDiff, lowerBetter: true, fmt: (v: number) => v > 0 ? `₩${v.toLocaleString()}` : '—' },
-              { label: 'VTR', predicted: result.vtr, market: result.marketAvg.vtr, diff: result.marketAvg.vtrDiff, lowerBetter: false, fmt: (v: number) => v > 0 ? `${v.toFixed(2)}%` : '—' },
-            ].map(({ label, predicted, market, diff, lowerBetter, fmt }) => {
+              { label: 'CPM', predicted: result.cpm, market: result.marketAvg.cpm, diff: result.marketAvg.cpmDiff, top20: result.marketAvg.top20pctCpm, lowerBetter: true, fmt: (v: number) => `₩${v.toLocaleString()}` },
+              { label: 'CPC', predicted: result.cpc, market: result.marketAvg.cpc, diff: result.marketAvg.cpcDiff, top20: result.marketAvg.top20pctCpc, lowerBetter: true, fmt: (v: number) => v > 0 ? `₩${v.toLocaleString()}` : '—' },
+              { label: 'VTR', predicted: result.vtr, market: result.marketAvg.vtr, diff: result.marketAvg.vtrDiff, top20: 0, lowerBetter: false, fmt: (v: number) => v > 0 ? `${v.toFixed(2)}%` : '—' },
+            ].map(({ label, predicted, market, diff, top20, lowerBetter, fmt }) => {
               const isBetter = lowerBetter ? diff < 0 : diff > 0;
               const isNeutral = Math.abs(diff) < 2;
+              const isTop20 = top20 > 0 && lowerBetter && predicted > 0 && predicted <= top20;
               return (
-                <div key={label} className="bg-gray-50 rounded-xl p-3.5">
+                <div key={label} className={`rounded-xl p-3.5 ${isTop20 ? 'bg-emerald-50 border border-emerald-100' : 'bg-gray-50'}`}>
                   <p className="text-xs text-gray-500 mb-1">{label}</p>
                   <p className="text-base font-bold text-gray-900">{fmt(predicted)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">업종 평균 {fmt(market)}</p>
+                  {top20 > 0 && (
+                    <p className={`text-xs mt-0.5 font-medium ${isTop20 ? 'text-emerald-600' : 'text-purple-500'}`}>
+                      {isTop20 ? '✓ ' : ''}Top 20% {fmt(top20)}
+                    </p>
+                  )}
                   {market > 0 && (
                     <span className={`inline-block mt-1.5 text-xs font-semibold px-1.5 py-0.5 rounded ${
                       isNeutral ? 'bg-gray-100 text-gray-500'
@@ -588,11 +627,27 @@ export default function SimulatorPage() {
       )}
 
       {/* 전략 어드바이스 */}
-      {result && (inflectionAnalysis || opportunityCost || scenarios.length > 0 || scenarioLoading) && (
+      {result && ((result.insights?.length ?? 0) > 0 || inflectionAnalysis || opportunityCost || scenarios.length > 0 || scenarioLoading) && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">전략 어드바이스</h2>
           <p className="text-xs text-gray-400 mb-5">예측 데이터 기반 캠페인 최적화 인사이트</p>
           <div className="space-y-4">
+
+            {/* 0. AI 인사이트 3줄 */}
+            {result.insights && result.insights.length > 0 && (
+              <div className="space-y-2.5">
+                {result.insights.map((insight, i) => {
+                  const icons = ['📌', '📅', '🎯'];
+                  const borders = ['border-indigo-200 bg-indigo-50', 'border-amber-200 bg-amber-50', 'border-purple-200 bg-purple-50'];
+                  return (
+                    <div key={i} className={`flex items-start gap-2.5 p-3.5 rounded-xl border ${borders[i] ?? 'border-gray-100 bg-gray-50'}`}>
+                      <span className="text-base leading-none mt-0.5">{icons[i]}</span>
+                      <p className="text-sm text-gray-700 leading-relaxed">{insight}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* A. 예산 변곡점 */}
             {inflectionAnalysis && (() => {
