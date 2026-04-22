@@ -344,15 +344,21 @@ export function predict(input: PredictInput): PredictResult {
     // 전월 회귀 실패: change null 유지
   }
 
-  // ── 시장 비교 (동일 업종 평균 대비) ─────────────────────
-  const industryData = industries.length > 0
-    ? xlsxData.filter((r) => industries.includes(r.업종))
-    : xlsxData;
-  const industryVideoData = industryData.filter((r) => r.영상조회수 > 0 && r.노출 > 0);
+  // ── 시장 비교 ─────────────────────────────────────────────
+  // 베이스라인: 동일 업종+목표 기준, 성별/연령 필터는 제거
+  // → "이 타겟팅이 업종+목표 기준 전체 대비 얼마나 효율적인가?" 측정
+  // 데이터가 부족하면 단계적으로 범위 확대
+  let baselineData = filterXlsx(xlsxData, industries, [], [], objectives);
+  if (baselineData.length < 10) {
+    baselineData = industries.length > 0
+      ? xlsxData.filter((r) => industries.includes(r.업종))
+      : xlsxData;
+  }
+  const baselineVideoData = baselineData.filter((r) => r.영상조회수 > 0 && r.노출 > 0);
 
-  const mktCpm = weightedCPM(industryData);
-  const mktCpc = weightedCPC(industryData);
-  const mktVtr = calcVTR(industryVideoData);
+  const mktCpm = weightedCPM(baselineData);
+  const mktCpc = weightedCPC(baselineData);
+  const mktVtr = calcVTR(baselineVideoData);
 
   // 각 지표별 차이 (음수 = 예측치가 더 낮음(좋음), VTR은 양수=좋음)
   const cpmDiff = mktCpm > 0 ? ((cpm - mktCpm) / mktCpm) * 100 : 0;
@@ -360,7 +366,7 @@ export function predict(input: PredictInput): PredictResult {
   const vtrDiff = mktVtr > 0 && vtr > 0 ? ((vtr - mktVtr) / mktVtr) * 100 : 0;
 
   // 종합 점수: CPM 절감 40%, VTR 우수 30%, CPC 절감 30%
-  // 50점 기준 → 각 지표 개선률(%)의 절반을 가감
+  // 50점 기준 → 타겟팅 없을 때는 자기 자신과 비교 → 자연스럽게 50점 근방
   const rawScore = 50 + (-cpmDiff * 0.4 + vtrDiff * 0.3 + -cpcDiff * 0.3) * 0.5;
   const marketScore = Math.round(Math.min(100, Math.max(0, rawScore)));
   const marketGrade: MarketAvg['grade'] =
@@ -370,7 +376,7 @@ export function predict(input: PredictInput): PredictResult {
     cpm: Math.round(mktCpm),
     cpc: Math.round(mktCpc),
     vtr: Math.round(mktVtr * 100) / 100,
-    count: industryData.length,
+    count: baselineData.length,
     score: marketScore,
     grade: marketGrade,
     cpmDiff: Math.round(cpmDiff * 10) / 10,
