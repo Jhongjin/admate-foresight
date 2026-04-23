@@ -68,8 +68,8 @@ async function fetchPages<T>(url: string): Promise<T[]> {
   let next: string | null = url;
 
   while (next) {
-    const res = await fetch(next);
-    const json = await res.json();
+    const res: Response = await fetch(next);
+    const json: { data?: T[]; paging?: { next?: string }; error?: { message: string } } = await res.json();
 
     // 응답 구조 디버그 로그 (서버 콘솔에서 확인)
     if (!res.ok || json.error) {
