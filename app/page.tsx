@@ -135,6 +135,7 @@ export default function SimulatorPage() {
 
   const [budgetInput, setBudgetInput] = useState('10000000');
 
+  const [isCalculated, setIsCalculated] = useState(false);
   const [result, setResult] = useState<PredictResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [rangeData, setRangeData] = useState<RangePoint[]>([]);
@@ -146,6 +147,7 @@ export default function SimulatorPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rangeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scenarioDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch('/api/filters')
@@ -191,18 +193,27 @@ export default function SimulatorPage() {
   const monthlyBudget = Math.round(budget * (30 / campaignDays));
 
   useEffect(() => {
+    if (!isCalculated) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget, monthFrom, monthTo });
     }, 300);
-  }, [industries, genders, ageRanges, objectives, monthlyBudget, monthFrom, monthTo, fetchPrediction]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, monthFrom, monthTo, fetchPrediction]);
 
   useEffect(() => {
+    if (!isCalculated) return;
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
     rangeDebounceRef.current = setTimeout(() => {
       fetchRange({ industries, genders, ageRanges, objectives, budget });
     }, 400);
-  }, [industries, genders, ageRanges, objectives, budget, fetchRange]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, budget, fetchRange]);
+
+  // 버튼 클릭 후 결과 영역으로 자동 스크롤
+  useEffect(() => {
+    if (isCalculated) {
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
+    }
+  }, [isCalculated]);
 
   // 테이블 클릭 등 외부에서 budget 변경 시 input 동기화
   useEffect(() => {
@@ -211,6 +222,7 @@ export default function SimulatorPage() {
 
   // 타겟 확장 시나리오 fetch
   useEffect(() => {
+    if (!isCalculated) return;
     if (scenarioDebounceRef.current) clearTimeout(scenarioDebounceRef.current);
     scenarioDebounceRef.current = setTimeout(async () => {
       const hasFilter = genders.length > 0 || ageRanges.length > 0 || industries.length > 0;
@@ -261,7 +273,7 @@ export default function SimulatorPage() {
       } catch (e) { console.error(e); }
       finally { setScenarioLoading(false); }
     }, 600);
-  }, [industries, genders, ageRanges, objectives, monthlyBudget]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget]);
 
   function toggleGender(value: string) {
     setGenders((prev) =>
@@ -545,6 +557,36 @@ export default function SimulatorPage() {
         <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">현재 적용 조건</p>
         <ConditionTags tags={tags} />
       </div>
+
+      {/* 시뮬레이션 START 버튼 */}
+      <div className="flex flex-col items-center gap-3 py-2">
+        <button
+          onClick={() => setIsCalculated(true)}
+          disabled={loading}
+          className="w-full max-w-sm flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-base shadow-lg shadow-indigo-200 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              예측 계산 중...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              {isCalculated ? '다시 시뮬레이션' : '시뮬레이션 START'}
+            </>
+          )}
+        </button>
+        {!isCalculated && (
+          <p className="text-xs text-gray-400">조건을 입력하고 버튼을 눌러주세요</p>
+        )}
+      </div>
+
+      {/* 결과 영역 (isCalculated 이후 노출) */}
+      {isCalculated && (
+      <div ref={resultRef} className="space-y-8">
 
       {/* 시장 비교 */}
       {result?.marketAvg && (
@@ -924,6 +966,10 @@ export default function SimulatorPage() {
         <strong>예측 방식:</strong> Meta 공식 기반 (예산÷CPM×1000÷빈도) + Diminishing Returns 보정 (β=0.82).
         캠페인 목표별 CPM·빈도를 실제 데이터에서 적용하며, 예산이 클수록 단위당 도달 효율이 감소합니다.
       </div>
+
+      </div>
+      )}
+
     </div>
   );
 }
