@@ -4,6 +4,9 @@ import * as XLSX from 'xlsx';
 export interface XlsxRecord {
   업종: string;
   목표: string;
+  최적화목표: string;
+  노출위치: string;
+  소재형태: string;
   성별: string;
   연령: string;
   도달: number;
@@ -195,10 +198,10 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
     (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY)!,
   );
 
-  type MonthRow = { 업종:string; 목표:string; 날짜:string;
+  type MonthRow = { 업종:string; 목표:string; 최적화목표:string; 노출위치:string; 소재형태:string; 날짜:string;
     avg_cpm:number; avg_cpc:number; avg_cpc_link:number; avg_영상조회비용:number;
     sum_도달:number; sum_노출:number; sum_지출금액:number; avg_빈도:number; sum_영상조회수:number; };
-  type DemoRow  = { 업종:string; 목표:string; 성별:string; 연령:string;
+  type DemoRow  = { 업종:string; 목표:string; 최적화목표:string; 성별:string; 연령:string;
     avg_cpm:number; avg_cpc:number; sum_도달:number; sum_노출:number; sum_지출금액:number;
     sum_영상조회수:number; };
 
@@ -211,7 +214,9 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
   console.log(`[xlsxLoader] 로딩 완료 — monthly:${monthRows.length}행, demo:${demoRows.length}행`);
 
   const monthly: XlsxRecord[] = monthRows.map((r) => ({
-    업종: r.업종 ?? '', 목표: r.목표 ?? '', 성별: '', 연령: '', 날짜: r.날짜 ?? '',
+    업종: r.업종 ?? '', 목표: r.목표 ?? '', 최적화목표: r.최적화목표 ?? '',
+    노출위치: r.노출위치 ?? '', 소재형태: r.소재형태 ?? '',
+    성별: '', 연령: '', 날짜: r.날짜 ?? '',
     CPM: Number(r.avg_cpm) || 0, CPC: Number(r.avg_cpc) || 0,
     CPC링크: Number(r.avg_cpc_link) || 0, 영상조회비용: Number(r.avg_영상조회비용) || 0,
     도달: Number(r.sum_도달) || 0, 노출: Number(r.sum_노출) || 0,
@@ -220,7 +225,9 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
   }));
 
   const demo: XlsxRecord[] = demoRows.map((r) => ({
-    업종: r.업종 ?? '', 목표: r.목표 ?? '', 성별: r.성별 ?? '', 연령: r.연령 ?? '', 날짜: '',
+    업종: r.업종 ?? '', 목표: r.목표 ?? '', 최적화목표: r.최적화목표 ?? '',
+    노출위치: '', 소재형태: '',
+    성별: r.성별 ?? '', 연령: r.연령 ?? '', 날짜: '',
     CPM: Number(r.avg_cpm) || 0, CPC: Number(r.avg_cpc) || 0,
     CPC링크: 0, 영상조회비용: 0,
     도달: Number(r.sum_도달) || 0, 노출: Number(r.sum_노출) || 0,
@@ -241,6 +248,22 @@ export function getObjectives(): string[] {
   const data = loadXlsxData();
   const objectives = [...new Set(data.map((r) => r.목표).filter(Boolean))];
   return objectives.sort();
+}
+
+export function getOptimizationGoals(objective?: string): string[] {
+  const data = loadXlsxData();
+  const filtered = objective ? data.filter((r) => r.목표 === objective) : data;
+  return [...new Set(filtered.map((r) => r.최적화목표).filter(Boolean))].sort();
+}
+
+export function getPlacements(): string[] {
+  const data = loadXlsxData();
+  return [...new Set(data.map((r) => r.노출위치).filter(Boolean))].sort();
+}
+
+export function getCreativeFormats(): string[] {
+  const data = loadXlsxData();
+  return [...new Set(data.map((r) => r.소재형태).filter(Boolean))].sort();
 }
 
 export function getXlsxIndustries(): string[] {

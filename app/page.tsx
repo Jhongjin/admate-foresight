@@ -6,7 +6,7 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import KPICard from '@/components/KPICard';
-import DurationSlider, { STEPS as DURATION_STEPS } from '@/components/DurationSlider';
+import DateRangePicker, { calcCampaignDays, hasPeakMonth } from '@/components/DateRangePicker';
 import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 
@@ -112,8 +112,19 @@ export default function SimulatorPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
 
-  // 캠페인 기간 (일수)
-  const [campaignDays, setCampaignDays] = useState(30);
+  // 캠페인 기간 (날짜 범위)
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
+  });
+  const [endDate, setEndDate] = useState<Date>(() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 6); return d;
+  });
+  const campaignDays = calcCampaignDays(startDate, endDate);
+  const isPeakSeason = hasPeakMonth(startDate, endDate);
+  const PEAK_CPM_MULTIPLIER = 1.15;
+  const monthFrom = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
+  const monthTo = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
+  const dailyBudget = Math.round(budget / campaignDays);
 
   // Multi-select state (empty = 전체)
   const [industries, setIndustries] = useState<string[]>([]);
@@ -182,9 +193,9 @@ export default function SimulatorPage() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
+      fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget, monthFrom, monthTo });
     }, 300);
-  }, [industries, genders, ageRanges, objectives, monthlyBudget, fetchPrediction]);
+  }, [industries, genders, ageRanges, objectives, monthlyBudget, monthFrom, monthTo, fetchPrediction]);
 
   useEffect(() => {
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
@@ -279,7 +290,7 @@ export default function SimulatorPage() {
     ? '전체'
     : objectives.map((o) => OBJECTIVE_LABELS[o] ?? o).join(', ');
 
-  const durationLabel = DURATION_STEPS.find(d => d.days === campaignDays)?.label ?? `${campaignDays}일`;
+  const durationLabel = `${startDate.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} ~ ${endDate.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} (${campaignDays}일)`;
 
   const tags = [
     { label: '총 예산', value: `₩${budget.toLocaleString()}` },
@@ -425,7 +436,11 @@ export default function SimulatorPage() {
           <div className="border-t border-gray-50" />
 
           {/* 2. 캠페인 기간 */}
-          <DurationSlider days={campaignDays} onChange={setCampaignDays} />
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(s, e) => { setStartDate(s); setEndDate(e); }}
+          />
 
           <div className="border-t border-gray-50" />
 
@@ -794,10 +809,21 @@ export default function SimulatorPage() {
             </button>
           </div>
         </div>
+        {/* 기간 요약 문구 */}
+        {result && (
+          <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700">
+            선택하신 기간은 총 <strong>{campaignDays}일</strong>이며,
+            일 평균 <strong>₩{dailyBudget.toLocaleString()}</strong>의 예산이 투입될 예정입니다.
+            {isPeakSeason && <span className="ml-1 text-amber-600">（11~12월 성수기 CPM +15% 반영）</span>}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <KPICard title={`예상 도달 (${durationLabel})`} value={result ? totalReach.toLocaleString() : '—'}
+          <KPICard title={`예상 도달 (${campaignDays}일)`} value={result ? totalReach.toLocaleString() : '—'}
             change={null} icon="👥" loading={loading} />
-          <KPICard title="예상 CPM" value={result ? `₩${result.cpm.toLocaleString()}` : '—'}
+          <KPICard
+            title={`예상 CPM${isPeakSeason ? ' (성수기 +15%)' : ''}`}
+            value={result ? `₩${(isPeakSeason ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
             change={null} icon="📊" loading={loading} />
           <KPICard title="CPC(전체)" value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
             change={null} icon="🖱️" loading={loading} />
