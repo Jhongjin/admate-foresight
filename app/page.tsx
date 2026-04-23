@@ -124,7 +124,6 @@ export default function SimulatorPage() {
   const PEAK_CPM_MULTIPLIER = 1.15;
   const monthFrom = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
   const monthTo = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
-  const dailyBudget = Math.round(budget / campaignDays);
 
   // Multi-select state (empty = 전체)
   const [industries, setIndustries] = useState<string[]>([]);
@@ -132,6 +131,7 @@ export default function SimulatorPage() {
   const [objectives, setObjectives] = useState<string[]>([]);
   const [ageRanges, setAgeRanges] = useState<string[]>([]);
   const [budget, setBudget] = useState(10_000_000);
+  const dailyBudget = Math.round(budget / campaignDays);
 
   const [budgetInput, setBudgetInput] = useState('10000000');
 
