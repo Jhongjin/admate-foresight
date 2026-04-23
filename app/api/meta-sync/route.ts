@@ -12,27 +12,38 @@ import { syncMetaToSupabase } from '@/lib/metaSync';
  */
 export async function POST(req: NextRequest) {
   const accessToken = process.env.META_ACCESS_TOKEN;
-  const adAccountId = process.env.META_AD_ACCOUNT_ID;
+  // 단일 계정 또는 비즈니스 ID (환경변수 우선, body로 덮어쓰기 가능)
+  const envAccountId  = process.env.META_AD_ACCOUNT_ID;
+  const envBusinessId = process.env.META_BUSINESS_ID;
 
   if (!accessToken) {
     return NextResponse.json({ error: 'META_ACCESS_TOKEN 환경변수 없음' }, { status: 400 });
   }
-  if (!adAccountId) {
-    return NextResponse.json({ error: 'META_AD_ACCOUNT_ID 환경변수 없음' }, { status: 400 });
+  if (!envAccountId && !envBusinessId) {
+    return NextResponse.json(
+      { error: 'META_AD_ACCOUNT_ID 또는 META_BUSINESS_ID 환경변수 필요' },
+      { status: 400 },
+    );
   }
 
   const body = await req.json().catch(() => ({})) as {
-    datePreset?: string;
-    since?: string;
-    until?: string;
+    datePreset?:  string;
+    since?:       string;
+    until?:       string;
+    adAccountId?: string;
+    businessId?:  string;
   };
 
-  console.log('[meta-sync] 동기화 시작:', body);
+  const adAccountId = body.adAccountId ?? envAccountId;
+  const businessId  = body.businessId  ?? envBusinessId;
+
+  console.log('[meta-sync] 동기화 시작:', { adAccountId, businessId, ...body });
 
   try {
     const result = await syncMetaToSupabase({
       accessToken,
       adAccountId,
+      businessId,
       datePreset: body.datePreset,
       since:      body.since,
       until:      body.until,

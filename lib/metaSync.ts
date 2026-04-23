@@ -144,10 +144,25 @@ function toRow(
   };
 }
 
+// ── 비즈니스 하위 광고계정 목록 조회 ────────────────────
+export async function fetchAdAccounts(businessId: string, accessToken: string): Promise<string[]> {
+  const url = `${GRAPH_API}/${businessId}/owned_ad_accounts?fields=id&limit=200&access_token=${accessToken}`;
+  try {
+    const accounts = await fetchPages<{ id: string }>(url);
+    if (accounts.length > 0) return accounts.map(a => a.id);
+  } catch {
+    // owned 실패 시 client 계정도 시도
+  }
+  const clientUrl = `${GRAPH_API}/${businessId}/client_ad_accounts?fields=id&limit=200&access_token=${accessToken}`;
+  const clients = await fetchPages<{ id: string }>(clientUrl);
+  return clients.map(a => a.id);
+}
+
 // ── 메인 동기화 함수 ─────────────────────────────────────
 export interface SyncOptions {
   accessToken:  string;
-  adAccountId:  string; // act_xxxxxxxxx 형식
+  adAccountId?: string; // 단일 계정 (act_xxxxxxxxx 형식)
+  businessId?:  string; // 비즈니스 ID → 하위 전체 계정 자동 조회
   datePreset?:  string; // 'last_30_days' | 'last_90_days' | ...
   since?:       string; // YYYY-MM-DD
   until?:       string; // YYYY-MM-DD
@@ -156,18 +171,14 @@ export interface SyncOptions {
 export interface SyncResult {
   inserted: number;
   errors:   string[];
+  accounts: number;     // 처리된 광고계정 수
 }
 
-export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult> {
-  const { accessToken, datePreset = 'last_90_days', since, until } = opts;
-  const accountId = opts.adAccountId.startsWith('act_')
-    ? opts.adAccountId
-    : `act_${opts.adAccountId}`;
-
+// 단일 광고계정 동기화 내부 함수
+async function syncOneAccount(accountId: string, accessToken: string, datePreset: string, since?: string, until?: string): Promise<{ rows: SupabaseRow[]; errors: string[] }> {
   const errors: string[] = [];
   const rows: SupabaseRow[] = [];
 
-  // 공통 파라미터
   const base = new URLSearchParams({
     access_token:   accessToken,
     level:          'campaign',
@@ -185,88 +196,88 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
     base.set('date_preset', datePreset);
   }
 
-  // ── 1) 노출위치 breakdown ──────────────────────────────
-  console.log('[metaSync] 노출위치 breakdown 요청 시작');
+  // 1) 노출위치 breakdown
   try {
     const p = new URLSearchParams(base);
     p.set('breakdowns', 'publisher_platform,platform_position,impression_device');
     const data = await fetchPages<InsightRow>(`${GRAPH_API}/${accountId}/insights?${p}`);
-    console.log('[metaSync] 노출위치 원본 샘플:', JSON.stringify(data[0] ?? {}));
-
     for (const r of data) {
       rows.push(toRow(r, {
         노출위치: buildPlacement(r.publisher_platform, r.platform_position, r.impression_device),
       }));
     }
-    console.log(`[metaSync] 노출위치 행 수집: ${data.length}건`);
-  } catch (e) {
-    const msg = `노출위치 fetch 실패: ${e}`;
-    console.error('[metaSync]', msg);
-    errors.push(msg);
-  }
+    console.log(`[metaSync] ${accountId} 노출위치 ${data.length}건`);
+  } catch (e) { errors.push(`${accountId} 노출위치 fetch 실패: ${e}`); }
 
-  // ── 2) 성별/연령 breakdown ─────────────────────────────
-  console.log('[metaSync] 성별/연령 breakdown 요청 시작');
+  // 2) 성별/연령 breakdown
   try {
     const p = new URLSearchParams(base);
     p.set('breakdowns', 'age,gender');
     const data = await fetchPages<InsightRow>(`${GRAPH_API}/${accountId}/insights?${p}`);
-    console.log('[metaSync] 성별/연령 원본 샘플:', JSON.stringify(data[0] ?? {}));
-
     for (const r of data) {
-      rows.push(toRow(r, {
-        성별: r.gender ?? '',
-        연령: r.age    ?? '',
-      }));
+      rows.push(toRow(r, { 성별: r.gender ?? '', 연령: r.age ?? '' }));
     }
-    console.log(`[metaSync] 성별/연령 행 수집: ${data.length}건`);
-  } catch (e) {
-    const msg = `성별/연령 fetch 실패: ${e}`;
-    console.error('[metaSync]', msg);
-    errors.push(msg);
-  }
+    console.log(`[metaSync] ${accountId} 성별/연령 ${data.length}건`);
+  } catch (e) { errors.push(`${accountId} 성별/연령 fetch 실패: ${e}`); }
 
-  // ── 3) 소재형태 (Ad Creative) ──────────────────────────
-  console.log('[metaSync] 소재형태 요청 시작');
+  // 3) 소재형태
   try {
     const creativeUrl = `${GRAPH_API}/${accountId}/ads`
       + `?fields=campaign_id,campaign%7Bname%7D,creative%7Bobject_type%7D`
       + `&limit=500&access_token=${accessToken}`;
-
-    const ads = await fetchPages<{
-      campaign?: { name: string };
-      creative?: { object_type: string };
-    }>(creativeUrl);
-
-    console.log('[metaSync] 소재 원본 샘플:', JSON.stringify(ads[0] ?? {}));
-
-    // 캠페인명 → 소재형태 맵 (첫 번째 hit 사용)
+    const ads = await fetchPages<{ campaign?: { name: string }; creative?: { object_type: string } }>(creativeUrl);
     const fmtMap = new Map<string, string>();
     for (const ad of ads) {
       const name   = ad.campaign?.name ?? '';
       const format = FORMAT_MAP[ad.creative?.object_type ?? ''] ?? ad.creative?.object_type ?? '';
       if (name && format && !fmtMap.has(name)) fmtMap.set(name, format);
     }
-
     for (const row of rows) {
-      if (!row.소재형태) {
-        row.소재형태 = fmtMap.get(row.캠페인이름) ?? '';
-      }
+      if (!row.소재형태) row.소재형태 = fmtMap.get(row.캠페인이름) ?? '';
     }
-    console.log(`[metaSync] 소재형태 매핑 완료: ${fmtMap.size}개 캠페인`);
-  } catch (e) {
-    // 소재 API 실패해도 전체 중단 없이 진행
-    const msg = `소재형태 fetch 실패 (fallback 빈값): ${e}`;
-    console.warn('[metaSync]', msg);
-    errors.push(msg);
+  } catch (e) { errors.push(`${accountId} 소재형태 fetch 실패 (fallback 빈값): ${e}`); }
+
+  return { rows, errors };
+}
+
+export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult> {
+  const { accessToken, datePreset = 'last_90_days', since, until } = opts;
+
+  // 광고계정 목록 결정
+  let accountIds: string[] = [];
+  if (opts.adAccountId) {
+    const id = opts.adAccountId.startsWith('act_') ? opts.adAccountId : `act_${opts.adAccountId}`;
+    accountIds = [id];
+  } else if (opts.businessId) {
+    console.log(`[metaSync] 비즈니스 ${opts.businessId} 하위 계정 조회 중...`);
+    accountIds = await fetchAdAccounts(opts.businessId, accessToken);
+    console.log(`[metaSync] 광고계정 ${accountIds.length}개 발견:`, accountIds);
+  } else {
+    return { inserted: 0, errors: ['adAccountId 또는 businessId 필요'], accounts: 0 };
   }
 
-  if (rows.length === 0) {
+  if (accountIds.length === 0) {
+    return { inserted: 0, errors: ['조회된 광고계정 없음'], accounts: 0 };
+  }
+
+  const allErrors: string[] = [];
+  const allRows: SupabaseRow[] = [];
+
+  // 계정별 순차 동기화
+  for (const accountId of accountIds) {
+    console.log(`[metaSync] 계정 동기화 시작: ${accountId}`);
+    const { rows, errors } = await syncOneAccount(accountId, accessToken, datePreset, since, until);
+    allRows.push(...rows);
+    allErrors.push(...errors);
+    console.log(`[metaSync] 계정 ${accountId} 완료: ${rows.length}행`);
+  }
+
+  if (allRows.length === 0) {
     console.warn('[metaSync] 수집된 행 없음');
-    return { inserted: 0, errors };
+    return { inserted: 0, errors: allErrors, accounts: accountIds.length };
   }
 
-  // ── 4) Supabase 저장 ───────────────────────────────────
+  // ── Supabase 저장 ────────────────────────────────────────
   const { createClient } = await import('@supabase/supabase-js');
   const supabase = createClient(
     (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL)!,
@@ -278,18 +289,18 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
   let inserted = 0;
   const BATCH = 500;
 
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const batch = rows.slice(i, i + BATCH);
+  for (let i = 0; i < allRows.length; i += BATCH) {
+    const batch = allRows.slice(i, i + BATCH);
     const { error } = await supabase.from('ad_data').insert(batch);
     if (error) {
       const msg = `Supabase insert 오류 (배치 ${i}~${i + batch.length}): ${error.message}`;
       console.error('[metaSync]', msg);
-      errors.push(msg);
+      allErrors.push(msg);
     } else {
       inserted += batch.length;
-      console.log(`[metaSync] Supabase 저장: ${inserted}/${rows.length}건`);
+      console.log(`[metaSync] Supabase 저장: ${inserted}/${allRows.length}건`);
     }
   }
 
-  return { inserted, errors };
+  return { inserted, errors: allErrors, accounts: accountIds.length };
 }
