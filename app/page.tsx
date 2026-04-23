@@ -317,29 +317,18 @@ export default function SimulatorPage() {
   const durationFactor = campaignDays / 30;
   const totalReach = result ? Math.round(result.reach * durationFactor) : 0;
 
-  // ── 변곡점 분석 (rangeData 한계효율 기반) ──────────────────
-  const inflectionAnalysis = useMemo(() => {
-    if (rangeData.length < 2 || !result) return null;
-    const marginals: { budget: number; marginal: number }[] = [];
-    for (let i = 1; i < rangeData.length; i++) {
-      const prev = rangeData[i - 1];
-      const curr = rangeData[i];
-      const delta = curr.budget - prev.budget;
-      if (delta <= 0) continue;
-      marginals.push({ budget: curr.budget, marginal: (curr.reach - prev.reach) / (delta / 10_000) });
-    }
-    if (marginals.length === 0) return null;
-    const init = marginals[0].marginal;
-    const inflectionPoint = marginals.find(d => d.marginal < init * 0.5);
+  // ── 성과 확장 잠재력 ────────────────────────────────────────
+  // 조건: 빈도 < 1.5 AND 현재도달 / rangeData 최대도달 ≤ 30%
+  const expansionPotential = useMemo(() => {
+    if (!result) return null;
     const freq = result.frequency;
-    const status: 'good' | 'ok' | 'warn' | 'over' =
-      freq < 1.3 ? 'good' : freq < 1.8 ? 'ok' : freq < 2.5 ? 'warn' : 'over';
-    return { inflectionBudget: inflectionPoint?.budget ?? null, currentBudget: monthlyBudget, frequency: freq, status };
-  }, [rangeData, result, monthlyBudget]);
+    const maxReach = rangeData.length > 0 ? rangeData[rangeData.length - 1].reach : 0;
+    const reachRate = maxReach > 0 ? totalReach / maxReach : 1;
+    const canExpand = freq < 1.5 && reachRate <= 0.3;
 
-  // ── 기회비용 (20% 증액 시 추가 도달) ─────────────────────
-  const opportunityCost = useMemo(() => {
-    if (!result || rangeData.length < 2 || result.frequency >= 1.8) return null;
+    if (!canExpand) return { canExpand: false, frequency: freq, reachRate };
+
+    // 20% 증액 시 추가 도달 계산
     const b120 = monthlyBudget * 1.2;
     const lower = [...rangeData].reverse().find(d => d.budget <= b120);
     const upper = rangeData.find(d => d.budget > b120);
@@ -349,11 +338,10 @@ export default function SimulatorPage() {
       reach120 = lower.reach + ratio * (upper.reach - lower.reach);
     } else if (lower) {
       reach120 = lower.reach * Math.pow(b120 / lower.budget, 0.82);
-    } else return null;
+    }
     const additionalReach = Math.max(0, Math.round((reach120 - result.reach) * durationFactor));
-    if (additionalReach < 100) return null;
-    return { additionalReach, additionalBudget: Math.round(budget * 0.2) };
-  }, [rangeData, result, monthlyBudget, budget, durationFactor]);
+    return { canExpand: true, frequency: freq, reachRate, additionalReach, additionalBudget: Math.round(budget * 0.2) };
+  }, [result, rangeData, totalReach, monthlyBudget, budget, durationFactor]);
 
   // Chart data (range chart는 월 기준 유지)
   const chartData = rangeData.map((p) => ({
@@ -575,7 +563,7 @@ export default function SimulatorPage() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
-              {isCalculated ? '다시 시뮬레이션' : '시뮬레이션 START'}
+              {isCalculated ? '다시 시뮬레이션' : '시뮬레이션 시작'}
             </>
           )}
         </button>
@@ -592,7 +580,7 @@ export default function SimulatorPage() {
       {result?.marketAvg && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-start justify-between mb-2">
-            <h2 className="text-base font-semibold text-gray-800">시장 비교</h2>
+            <h2 className="text-base font-semibold text-gray-800">성과 벤치마크</h2>
             <div className="flex gap-2 flex-wrap justify-end">
               {result.seasonalityMultiplier && result.seasonalityMultiplier > 1 && (
                 <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
@@ -683,10 +671,10 @@ export default function SimulatorPage() {
         </div>
       )}
 
-      {/* 전략 어드바이스 */}
-      {result && ((result.insights?.length ?? 0) > 0 || inflectionAnalysis || opportunityCost || scenarios.length > 0 || scenarioLoading) && (
+      {/* 캠페인 최적화 가이드 */}
+      {result && ((result.insights?.length ?? 0) > 0 || expansionPotential || scenarios.length > 0 || scenarioLoading) && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-1">전략 어드바이스</h2>
+          <h2 className="text-base font-semibold text-gray-800 mb-1">캠페인 최적화 가이드</h2>
           <p className="text-xs text-gray-400 mb-5">예측 데이터 기반 캠페인 최적화 인사이트</p>
           <div className="space-y-4">
 
@@ -706,54 +694,27 @@ export default function SimulatorPage() {
               </div>
             )}
 
-            {/* A. 예산 변곡점 */}
-            {inflectionAnalysis && (() => {
-              const { inflectionBudget, currentBudget, frequency, status } = inflectionAnalysis;
-              const isNearOrOver = inflectionBudget && currentBudget >= inflectionBudget * 0.85;
-              const color = status === 'good' ? 'emerald' : status === 'ok' ? 'blue' : status === 'warn' ? 'amber' : 'red';
-              const borderColor = { emerald: 'border-emerald-400', blue: 'border-blue-400', amber: 'border-amber-400', red: 'border-red-400' }[color];
-              const bgColor = { emerald: 'bg-emerald-50', blue: 'bg-blue-50', amber: 'bg-amber-50', red: 'bg-red-50' }[color];
-              const icon = { good: '✅', ok: '📊', warn: '⚠️', over: '🚨' }[status];
-
-              let text = '';
-              if (status === 'over') {
-                text = `현재 빈도(${frequency.toFixed(1)}회)가 2.5회를 초과했습니다. 동일 타겟에 반복 노출로 광고 피로도가 높아져 CPC 상승이 예상됩니다. 타겟 확장 또는 예산 축소를 검토하세요.`;
-              } else if (status === 'warn') {
-                text = `빈도(${frequency.toFixed(1)}회)가 상승 중입니다.${inflectionBudget ? ` 월 ${formatBudgetFull(inflectionBudget)} 구간에서 만원당 도달 효율이 절반 수준으로 감소합니다.` : ''} 추가 증액 전 타겟 범위 확장을 고려하세요.`;
-              } else if (isNearOrOver && inflectionBudget) {
-                text = `현재 예산이 효율 변곡점(월 ${formatBudgetFull(inflectionBudget)})에 근접해 있습니다. 추가 증액 시 만원당 도달이 절반 이하로 감소할 수 있습니다.`;
-              } else if (inflectionBudget) {
-                text = `월 ${formatBudgetFull(inflectionBudget)}까지는 효율을 유지하며 증액이 가능합니다. 현재 빈도(${frequency.toFixed(1)}회)도 안정적입니다.`;
-              } else {
-                text = `분석 범위 내에서 급격한 효율 저하 구간이 없습니다. 현재 빈도(${frequency.toFixed(1)}회)도 안정적입니다.`;
-              }
-
-              return (
-                <div className={`rounded-xl p-4 border-l-4 ${borderColor} ${bgColor}`}>
-                  <p className="text-sm font-semibold text-gray-800 mb-1">{icon} 예산 효율 변곡점</p>
-                  <p className="text-sm text-gray-600 leading-relaxed">{text}</p>
-                  {inflectionBudget && (
-                    <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
-                      <span>현재 월 예산 <strong className="text-gray-700">{formatBudgetFull(currentBudget)}</strong></span>
-                      <span>·</span>
-                      <span>변곡점 <strong className="text-gray-700">{formatBudgetFull(inflectionBudget)}</strong></span>
-                      <span>·</span>
-                      <span>빈도 <strong className="text-gray-700">{frequency.toFixed(2)}회</strong></span>
-                    </div>
-                  )}
+            {/* B. 성과 확장 잠재력 */}
+            {expansionPotential && (
+              expansionPotential.canExpand ? (
+                <div className="rounded-xl p-4 border-l-4 border-emerald-400 bg-emerald-50">
+                  <p className="text-sm font-semibold text-gray-800 mb-1">🚀 성과 확장 잠재력</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    현재 빈도({expansionPotential.frequency.toFixed(1)}회)와 모수 도달률({Math.round(expansionPotential.reachRate * 100)}%)이 낮아
+                    {' '}<strong className="text-emerald-700">효율 저하 없이 확장이 가능합니다.</strong>{' '}
+                    예산을 20% 증액(+₩{(expansionPotential.additionalBudget ?? 0).toLocaleString()})하면
+                    약 <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()}명</strong>을 추가로 도달할 수 있습니다.
+                  </p>
                 </div>
-              );
-            })()}
-
-            {/* B. 기회비용 */}
-            {opportunityCost && (
-              <div className="rounded-xl p-4 border-l-4 border-emerald-400 bg-emerald-50">
-                <p className="text-sm font-semibold text-gray-800 mb-1">💡 기회비용 (Opportunity Cost)</p>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  현재 타겟 모수에 여유가 있습니다. 예산을 20% 증액(+₩{opportunityCost.additionalBudget.toLocaleString()})하면,
-                  효율 저하 없이 약 <strong className="text-emerald-700">{opportunityCost.additionalReach.toLocaleString()}명</strong>을 추가로 도달할 수 있습니다.
-                </p>
-              </div>
+              ) : (
+                <div className="rounded-xl p-4 border-l-4 border-blue-400 bg-blue-50">
+                  <p className="text-sm font-semibold text-gray-800 mb-1">✅ 성과 확장 잠재력</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    현재 예산이 타겟 모수에 최적화되어 있습니다.
+                    {' '}(빈도 {expansionPotential.frequency.toFixed(1)}회 · 모수 도달률 {Math.round(expansionPotential.reachRate * 100)}%)
+                  </p>
+                </div>
+              )
             )}
 
             {/* C. 타겟 확장 시나리오 */}
