@@ -10,6 +10,8 @@
  *   3) /ads?fields=creative{object_type}                                  → 소재형태
  */
 
+import { extractIndustry } from './xlsxLoader';
+
 const GRAPH_API = 'https://graph.facebook.com/v21.0';
 
 // ── 매핑 테이블 ──────────────────────────────────────────
@@ -120,7 +122,7 @@ function toRow(
 ): SupabaseRow {
   const optGoal = OPT_GOAL_MAP[r.optimization_goal ?? ''] ?? r.optimization_goal ?? '';
   return {
-    업종: '',
+    업종: extractIndustry(r.campaign_name),
     캠페인이름:   r.campaign_name,
     목표:         r.objective,
     최적화목표:   optGoal,
