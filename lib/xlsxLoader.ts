@@ -149,44 +149,29 @@ export async function ensureDataLoaded(): Promise<void> {
 }
 
 // ── RPC 헬퍼 ─────────────────────────────────────────────────────────────────
+// count 함수 호출 없이 페이지가 빌 때까지 순차 로딩
+// (count RPC가 GROUP BY 전체 스캔으로 타임아웃 나는 문제 방지)
 async function fetchRpcAllPages<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   client: any,
   fnName: string,
   args: Record<string, unknown> = {},
 ): Promise<T[]> {
-  // 1) 총 행 수를 먼저 확인하기 위해 첫 페이지 요청 (count 헤더)
   const PAGE = 1_000;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const first = await (client.rpc as any)(fnName, { ...args, p_limit: PAGE, p_offset: 0 });
-  if (first.error) throw new Error(`RPC ${fnName} 오류: ${first.error.message}`);
-  const firstRows = (first.data ?? []) as T[];
+  const allRows: T[] = [];
+  let offset = 0;
 
-  if (firstRows.length < PAGE) return firstRows; // 한 페이지면 끝
-
-  // 2) 나머지 페이지 수 파악 후 병렬 로딩 (BATCH=30 → Cloudflare 502 방지)
-  // 총 행 수를 카운트 RPC로 가져옴
-  const cntFn = fnName + '_count';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: cntData, error: cntErr } = await (client.rpc as any)(cntFn);
-  const total = cntErr ? firstRows.length : (Number(cntData) || firstRows.length);
-
-  const offsets: number[] = [];
-  for (let i = PAGE; i < total; i += PAGE) offsets.push(i);
-
-  const BATCH = 30;
-  const allRows: T[] = [...firstRows];
-  for (let i = 0; i < offsets.length; i += BATCH) {
-    const batch = offsets.slice(i, i + BATCH);
-    const results = await Promise.all(
-      batch.map((offset) => (client.rpc as any)(fnName, { ...args, p_limit: PAGE, p_offset: offset }))
-    );
-    for (const { data, error } of results) {
-      if (error) throw new Error(`RPC ${fnName} 오류: ${error.message}`);
-      for (const row of (data ?? []) as T[]) allRows.push(row);
-    }
-    console.log(`[xlsxLoader] ${fnName} 로딩 중... ${allRows.length}/${total}`);
+  while (true) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (client.rpc as any)(fnName, { ...args, p_limit: PAGE, p_offset: offset });
+    if (error) throw new Error(`RPC ${fnName} 오류: ${error.message}`);
+    const rows = (data ?? []) as T[];
+    for (const row of rows) allRows.push(row);
+    console.log(`[xlsxLoader] ${fnName} 로딩 중... ${allRows.length}행`);
+    if (rows.length < PAGE) break; // 마지막 페이지
+    offset += PAGE;
   }
+
   return allRows;
 }
 
