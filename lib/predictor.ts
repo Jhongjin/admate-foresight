@@ -367,7 +367,8 @@ export function predict(input: PredictInput): PredictResult {
 
   try { regResult = predictByRegression(industries, genders, ageRanges, selMonth); } catch {}
 
-  if (regResult && regResult.cpm > 0) {
+  // cpm <= 100이면 nObs=0 빈 모델(exp(0)=1)이므로 weighted avg로 fallback
+  if (regResult && regResult.cpm > 100) {
     cpm     = regResult.cpm;
     cpc     = regResult.cpc;
     cpcLink = regResult.cpcLink > 0 ? regResult.cpcLink : Math.round(weightedCPCLink(matched));

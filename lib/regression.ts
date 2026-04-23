@@ -183,6 +183,13 @@ export function fitRegressionModels(): RegressionBundle {
 
   const data = loadXlsxData();
 
+  // 데이터가 없으면 캐시하지 않고 빈 번들 반환 (cold-start 오염 방지)
+  if (data.length === 0) {
+    const emptyModel: FittedModel = { beta: [], featureNames: [], r2: 0, nObs: 0, lambda: 0.5 };
+    return { cpm: emptyModel, cpc: emptyModel, cpcLink: emptyModel, vtr: emptyModel,
+      cats: { industries: [], genders: [], ageRanges: [], months: [] } };
+  }
+
   // 카테고리 추출
   const AGE_ORDER = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
   const cats: ModelCategories = {
