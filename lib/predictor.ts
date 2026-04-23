@@ -24,6 +24,7 @@ export interface MarketAvg {
   vtrDiff: number;
   top20pctCpm: number;   // 상위 20% 효율선 (하위 20th percentile CPM)
   top20pctCpc: number;
+  industrySelected: boolean; // 업종 미선택 시 false → 벤치마크 N/A 표시
 }
 
 export interface PredictResult {
@@ -326,22 +327,34 @@ function generateInsights(p: {
     );
   }
 
-  // ③ 타겟 품질 / 벤치마크
-  if (p.quality.penaltyPct > 0) {
+  // ③ 타겟 품질 / 세분화 가이드
+  const hasTargeting = p.genders.length > 0 || p.ageRanges.length > 0 || p.industries.length > 0;
+  const hasIndustry  = p.industries.length > 0;
+
+  if (!hasTargeting) {
+    // 아무 조건도 선택 안 한 경우 → 세분화 권유
     insights.push(
-      `${p.quality.reason}으로 CPC에 ${p.quality.penaltyPct}% 패널티가 적용되었습니다. 타겟 범위를 넓히거나 광고 소재 CTR을 개선하면 CPC를 약 ${p.quality.penaltyPct}% 낮출 수 있습니다.`
+      `현재 광범위한 타겟 설정 상태입니다. 성별·연령·업종 중 하나 이상 선택해 타겟을 세분화하면 CPM 효율을 높일 수 있습니다.`
     );
-  } else if (p.top20pctCpm > 0 && p.cpm <= p.top20pctCpm) {
+  } else if (hasIndustry && p.mktAvgCpm > 0 && p.cpm > p.mktAvgCpm) {
+    // 타겟은 있지만 CPM이 업종 평균 초과 → 목표 최적화 권유
+    insights.push(
+      `현재 타겟의 예측 CPM(₩${p.cpm.toLocaleString()})이 업종 평균(₩${p.mktAvgCpm.toLocaleString()})보다 높습니다. 캠페인 목표 최적화(전환·트래픽 등)를 통해 비용 효율을 개선하세요.`
+    );
+  } else if (hasIndustry && p.top20pctCpm > 0 && p.cpm <= p.top20pctCpm) {
+    // 업종 있고 CPM이 상위 20% 이하 → 칭찬
     insights.push(
       `예측 CPM(₩${p.cpm.toLocaleString()})이 업종 상위 20% 효율선(₩${p.top20pctCpm.toLocaleString()}) 이하입니다. 현재 타겟·목표 설정이 매우 효율적입니다.`
     );
-  } else if (p.top20pctCpm > 0) {
+  } else if (hasIndustry) {
+    // 업종 있고 평균 수준
     insights.push(
-      `예측 CPM(₩${p.cpm.toLocaleString()})은 업종 평균(₩${p.mktAvgCpm.toLocaleString()}) 수준입니다. 상위 20% 효율선(₩${p.top20pctCpm.toLocaleString()})에 진입하려면 타겟 세분화 또는 목표 최적화가 필요합니다.`
+      `예측 CPM(₩${p.cpm.toLocaleString()})은 업종 평균(₩${p.mktAvgCpm.toLocaleString()}) 수준입니다. 상위 20% 효율선(₩${p.top20pctCpm.toLocaleString()})에 진입하려면 목표 최적화 또는 소재 개선을 검토하세요.`
     );
   } else {
+    // 업종 미선택, 그 외 타겟만 있는 경우
     insights.push(
-      `예측 CPM(₩${p.cpm.toLocaleString()})은 업종 평균(₩${p.mktAvgCpm.toLocaleString()}) 대비 효율적입니다.`
+      `업종을 선택하면 업종별 CPM 벤치마크와 맞춤 효율 조언을 제공할 수 있습니다.`
     );
   }
 
@@ -494,6 +507,7 @@ export function predict(input: PredictInput): PredictResult {
     vtrDiff: Math.round(vtrDiff * 10) / 10,
     top20pctCpm: Math.round(top20pctCpm),
     top20pctCpc: Math.round(top20pctCpc),
+    industrySelected: industries.length > 0,
   };
 
   // ── 인사이트 생성 ─────────────────────────────────────
