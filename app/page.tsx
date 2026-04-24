@@ -46,9 +46,9 @@ const FIXED_OBJECTIVES = [
 const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
 
 interface MarketAvg {
-  cpm: number; cpc: number; vtr: number; count: number;
+  cpm: number; cpc: number; cpcLink: number; cpv: number; vtr: number; count: number;
   score: number; grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  cpmDiff: number; cpcDiff: number; vtrDiff: number;
+  cpmDiff: number; cpcDiff: number; cpcLinkDiff: number; cpvDiff: number; vtrDiff: number;
   top20pctCpm: number;
   top20pctCpc: number;
   industrySelected: boolean;
@@ -721,9 +721,11 @@ export default function SimulatorPage() {
         )}
         {(() => {
           const hasMarket = result?.marketAvg?.industrySelected === true;
-          const mktCpm  = result?.marketAvg?.cpm  ?? 0;
-          const mktCpc  = result?.marketAvg?.cpc  ?? 0;
-          const mktVtr  = result?.marketAvg?.vtr  ?? 0;
+          const mktCpm     = result?.marketAvg?.cpm     ?? 0;
+          const mktCpc     = result?.marketAvg?.cpc     ?? 0;
+          const mktCpcLink = result?.marketAvg?.cpcLink ?? 0;
+          const mktCpv     = result?.marketAvg?.cpv     ?? 0;
+          const mktVtr     = result?.marketAvg?.vtr     ?? 0;
           const mktReach = hasMarket && mktCpm > 0 && result!.cpm > 0
             ? Math.round(totalReach * result!.cpm / mktCpm) : 0;
           const fmtR = (v: number) =>
@@ -751,10 +753,16 @@ export default function SimulatorPage() {
                 diff={hasMarket ? (result?.marketAvg?.cpcDiff ?? null) : null} lowerBetter={true} />
               <KPICard title="CPC(링크)"
                 value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
-                icon="🔗" loading={loading} />
+                icon="🔗" loading={loading}
+                marketLabel={result ? mktLabel(mktCpcLink) : undefined}
+                diff={hasMarket ? (result?.marketAvg?.cpcLinkDiff ?? null) : null}
+                lowerBetter={true} />
               <KPICard title="동영상 3초 조회당 비용"
                 value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
-                icon="🎬" loading={loading} />
+                icon="🎬" loading={loading}
+                marketLabel={result ? (hasMarket ? (mktCpv > 0 ? `₩${mktCpv.toLocaleString()}` : '—') : '-') : undefined}
+                diff={hasMarket ? (result?.marketAvg?.cpvDiff ?? null) : null}
+                lowerBetter={true} />
               <KPICard title="VTR(3s)"
                 value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
                 icon="▶️" loading={loading}

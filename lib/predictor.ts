@@ -15,16 +15,20 @@ export interface PredictInput {
 export interface MarketAvg {
   cpm: number;
   cpc: number;
+  cpcLink: number;
+  cpv: number;
   vtr: number;
   count: number;
   score: number;
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
   cpmDiff: number;
   cpcDiff: number;
+  cpcLinkDiff: number;
+  cpvDiff: number;
   vtrDiff: number;
-  top20pctCpm: number;   // 상위 20% 효율선 (하위 20th percentile CPM)
+  top20pctCpm: number;
   top20pctCpc: number;
-  industrySelected: boolean; // 업종 미선택 시 false → 벤치마크 N/A 표시
+  industrySelected: boolean;
 }
 
 export interface PredictResult {
@@ -485,9 +489,11 @@ export function predict(input: PredictInput): PredictResult {
 
   // ── 시장 비교 (Top 20% 포함) ────────────────────────────
   const baselineVideoData = baselineData.filter((r) => r.영상조회수 > 0 && r.노출 > 0);
-  const mktCpm = weightedCPM(baselineData);
-  const mktCpc = weightedCPC(baselineData);
-  const mktVtr = calcVTR(baselineVideoData);
+  const mktCpm     = weightedCPM(baselineData);
+  const mktCpc     = weightedCPC(baselineData);
+  const mktCpcLink = weightedCPCLink(baselineData);
+  const mktCpv     = weightedCPV(baselineData);
+  const mktVtr     = calcVTR(baselineVideoData);
 
   // Top 20% 효율선 (CPM·CPC 낮을수록 효율적 → 하위 20th percentile)
   const sortedCpms = baselineData.map(r => r.CPM).filter(v => v > 0).sort((a, b) => a - b);
@@ -495,9 +501,11 @@ export function predict(input: PredictInput): PredictResult {
   const sortedCpcs = baselineData.map(r => r.CPC).filter(v => v > 0).sort((a, b) => a - b);
   const top20pctCpc = sortedCpcs[Math.floor(sortedCpcs.length * 0.2)] ?? 0;
 
-  const cpmDiff = mktCpm > 0 ? ((cpm - mktCpm) / mktCpm) * 100 : 0;
-  const cpcDiff = mktCpc > 0 && cpc > 0 ? ((cpc - mktCpc) / mktCpc) * 100 : 0;
-  const vtrDiff = mktVtr > 0 && vtr > 0 ? ((vtr - mktVtr) / mktVtr) * 100 : 0;
+  const cpmDiff     = mktCpm     > 0 && cpm     > 0 ? ((cpm     - mktCpm)     / mktCpm)     * 100 : 0;
+  const cpcDiff     = mktCpc     > 0 && cpc     > 0 ? ((cpc     - mktCpc)     / mktCpc)     * 100 : 0;
+  const cpcLinkDiff = mktCpcLink > 0 && cpcLink > 0 ? ((cpcLink - mktCpcLink) / mktCpcLink) * 100 : 0;
+  const cpvDiff     = mktCpv     > 0 && cpv     > 0 ? ((cpv     - mktCpv)     / mktCpv)     * 100 : 0;
+  const vtrDiff     = mktVtr     > 0 && vtr     > 0 ? ((vtr     - mktVtr)     / mktVtr)     * 100 : 0;
   const rawScore = 50 + (-cpmDiff * 0.4 + vtrDiff * 0.3 + -cpcDiff * 0.3) * 0.5;
   const marketScore = Math.round(Math.min(100, Math.max(0, rawScore)));
   const marketGrade: MarketAvg['grade'] =
@@ -505,12 +513,16 @@ export function predict(input: PredictInput): PredictResult {
 
   const marketAvg: MarketAvg = {
     cpm: Math.round(mktCpm), cpc: Math.round(mktCpc),
+    cpcLink: Math.round(mktCpcLink),
+    cpv: Math.round(mktCpv * 10) / 10,
     vtr: Math.round(mktVtr * 100) / 100,
     count: baselineData.length,
     score: marketScore, grade: marketGrade,
-    cpmDiff: Math.round(cpmDiff * 10) / 10,
-    cpcDiff: Math.round(cpcDiff * 10) / 10,
-    vtrDiff: Math.round(vtrDiff * 10) / 10,
+    cpmDiff:     Math.round(cpmDiff     * 10) / 10,
+    cpcDiff:     Math.round(cpcDiff     * 10) / 10,
+    cpcLinkDiff: Math.round(cpcLinkDiff * 10) / 10,
+    cpvDiff:     Math.round(cpvDiff     * 10) / 10,
+    vtrDiff:     Math.round(vtrDiff     * 10) / 10,
     top20pctCpm: Math.round(top20pctCpm),
     top20pctCpc: Math.round(top20pctCpc),
     industrySelected: industries.length > 0,
