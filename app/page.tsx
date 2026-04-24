@@ -672,7 +672,100 @@ export default function SimulatorPage() {
       <div ref={resultRef} className="space-y-8">
 
 
-      {/* 캠페인 최적화 가이드 — 경고/개선안이 있을 때만 표시 */}
+      {/* ⬇ 순서: 예측 결과 먼저, 그 다음 캠페인 최적화 가이드 */}
+
+      {/* KPI Cards — 예측 결과 */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800">예측 결과</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{campaignDays}일 기준 · 업종 평균 비교</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {result && applySeasonBoost && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+                🌙 시즌 할증 반영
+              </span>
+            )}
+            {result?.saturationWarning && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 font-medium">
+                🚨 포화 구간
+              </span>
+            )}
+            {result?.qualityPenaltyPct !== undefined && result.qualityPenaltyPct > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium">
+                ⚠️ CPC 패널티 +{result.qualityPenaltyPct}%
+              </span>
+            )}
+            <button
+              onClick={exportToExcel}
+              disabled={!result || loading || exporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {exporting ? (
+                <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+              {exporting ? '생성 중...' : 'Excel 내보내기'}
+            </button>
+          </div>
+        </div>
+        {result && (
+          <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700">
+            선택하신 기간은 총 <strong>{campaignDays}일</strong>이며,
+            일 평균 <strong>₩{dailyBudget.toLocaleString()}</strong>의 예산이 투입될 예정입니다.
+          </div>
+        )}
+        {(() => {
+          const hasMarket = result?.marketAvg?.industrySelected === true;
+          const mktCpm  = result?.marketAvg?.cpm  ?? 0;
+          const mktCpc  = result?.marketAvg?.cpc  ?? 0;
+          const mktVtr  = result?.marketAvg?.vtr  ?? 0;
+          const mktReach = hasMarket && mktCpm > 0 && result!.cpm > 0
+            ? Math.round(totalReach * result!.cpm / mktCpm) : 0;
+          const fmtR = (v: number) =>
+            v >= 10000 ? `${(v / 10000).toFixed(1)}만명` : `${v.toLocaleString()}명`;
+          const reachDiff = hasMarket && mktReach > 0 && totalReach > 0
+            ? Math.round(((totalReach - mktReach) / mktReach) * 100 * 10) / 10 : null;
+          const mktLabel = (val: string | number, fmt?: (v: number) => string) => {
+            if (!hasMarket) return '-';
+            const n = typeof val === 'number' ? val : 0;
+            if (n <= 0) return '—';
+            return fmt ? fmt(n) : `₩${n.toLocaleString()}`;
+          };
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <KPICard title={`예상 도달 (${campaignDays}일)`} value={result ? fmtR(totalReach) : '—'}
+                icon="👥" loading={loading} marketLabel={result ? mktLabel(mktReach, fmtR) : undefined}
+                diff={hasMarket ? reachDiff : null} lowerBetter={false} />
+              <KPICard title="예상 CPM"
+                value={result ? `₩${(applySeasonBoost ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
+                icon="📊" loading={loading} marketLabel={result ? mktLabel(mktCpm) : undefined}
+                diff={hasMarket ? (result?.marketAvg?.cpmDiff ?? null) : null} lowerBetter={true} />
+              <KPICard title="CPC(전체)"
+                value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
+                icon="🖱️" loading={loading} marketLabel={result ? mktLabel(mktCpc) : undefined}
+                diff={hasMarket ? (result?.marketAvg?.cpcDiff ?? null) : null} lowerBetter={true} />
+              <KPICard title="CPC(링크)"
+                value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
+                icon="🔗" loading={loading} />
+              <KPICard title="동영상 3초 조회당 비용"
+                value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
+                icon="🎬" loading={loading} />
+              <KPICard title="VTR(3s)"
+                value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
+                icon="▶️" loading={loading}
+                marketLabel={result ? (hasMarket ? (mktVtr > 0 ? `${mktVtr.toFixed(2)}%` : '—') : '-') : undefined}
+                diff={hasMarket ? (result?.marketAvg?.vtrDiff ?? null) : null} lowerBetter={false} />
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* 캠페인 최적화 가이드 */}
       {result && (() => {
         const hasExpansion = expansionPotential?.canExpand === true;
         const hasGuide = hasExpansion || scenarioLoading || scenarios.length > 0;
@@ -755,125 +848,6 @@ export default function SimulatorPage() {
         </div>
       );})()}
 
-      {/* KPI Cards */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-base font-semibold text-gray-800">예측 결과</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{campaignDays}일 기준 · 업종 평균 비교</p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {/* 배지: 시즌·포화·패널티 */}
-            {result && applySeasonBoost && (
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                🌙 시즌 할증 반영
-              </span>
-            )}
-            {result?.saturationWarning && (
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 font-medium">
-                🚨 포화 구간
-              </span>
-            )}
-            {result?.qualityPenaltyPct !== undefined && result.qualityPenaltyPct > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium">
-                ⚠️ CPC 패널티 +{result.qualityPenaltyPct}%
-              </span>
-            )}
-            <button
-              onClick={exportToExcel}
-              disabled={!result || loading || exporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {exporting ? (
-                <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              ) : (
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              )}
-              {exporting ? '생성 중...' : 'Excel 내보내기'}
-            </button>
-          </div>
-        </div>
-
-        {/* 기간 요약 */}
-        {result && (
-          <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700">
-            선택하신 기간은 총 <strong>{campaignDays}일</strong>이며,
-            일 평균 <strong>₩{dailyBudget.toLocaleString()}</strong>의 예산이 투입될 예정입니다.
-          </div>
-        )}
-
-        {/* 업종 평균 계산 */}
-        {(() => {
-          const hasMarket = result?.marketAvg?.industrySelected === true;
-          const mktCpm  = result?.marketAvg?.cpm  ?? 0;
-          const mktCpc  = result?.marketAvg?.cpc  ?? 0;
-          const mktVtr  = result?.marketAvg?.vtr  ?? 0;
-          const mktReach = hasMarket && mktCpm > 0 && result!.cpm > 0
-            ? Math.round(totalReach * result!.cpm / mktCpm) : 0;
-          const fmtR = (v: number) =>
-            v >= 10000 ? `${(v / 10000).toFixed(1)}만명` : `${v.toLocaleString()}명`;
-          const reachDiff = hasMarket && mktReach > 0 && totalReach > 0
-            ? Math.round(((totalReach - mktReach) / mktReach) * 100 * 10) / 10 : null;
-
-          // 업종 평균 표시 문자열 헬퍼
-          // hasMarket=true + 값 있음 → 값, hasMarket=true + 값 없음 → '—', hasMarket=false → '-'
-          const mktLabel = (val: string | number, fmt?: (v: number) => string) => {
-            if (!hasMarket) return '-';
-            const n = typeof val === 'number' ? val : 0;
-            if (n <= 0) return '—';
-            return fmt ? fmt(n) : `₩${n.toLocaleString()}`;
-          };
-
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <KPICard
-                title={`예상 도달 (${campaignDays}일)`}
-                value={result ? fmtR(totalReach) : '—'}
-                icon="👥" loading={loading}
-                marketLabel={result ? mktLabel(mktReach, fmtR) : undefined}
-                diff={hasMarket ? reachDiff : null}
-                lowerBetter={false}
-              />
-              <KPICard
-                title="예상 CPM"
-                value={result ? `₩${(applySeasonBoost ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
-                icon="📊" loading={loading}
-                marketLabel={result ? mktLabel(mktCpm) : undefined}
-                diff={hasMarket ? (result?.marketAvg?.cpmDiff ?? null) : null}
-                lowerBetter={true}
-              />
-              <KPICard
-                title="CPC(전체)"
-                value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
-                icon="🖱️" loading={loading}
-                marketLabel={result ? mktLabel(mktCpc) : undefined}
-                diff={hasMarket ? (result?.marketAvg?.cpcDiff ?? null) : null}
-                lowerBetter={true}
-              />
-              <KPICard
-                title="CPC(링크)"
-                value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
-                icon="🔗" loading={loading}
-              />
-              <KPICard
-                title="동영상 3초 조회당 비용"
-                value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
-                icon="🎬" loading={loading}
-              />
-              <KPICard
-                title="VTR(3s)"
-                value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
-                icon="▶️" loading={loading}
-                marketLabel={result ? (hasMarket ? (mktVtr > 0 ? `${mktVtr.toFixed(2)}%` : '—') : '-') : undefined}
-                diff={hasMarket ? (result?.marketAvg?.vtrDiff ?? null) : null}
-                lowerBetter={false}
-              />
-            </div>
-          );
-        })()}
-      </div>
 
       {/* Budget Range Chart */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
