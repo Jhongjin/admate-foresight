@@ -244,13 +244,7 @@ export default function SimulatorPage() {
           body: { industries, genders, ageRanges: [], objectives, budget: monthlyBudget },
         });
       }
-      if (industries.length > 0) {
-        expansions.push({
-          label: '업종 전체 확장',
-          description: `${industries.join(', ')} → 전체`,
-          body: { industries: [], genders, ageRanges, objectives, budget: monthlyBudget },
-        });
-      }
+      // 업종 확장은 캠페인 대전제이므로 시나리오에서 제외
 
       setScenarioLoading(true);
       try {
@@ -824,87 +818,72 @@ export default function SimulatorPage() {
         return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">캠페인 최적화 가이드</h2>
-          <p className="text-xs text-gray-400 mb-5">예측 데이터 기반 개선 인사이트</p>
+          <p className="text-xs text-gray-400 mb-5">지금 더 투자해도 좋은지, 현재 설정을 유지할지 확인하세요</p>
           <div className="space-y-4">
 
-            {/* B. 성과 확장 잠재력 */}
+            {/* B. 성장 기회 안내 */}
             {expansionPotential?.canExpand && (
               <div className="rounded-xl p-4 border-l-4 border-emerald-400 bg-emerald-50">
-                <p className="text-sm font-semibold text-gray-800 mb-1">🚀 성과 확장 잠재력</p>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  현재 빈도({expansionPotential.frequency.toFixed(1)}회)와 모수 도달률({Math.round(expansionPotential.reachRate * 100)}%)이 낮아
-                  {' '}<strong className="text-emerald-700">효율 저하 없이 확장이 가능합니다.</strong>{' '}
-                  예산을 20% 증액(+₩{(expansionPotential.additionalBudget ?? 0).toLocaleString()})하면
-                  약 <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()}명</strong>을 추가로 도달할 수 있습니다.
+                <p className="text-sm font-semibold text-gray-800 mb-2">🚀 추가 확보 가능 성과</p>
+                <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                  현재 설정한 타겟 시장에 광고가 아직 충분히 노출되지 않아,
+                  {' '}<strong className="text-emerald-700">성과를 더 키울 수 있는 여유가 있습니다.</strong>
                 </p>
+                <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2.5 border border-emerald-200">
+                  <span className="text-lg">✅</span>
+                  <p className="text-sm text-gray-700">
+                    예산을 <strong>20% 늘리면</strong> 약{' '}
+                    <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()}명</strong>의 고객에게 추가로 도달할 수 있습니다.
+                    {' '}<span className="text-gray-400 text-xs">(+₩{(expansionPotential.additionalBudget ?? 0).toLocaleString()})</span>
+                  </p>
+                </div>
               </div>
             )}
 
             {/* C. 타겟 확장 시나리오 */}
             {(scenarioLoading || scenarios.length > 0) && (
               <div className="rounded-xl p-4 border border-gray-100 bg-gray-50">
-                <p className="text-sm font-semibold text-gray-800 mb-3">🎯 타겟 확장 시나리오 비교</p>
+                <p className="text-sm font-semibold text-gray-800 mb-1">🎯 타겟 범위 확장 시 효율 변화</p>
+                <p className="text-xs text-gray-400 mb-3">성별 또는 연령 타겟을 전체로 넓혔을 때 예상 성과를 비교합니다</p>
                 {scenarioLoading ? (
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" />
                     시나리오 계산 중...
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-2 pr-3 text-gray-500 font-medium">시나리오</th>
-                          <th className="text-right py-2 pr-3 text-gray-500 font-medium">CPM</th>
-                          <th className="text-right py-2 pr-3 text-gray-500 font-medium">예상 도달</th>
-                          <th className="text-right py-2 pr-3 text-gray-500 font-medium">VTR</th>
-                          <th className="text-right py-2 text-gray-500 font-medium">CPC</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* 현재 타겟 row */}
-                        <tr className="border-b border-gray-100 bg-indigo-50">
-                          <td className="py-2 pr-3 font-semibold text-indigo-700">현재 타겟</td>
-                          <td className="py-2 pr-3 text-right font-mono text-indigo-700">₩{result.cpm.toLocaleString()}</td>
-                          <td className="py-2 pr-3 text-right font-mono text-indigo-700">{totalReach.toLocaleString()}명</td>
-                          <td className="py-2 pr-3 text-right font-mono text-indigo-700">{result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—'}</td>
-                          <td className="py-2 text-right font-mono text-indigo-700">{result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—'}</td>
-                        </tr>
-                        {scenarios.map((s) => {
-                          const cpmBetter = s.cpm > 0 && s.cpm < result.cpm;
-                          const reachMore = s.reach * durationFactor > totalReach;
-                          return (
-                            <tr key={s.label} className="border-b border-gray-100 hover:bg-white transition-colors">
-                              <td className="py-2 pr-3">
-                                <p className="font-medium text-gray-700">{s.label}</p>
-                                <p className="text-gray-400 text-[11px]">{s.description}</p>
-                              </td>
-                              <td className="py-2 pr-3 text-right font-mono">
-                                <span className={cpmBetter ? 'text-emerald-600 font-semibold' : 'text-red-500'}>
-                                  ₩{s.cpm.toLocaleString()}
-                                </span>
-                                {result.cpm > 0 && (
-                                  <span className="ml-1 text-[11px] text-gray-400">
-                                    ({((s.cpm - result.cpm) / result.cpm * 100).toFixed(1)}%)
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-2 pr-3 text-right font-mono">
-                                <span className={reachMore ? 'text-emerald-600 font-semibold' : 'text-red-500'}>
-                                  {Math.round(s.reach * durationFactor).toLocaleString()}명
-                                </span>
-                              </td>
-                              <td className="py-2 pr-3 text-right font-mono text-gray-600">
-                                {s.vtr > 0 ? `${s.vtr.toFixed(2)}%` : '—'}
-                              </td>
-                              <td className="py-2 text-right font-mono text-gray-600">
-                                {s.cpc > 0 ? `₩${s.cpc.toLocaleString()}` : '—'}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                  <div className="space-y-2">
+                    {/* 현재 타겟 기준 */}
+                    <div className="flex items-center justify-between rounded-lg px-3 py-2.5 bg-indigo-50 border border-indigo-100">
+                      <div>
+                        <p className="text-xs font-semibold text-indigo-700">현재 타겟 기준</p>
+                        <p className="text-[11px] text-indigo-400 mt-0.5">CPM ₩{result.cpm.toLocaleString()} · 도달 {totalReach.toLocaleString()}명</p>
+                      </div>
+                      <span className="text-xs font-bold text-indigo-600 bg-white px-2 py-1 rounded border border-indigo-200">기준값</span>
+                    </div>
+                    {scenarios.map((s) => {
+                      const cpmBetter = s.cpm > 0 && s.cpm < result.cpm;
+                      const reachMore = s.reach * durationFactor > totalReach;
+                      const overallBetter = cpmBetter || reachMore;
+                      return (
+                        <div key={s.label} className={`flex items-center justify-between rounded-lg px-3 py-2.5 border ${
+                          overallBetter ? 'bg-emerald-50 border-emerald-100' : 'bg-white border-gray-100'
+                        }`}>
+                          <div>
+                            <p className="text-xs font-semibold text-gray-700">{s.label}</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">
+                              CPM ₩{s.cpm.toLocaleString()} · 도달 {Math.round(s.reach * durationFactor).toLocaleString()}명
+                            </p>
+                          </div>
+                          <span className={`text-xs font-bold px-2 py-1 rounded border ${
+                            overallBetter
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'bg-gray-100 text-gray-500 border-gray-200'
+                          }`}>
+                            {overallBetter ? '🚀 효율 개선' : '변화 없음'}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
