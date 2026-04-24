@@ -733,35 +733,14 @@ export default function SimulatorPage() {
 
       {/* 캠페인 최적화 가이드 — 경고/개선안이 있을 때만 표시 */}
       {result && (() => {
-        const hasCpmWarning = (result.marketAvg?.industrySelected ?? false)
-          && (result.marketAvg?.cpmDiff ?? 0) > 15;
-        const hasBudgetIssue = result.saturationWarning || result.frequency < 1.3;
-        const hasQualityPenalty = (result.qualityPenaltyPct ?? 0) > 0;
         const hasExpansion = expansionPotential?.canExpand === true;
-        const hasGuide = hasCpmWarning || hasBudgetIssue || hasQualityPenalty
-          || hasExpansion || scenarioLoading || scenarios.length > 0;
+        const hasGuide = hasExpansion || scenarioLoading || scenarios.length > 0;
         if (!hasGuide) return null;
         return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">캠페인 최적화 가이드</h2>
           <p className="text-xs text-gray-400 mb-5">예측 데이터 기반 개선 인사이트</p>
           <div className="space-y-4">
-
-            {/* 0. AI 인사이트 3줄 */}
-            {result.insights && result.insights.length > 0 && (
-              <div className="space-y-2.5">
-                {result.insights.map((insight, i) => {
-                  const icons = ['📌', '📅', '🎯'];
-                  const borders = ['border-indigo-200 bg-indigo-50', 'border-amber-200 bg-amber-50', 'border-purple-200 bg-purple-50'];
-                  return (
-                    <div key={i} className={`flex items-start gap-2.5 p-3.5 rounded-xl border ${borders[i] ?? 'border-gray-100 bg-gray-50'}`}>
-                      <span className="text-base leading-none mt-0.5">{icons[i]}</span>
-                      <p className="text-sm text-gray-700 leading-relaxed">{insight}</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
 
             {/* B. 성과 확장 잠재력 */}
             {expansionPotential?.canExpand && (
