@@ -751,6 +751,12 @@ export default function SimulatorPage() {
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     {
+                      label: '도달', sub: `${campaignDays}일 · 동일예산 기준`,
+                      predicted: totalReach, market: mktReach,
+                      diff: reachDiff, lowerBetter: false,
+                      fmt: fmtReach,
+                    },
+                    {
                       label: 'CPM', sub: '1,000회 노출당',
                       predicted: result.cpm, market: result.marketAvg.cpm,
                       diff: result.marketAvg.cpmDiff, lowerBetter: true,
@@ -767,12 +773,6 @@ export default function SimulatorPage() {
                       predicted: result.vtr, market: result.marketAvg.vtr,
                       diff: result.marketAvg.vtrDiff, lowerBetter: false,
                       fmt: (v: number) => v > 0 ? `${v.toFixed(2)}%` : '—',
-                    },
-                    {
-                      label: '도달', sub: `${campaignDays}일 · 동일예산 기준`,
-                      predicted: totalReach, market: mktReach,
-                      diff: reachDiff, lowerBetter: false,
-                      fmt: fmtReach,
                     },
                   ].map(({ label, sub, predicted, market, diff, lowerBetter, fmt }) => {
                     const isBetter = lowerBetter ? diff < 0 : diff > 0;
