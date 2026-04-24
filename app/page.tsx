@@ -588,11 +588,63 @@ export default function SimulatorPage() {
       {isCalculated && (
       <div ref={resultRef} className="space-y-8">
 
-      {/* 시장 비교 */}
+      {/* 예상 도달 규모 */}
+      {result && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-semibold text-gray-800 mb-1">예상 도달 규모</h2>
+          <p className="text-xs text-gray-400 mb-5">{campaignDays}일 캠페인 기준 예상 볼륨 지표</p>
+
+          {/* 주요 도달 수치 */}
+          <div className="flex flex-col items-center py-5 mb-5 bg-indigo-50 rounded-2xl">
+            <p className="text-xs text-indigo-500 font-medium mb-1">예상 순 도달</p>
+            <p className="text-4xl font-extrabold text-indigo-700 tracking-tight">
+              {totalReach >= 10000
+                ? `${(totalReach / 10000).toFixed(1)}만`
+                : totalReach.toLocaleString()}
+            </p>
+            <p className="text-sm text-indigo-400 mt-1">명 ({campaignDays}일 기준)</p>
+          </div>
+
+          {/* 지원 지표 4개 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-50 rounded-xl p-3.5">
+              <p className="text-xs text-gray-500 mb-1">예상 노출</p>
+              <p className="text-base font-bold text-gray-900">
+                {result.frequency > 0
+                  ? (() => {
+                      const imp = Math.round(totalReach * result.frequency);
+                      return imp >= 10000 ? `${(imp / 10000).toFixed(1)}만` : imp.toLocaleString();
+                    })()
+                  : '—'}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">회</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3.5">
+              <p className="text-xs text-gray-500 mb-1">예상 빈도</p>
+              <p className="text-base font-bold text-gray-900">{result.frequency.toFixed(1)}</p>
+              <p className="text-xs text-gray-400 mt-0.5">회 / 1인당</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3.5">
+              <p className="text-xs text-gray-500 mb-1">예상 CPM</p>
+              <p className="text-base font-bold text-gray-900">
+                ₩{(isPeakSeason ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">{isPeakSeason ? '성수기 반영' : '1,000회 노출당'}</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3.5">
+              <p className="text-xs text-gray-500 mb-1">일 평균 예산</p>
+              <p className="text-base font-bold text-gray-900">₩{dailyBudget.toLocaleString()}</p>
+              <p className="text-xs text-gray-400 mt-0.5">총 ₩{budget.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 광고 성과 예측 스코어 */}
       {result?.marketAvg && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-start justify-between mb-2">
-            <h2 className="text-base font-semibold text-gray-800">성과 벤치마크</h2>
+          <div className="flex items-start justify-between mb-1">
+            <h2 className="text-base font-semibold text-gray-800">광고 성과 예측 스코어</h2>
             <div className="flex gap-2 flex-wrap justify-end">
               {result.seasonalityMultiplier && result.seasonalityMultiplier > 1 && (
                 <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
@@ -611,19 +663,15 @@ export default function SimulatorPage() {
               )}
             </div>
           </div>
-          <p className="text-xs text-gray-400 mb-5">
-            {result.marketAvg.industrySelected
-              ? `${industries.join(', ')} 업종${objectives.length > 0 ? ` · ${objectives.map(o => OBJECTIVE_LABELS[o] ?? o).join('/')}` : ''} 기준 대비 현재 타겟팅 효율`
-              : '업종을 선택하면 업종 평균 대비 효율을 확인할 수 있습니다'}
-          </p>
+          <p className="text-xs text-gray-400 mb-5">전체 업종 평균 대비 예측 성과 점수입니다</p>
 
           {result.marketAvg.industrySelected ? (
             <>
               {/* 종합 점수 */}
               <div className="flex items-center gap-5 mb-6">
-                <div className="flex flex-col items-center justify-center w-20 h-20 rounded-full border-4 border-indigo-100 bg-indigo-50 shrink-0">
-                  <span className="text-2xl font-bold text-indigo-600">{result.marketAvg.grade}</span>
-                  <span className="text-xs text-indigo-400 font-medium">{result.marketAvg.score}점</span>
+                <div className="flex flex-col items-center justify-center w-24 h-24 rounded-full border-4 border-indigo-100 bg-indigo-50 shrink-0">
+                  <span className="text-3xl font-extrabold text-indigo-600">{result.marketAvg.score}</span>
+                  <span className="text-xs text-indigo-400 font-semibold">점</span>
                 </div>
                 <div className="flex-1">
                   <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
@@ -649,26 +697,21 @@ export default function SimulatorPage() {
                 </div>
               </div>
 
-              {/* 지표별 비교 */}
+              {/* 주요 효율 지표 요약 */}
+              <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">주요 효율 지표 요약</p>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'CPM', predicted: result.cpm, market: result.marketAvg.cpm, diff: result.marketAvg.cpmDiff, top20: result.marketAvg.top20pctCpm, lowerBetter: true, fmt: (v: number) => `₩${v.toLocaleString()}` },
-                  { label: 'CPC', predicted: result.cpc, market: result.marketAvg.cpc, diff: result.marketAvg.cpcDiff, top20: result.marketAvg.top20pctCpc, lowerBetter: true, fmt: (v: number) => v > 0 ? `₩${v.toLocaleString()}` : '—' },
-                  { label: 'VTR', predicted: result.vtr, market: result.marketAvg.vtr, diff: result.marketAvg.vtrDiff, top20: 0, lowerBetter: false, fmt: (v: number) => v > 0 ? `${v.toFixed(2)}%` : '—' },
-                ].map(({ label, predicted, market, diff, top20, lowerBetter, fmt }) => {
+                  { label: 'CPM', predicted: result.cpm, market: result.marketAvg.cpm, diff: result.marketAvg.cpmDiff, lowerBetter: true, fmt: (v: number) => `₩${v.toLocaleString()}` },
+                  { label: 'CPC', predicted: result.cpc, market: result.marketAvg.cpc, diff: result.marketAvg.cpcDiff, lowerBetter: true, fmt: (v: number) => v > 0 ? `₩${v.toLocaleString()}` : '—' },
+                  { label: 'VTR', predicted: result.vtr, market: result.marketAvg.vtr, diff: result.marketAvg.vtrDiff, lowerBetter: false, fmt: (v: number) => v > 0 ? `${v.toFixed(2)}%` : '—' },
+                ].map(({ label, predicted, market, diff, lowerBetter, fmt }) => {
                   const isBetter = lowerBetter ? diff < 0 : diff > 0;
                   const isNeutral = Math.abs(diff) < 2;
-                  const isTop20 = top20 > 0 && lowerBetter && predicted > 0 && predicted <= top20;
                   return (
-                    <div key={label} className={`rounded-xl p-3.5 ${isTop20 ? 'bg-emerald-50 border border-emerald-100' : 'bg-gray-50'}`}>
+                    <div key={label} className="rounded-xl p-3.5 bg-gray-50">
                       <p className="text-xs text-gray-500 mb-1">{label}</p>
                       <p className="text-base font-bold text-gray-900">{fmt(predicted)}</p>
                       <p className="text-xs text-gray-400 mt-0.5">업종 평균 {fmt(market)}</p>
-                      {top20 > 0 && (
-                        <p className={`text-xs mt-0.5 font-medium ${isTop20 ? 'text-emerald-600' : 'text-purple-500'}`}>
-                          {isTop20 ? '✓ ' : ''}Top 20% {fmt(top20)}
-                        </p>
-                      )}
                       {market > 0 && (
                         <span className={`inline-block mt-1.5 text-xs font-semibold px-1.5 py-0.5 rounded ${
                           isNeutral ? 'bg-gray-100 text-gray-500'
@@ -676,7 +719,6 @@ export default function SimulatorPage() {
                             : 'bg-red-50 text-red-500'
                         }`}>
                           {isNeutral ? '평균' : isBetter ? `▼ ${Math.abs(diff)}%` : `▲ ${Math.abs(diff)}%`}
-                          {!isNeutral && <span className="font-normal ml-1">{isBetter ? '절감' : '초과'}</span>}
                         </span>
                       )}
                     </div>
@@ -685,11 +727,14 @@ export default function SimulatorPage() {
               </div>
             </>
           ) : (
-            /* 업종 미선택 시 N/A 안내 */
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <span className="text-3xl mb-3">📊</span>
-              <p className="text-sm font-medium text-gray-600">업종을 선택해주세요</p>
-              <p className="text-xs text-gray-400 mt-1">업종을 선택하면 업종 평균 CPM·CPC·VTR과<br/>현재 예측값을 비교할 수 있습니다.</p>
+            /* 업종 미선택 시 N/A */
+            <div className="flex flex-col items-center justify-center py-6 text-center">
+              <div className="flex flex-col items-center justify-center w-24 h-24 rounded-full border-4 border-gray-100 bg-gray-50 mb-4">
+                <span className="text-3xl font-extrabold text-gray-300">-</span>
+                <span className="text-xs text-gray-300 font-semibold">점</span>
+              </div>
+              <p className="text-sm font-medium text-gray-500">업종을 선택하면 정확한 스코어가 산출됩니다</p>
+              <p className="text-xs text-gray-400 mt-1">업종 평균 CPM·CPC·VTR과 현재 예측값을 비교합니다</p>
             </div>
           )}
         </div>
