@@ -671,113 +671,6 @@ export default function SimulatorPage() {
       {isCalculated && (
       <div ref={resultRef} className="space-y-8">
 
-      {/* 예측 SCORE */}
-      {result?.marketAvg && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-start justify-between mb-1">
-            <h2 className="text-base font-semibold text-gray-800">예측 SCORE</h2>
-            <div className="flex gap-2 flex-wrap justify-end">
-              {applySeasonBoost && (
-                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                  🌙 시즌 할증이 반영된 결과입니다
-                </span>
-              )}
-              {result.saturationWarning && (
-                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-red-50 text-red-600 border border-red-200 font-medium">
-                  🚨 포화 구간 CPM 할증 적용
-                </span>
-              )}
-              {result.qualityPenaltyPct !== undefined && result.qualityPenaltyPct > 0 && (
-                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium">
-                  ⚠️ CPC 패널티 +{result.qualityPenaltyPct}%
-                </span>
-              )}
-            </div>
-          </div>
-          <p className="text-xs text-gray-400 mb-5">업종 평균 대비 예측 지표 비교 · {campaignDays}일 기준</p>
-
-          {result.marketAvg.industrySelected ? (() => {
-            const mktCpm = result.marketAvg.cpm;
-            const mktReach = mktCpm > 0 && result.cpm > 0
-              ? Math.round(totalReach * result.cpm / mktCpm)
-              : 0;
-            const reachDiff = mktReach > 0 && totalReach > 0
-              ? Math.round(((totalReach - mktReach) / mktReach) * 100 * 10) / 10
-              : 0;
-            const fmtReach = (v: number) =>
-              v >= 10000 ? `${(v / 10000).toFixed(1)}만명` : `${v.toLocaleString()}명`;
-
-            return (
-              <>
-                {/* 지표 카드 2×2 */}
-                <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">내 예측 / 업종 평균</p>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    {
-                      label: '도달', sub: `${campaignDays}일 · 동일예산 기준`,
-                      predicted: totalReach, market: mktReach,
-                      diff: reachDiff, lowerBetter: false,
-                      fmt: fmtReach,
-                    },
-                    {
-                      label: 'CPM', sub: '1,000회 노출당',
-                      predicted: result.cpm, market: result.marketAvg.cpm,
-                      diff: result.marketAvg.cpmDiff, lowerBetter: true,
-                      fmt: (v: number) => `₩${v.toLocaleString()}`,
-                    },
-                    {
-                      label: 'CPC', sub: '클릭당 비용',
-                      predicted: result.cpc, market: result.marketAvg.cpc,
-                      diff: result.marketAvg.cpcDiff, lowerBetter: true,
-                      fmt: (v: number) => v > 0 ? `₩${v.toLocaleString()}` : '—',
-                    },
-                    {
-                      label: 'VTR', sub: '3초 영상 조회율',
-                      predicted: result.vtr, market: result.marketAvg.vtr,
-                      diff: result.marketAvg.vtrDiff, lowerBetter: false,
-                      fmt: (v: number) => v > 0 ? `${v.toFixed(2)}%` : '—',
-                    },
-                  ].map(({ label, sub, predicted, market, diff, lowerBetter, fmt }) => {
-                    const isBetter = lowerBetter ? diff < 0 : diff > 0;
-                    const isNeutral = Math.abs(diff) < 2;
-                    return (
-                      <div key={label} className="rounded-xl p-3.5 bg-gray-50">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <p className="text-xs font-semibold text-gray-500">{label}</p>
-                          {market > 0 && (
-                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
-                              isNeutral ? 'bg-gray-100 text-gray-500'
-                                : isBetter ? 'bg-emerald-50 text-emerald-600'
-                                : 'bg-red-50 text-red-500'
-                            }`}>
-                              {isNeutral ? '평균' : isBetter
-                                ? `▲ ${Math.abs(diff)}%`
-                                : `▼ ${Math.abs(diff)}%`}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-base font-extrabold text-[#111827] leading-tight num">{fmt(predicted)}</p>
-                        <p className="text-xs text-[#6B7280] mt-1">업종 평균 <span className="num">{fmt(market)}</span></p>
-                        <p className="text-[11px] text-gray-300 mt-0.5">{sub}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            );
-          })() : (
-            /* 업종 미선택 시 N/A */
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <div className="flex flex-col items-center justify-center w-24 h-24 rounded-full border-4 border-gray-100 bg-gray-50 mb-4">
-                <span className="text-3xl font-extrabold text-gray-300">-</span>
-                <span className="text-xs text-gray-300 font-semibold">점</span>
-              </div>
-              <p className="text-sm font-medium text-gray-500">업종을 선택하면 정확한 스코어가 산출됩니다</p>
-              <p className="text-xs text-gray-400 mt-1">업종 평균 CPM · CPC · VTR · 도달을 내 예측값과 비교합니다</p>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* 캠페인 최적화 가이드 — 경고/개선안이 있을 때만 표시 */}
       {result && (() => {
@@ -865,8 +758,27 @@ export default function SimulatorPage() {
       {/* KPI Cards */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-800">예측 결과</h2>
-          <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-gray-800">예측 결과</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{campaignDays}일 기준 · 업종 평균 비교</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {/* 배지: 시즌·포화·패널티 */}
+            {result && applySeasonBoost && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+                🌙 시즌 할증 반영
+              </span>
+            )}
+            {result?.saturationWarning && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 font-medium">
+                🚨 포화 구간
+              </span>
+            )}
+            {result?.qualityPenaltyPct !== undefined && result.qualityPenaltyPct > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium">
+                ⚠️ CPC 패널티 +{result.qualityPenaltyPct}%
+              </span>
+            )}
             <button
               onClick={exportToExcel}
               disabled={!result || loading || exporting}
@@ -883,7 +795,8 @@ export default function SimulatorPage() {
             </button>
           </div>
         </div>
-        {/* 기간 요약 문구 */}
+
+        {/* 기간 요약 */}
         {result && (
           <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700">
             선택하신 기간은 총 <strong>{campaignDays}일</strong>이며,
@@ -891,22 +804,75 @@ export default function SimulatorPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <KPICard title={`예상 도달 (${campaignDays}일)`} value={result ? totalReach.toLocaleString() : '—'}
-            change={null} icon="👥" loading={loading} />
-          <KPICard
-            title="예상 CPM"
-            value={result ? `₩${(applySeasonBoost ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
-            change={null} icon="📊" loading={loading} />
-          <KPICard title="CPC(전체)" value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
-            change={null} icon="🖱️" loading={loading} />
-          <KPICard title="CPC(링크)" value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
-            change={null} icon="🔗" loading={loading} />
-          <KPICard title="동영상 3초 조회당 비용" value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
-            change={null} icon="🎬" loading={loading} />
-          <KPICard title="VTR(3s)" value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
-            change={null} icon="▶️" loading={loading} />
-        </div>
+        {/* 업종 평균 계산 */}
+        {(() => {
+          const hasMarket = result?.marketAvg?.industrySelected === true;
+          const mktCpm  = result?.marketAvg?.cpm  ?? 0;
+          const mktCpc  = result?.marketAvg?.cpc  ?? 0;
+          const mktVtr  = result?.marketAvg?.vtr  ?? 0;
+          const mktReach = hasMarket && mktCpm > 0 && result!.cpm > 0
+            ? Math.round(totalReach * result!.cpm / mktCpm) : 0;
+          const fmtR = (v: number) =>
+            v >= 10000 ? `${(v / 10000).toFixed(1)}만명` : `${v.toLocaleString()}명`;
+          const reachDiff = hasMarket && mktReach > 0 && totalReach > 0
+            ? Math.round(((totalReach - mktReach) / mktReach) * 100 * 10) / 10 : null;
+
+          // 업종 평균 표시 문자열 헬퍼
+          // hasMarket=true + 값 있음 → 값, hasMarket=true + 값 없음 → '—', hasMarket=false → '-'
+          const mktLabel = (val: string | number, fmt?: (v: number) => string) => {
+            if (!hasMarket) return '-';
+            const n = typeof val === 'number' ? val : 0;
+            if (n <= 0) return '—';
+            return fmt ? fmt(n) : `₩${n.toLocaleString()}`;
+          };
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <KPICard
+                title={`예상 도달 (${campaignDays}일)`}
+                value={result ? fmtR(totalReach) : '—'}
+                icon="👥" loading={loading}
+                marketLabel={result ? mktLabel(mktReach, fmtR) : undefined}
+                diff={hasMarket ? reachDiff : null}
+                lowerBetter={false}
+              />
+              <KPICard
+                title="예상 CPM"
+                value={result ? `₩${(applySeasonBoost ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
+                icon="📊" loading={loading}
+                marketLabel={result ? mktLabel(mktCpm) : undefined}
+                diff={hasMarket ? (result?.marketAvg?.cpmDiff ?? null) : null}
+                lowerBetter={true}
+              />
+              <KPICard
+                title="CPC(전체)"
+                value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
+                icon="🖱️" loading={loading}
+                marketLabel={result ? mktLabel(mktCpc) : undefined}
+                diff={hasMarket ? (result?.marketAvg?.cpcDiff ?? null) : null}
+                lowerBetter={true}
+              />
+              <KPICard
+                title="CPC(링크)"
+                value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
+                icon="🔗" loading={loading}
+              />
+              <KPICard
+                title="동영상 3초 조회당 비용"
+                value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
+                icon="🎬" loading={loading}
+              />
+              <KPICard
+                title="VTR(3s)"
+                value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
+                icon="▶️" loading={loading}
+                marketLabel={result ? (hasMarket ? (mktVtr > 0 ? `${mktVtr.toFixed(2)}%` : '—') : '-') : undefined}
+                diff={hasMarket ? (result?.marketAvg?.vtrDiff ?? null) : null}
+                lowerBetter={false}
+              />
+            </div>
+          );
+        })()}
       </div>
 
       {/* Budget Range Chart */}
