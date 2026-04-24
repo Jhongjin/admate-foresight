@@ -450,6 +450,13 @@ export default function SimulatorPage() {
             endDate={endDate}
             onChange={(s, e) => { setStartDate(s); setEndDate(e); }}
           />
+          {isPeakSeason && (
+            <div className="flex items-center gap-1.5 -mt-1">
+              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-medium">
+                🌙 시즌 가중치 적용됨
+              </span>
+            </div>
+          )}
 
           <div className="border-t border-gray-50" />
 
@@ -593,7 +600,7 @@ export default function SimulatorPage() {
             <div className="flex gap-2 flex-wrap justify-end">
               {result.seasonalityMultiplier && result.seasonalityMultiplier > 1 && (
                 <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                  🌙 {result.seasonalityReason} · CPM {Math.round((result.seasonalityMultiplier - 1) * 100)}% 할증
+                  🌙 시즌 가중치 +{Math.round((result.seasonalityMultiplier - 1) * 100)}%
                 </span>
               )}
               {result.saturationWarning && (
@@ -724,11 +731,20 @@ export default function SimulatorPage() {
         </div>
       )}
 
-      {/* 캠페인 최적화 가이드 */}
-      {result && ((result.insights?.length ?? 0) > 0 || expansionPotential || scenarios.length > 0 || scenarioLoading) && (
+      {/* 캠페인 최적화 가이드 — 경고/개선안이 있을 때만 표시 */}
+      {result && (() => {
+        const hasCpmWarning = (result.marketAvg?.industrySelected ?? false)
+          && (result.marketAvg?.cpmDiff ?? 0) > 15;
+        const hasBudgetIssue = result.saturationWarning || result.frequency < 1.3;
+        const hasQualityPenalty = (result.qualityPenaltyPct ?? 0) > 0;
+        const hasExpansion = expansionPotential?.canExpand === true;
+        const hasGuide = hasCpmWarning || hasBudgetIssue || hasQualityPenalty
+          || hasExpansion || scenarioLoading || scenarios.length > 0;
+        if (!hasGuide) return null;
+        return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">캠페인 최적화 가이드</h2>
-          <p className="text-xs text-gray-400 mb-5">예측 데이터 기반 캠페인 최적화 인사이트</p>
+          <p className="text-xs text-gray-400 mb-5">예측 데이터 기반 개선 인사이트</p>
           <div className="space-y-4">
 
             {/* 0. AI 인사이트 3줄 */}
@@ -748,26 +764,16 @@ export default function SimulatorPage() {
             )}
 
             {/* B. 성과 확장 잠재력 */}
-            {expansionPotential && (
-              expansionPotential.canExpand ? (
-                <div className="rounded-xl p-4 border-l-4 border-emerald-400 bg-emerald-50">
-                  <p className="text-sm font-semibold text-gray-800 mb-1">🚀 성과 확장 잠재력</p>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    현재 빈도({expansionPotential.frequency.toFixed(1)}회)와 모수 도달률({Math.round(expansionPotential.reachRate * 100)}%)이 낮아
-                    {' '}<strong className="text-emerald-700">효율 저하 없이 확장이 가능합니다.</strong>{' '}
-                    예산을 20% 증액(+₩{(expansionPotential.additionalBudget ?? 0).toLocaleString()})하면
-                    약 <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()}명</strong>을 추가로 도달할 수 있습니다.
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-xl p-4 border-l-4 border-blue-400 bg-blue-50">
-                  <p className="text-sm font-semibold text-gray-800 mb-1">✅ 성과 확장 잠재력</p>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    현재 예산이 타겟 모수에 최적화되어 있습니다.
-                    {' '}(빈도 {expansionPotential.frequency.toFixed(1)}회 · 모수 도달률 {Math.round(expansionPotential.reachRate * 100)}%)
-                  </p>
-                </div>
-              )
+            {expansionPotential?.canExpand && (
+              <div className="rounded-xl p-4 border-l-4 border-emerald-400 bg-emerald-50">
+                <p className="text-sm font-semibold text-gray-800 mb-1">🚀 성과 확장 잠재력</p>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  현재 빈도({expansionPotential.frequency.toFixed(1)}회)와 모수 도달률({Math.round(expansionPotential.reachRate * 100)}%)이 낮아
+                  {' '}<strong className="text-emerald-700">효율 저하 없이 확장이 가능합니다.</strong>{' '}
+                  예산을 20% 증액(+₩{(expansionPotential.additionalBudget ?? 0).toLocaleString()})하면
+                  약 <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()}명</strong>을 추가로 도달할 수 있습니다.
+                </p>
+              </div>
             )}
 
             {/* C. 타겟 확장 시나리오 */}
@@ -842,7 +848,7 @@ export default function SimulatorPage() {
 
           </div>
         </div>
-      )}
+      );})()}
 
       {/* KPI Cards */}
       <div>
@@ -870,7 +876,6 @@ export default function SimulatorPage() {
           <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700">
             선택하신 기간은 총 <strong>{campaignDays}일</strong>이며,
             일 평균 <strong>₩{dailyBudget.toLocaleString()}</strong>의 예산이 투입될 예정입니다.
-            {isPeakSeason && <span className="ml-1 text-amber-600">（11~12월 성수기 CPM +15% 반영）</span>}
           </div>
         )}
 
@@ -878,7 +883,7 @@ export default function SimulatorPage() {
           <KPICard title={`예상 도달 (${campaignDays}일)`} value={result ? totalReach.toLocaleString() : '—'}
             change={null} icon="👥" loading={loading} />
           <KPICard
-            title={`예상 CPM${isPeakSeason ? ' (성수기 +15%)' : ''}`}
+            title="예상 CPM"
             value={result ? `₩${(isPeakSeason ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
             change={null} icon="📊" loading={loading} />
           <KPICard title="CPC(전체)" value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
