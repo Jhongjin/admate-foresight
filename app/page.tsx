@@ -452,6 +452,7 @@ export default function SimulatorPage() {
                 { label: '1개월',     days: 30 },
                 { label: '2개월',     days: 60 },
                 { label: '3개월',     days: 90 },
+                { label: '6개월',     days: 180 },
                 { label: '1년',       days: 365 },
               ].map(({ label, days }) => {
                 const active = days !== null ? campaignDays === days : campaignDays < 7;
@@ -472,16 +473,31 @@ export default function SimulatorPage() {
               })}
             </div>
 
-            {/* 슬라이더 */}
+            {/* 슬라이더 + 드래그 툴팁 */}
             <div className="px-1">
-              <input
-                type="range"
-                min={1}
-                max={365}
-                value={campaignDays}
-                onChange={(e) => setCampaignDays(Number(e.target.value))}
-                className="w-full accent-indigo-600 h-1.5 rounded-full cursor-pointer"
-              />
+              <div className="relative pt-7">
+                {/* 떠다니는 일수 배지 */}
+                <div
+                  className="absolute top-0 text-[11px] font-semibold text-white bg-indigo-600 rounded-md px-1.5 py-0.5 pointer-events-none select-none whitespace-nowrap shadow-sm"
+                  style={(() => {
+                    const pct = ((campaignDays - 1) / 364) * 100;
+                    return {
+                      left: `calc(${pct}% + ${(8 - pct * 0.16).toFixed(1)}px)`,
+                      transform: 'translateX(-50%)',
+                    };
+                  })()}
+                >
+                  {campaignDays}일
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={365}
+                  value={campaignDays}
+                  onChange={(e) => setCampaignDays(Number(e.target.value))}
+                  className="w-full accent-indigo-600 h-1.5 rounded-full cursor-pointer"
+                />
+              </div>
               <div className="flex justify-between text-[11px] text-gray-400 mt-1">
                 <span>1일</span>
                 <span>1개월</span>
