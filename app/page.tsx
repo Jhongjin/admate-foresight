@@ -6,7 +6,6 @@ import {
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import KPICard from '@/components/KPICard';
-import DateRangePicker, { calcCampaignDays, hasPeakMonth } from '@/components/DateRangePicker';
 import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 
@@ -113,18 +112,11 @@ export default function SimulatorPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
 
-  // 캠페인 기간 (날짜 범위)
-  const [startDate, setStartDate] = useState<Date>(() => {
-    const d = new Date(); d.setHours(0, 0, 0, 0); return d;
-  });
-  const [endDate, setEndDate] = useState<Date>(() => {
-    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 6); return d;
-  });
-  const campaignDays = calcCampaignDays(startDate, endDate);
-  const isPeakSeason = hasPeakMonth(startDate, endDate);
-  const PEAK_CPM_MULTIPLIER = 1.15;
-  const monthFrom = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
-  const monthTo = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}`;
+  // 캠페인 기간 (일수 단위)
+  const [campaignDays, setCampaignDays] = useState(7);
+  // 성수기/시즌 할증 수동 옵션
+  const [applySeasonBoost, setApplySeasonBoost] = useState(false);
+  const PEAK_CPM_MULTIPLIER = 1.3;
 
   // Multi-select state (empty = 전체)
   const [industries, setIndustries] = useState<string[]>([]);
@@ -197,9 +189,9 @@ export default function SimulatorPage() {
     if (!isCalculated) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget, monthFrom, monthTo });
+      fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
     }, 300);
-  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, monthFrom, monthTo, fetchPrediction]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, fetchPrediction]);
 
   useEffect(() => {
     if (!isCalculated) return;
@@ -216,13 +208,13 @@ export default function SimulatorPage() {
     setRangeData([]);
     setScenarios([]);
     setIsCalculated(true);
-    fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget, monthFrom, monthTo });
+    fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
     // 이미 계산된 상태(재시뮬레이션)이면 useEffect가 재실행되지 않으므로 직접 호출
     // 처음 계산 시에는 isCalculated 변화에 의해 useEffect가 fetchRange를 호출하므로 중복 방지
     if (wasCalculated) {
       fetchRange({ industries, genders, ageRanges, objectives, budget });
     }
-  }, [isCalculated, industries, genders, ageRanges, objectives, budget, monthlyBudget, monthFrom, monthTo, fetchPrediction, fetchRange]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, budget, monthlyBudget, fetchPrediction, fetchRange]);
 
   // 테이블 클릭 등 외부에서 budget 변경 시 input 동기화
   useEffect(() => {
@@ -311,7 +303,7 @@ export default function SimulatorPage() {
     ? '전체'
     : objectives.map((o) => OBJECTIVE_LABELS[o] ?? o).join(', ');
 
-  const durationLabel = `${startDate.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} ~ ${endDate.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })} (${campaignDays}일)`;
+  const durationLabel = `${campaignDays}일`;
 
   const tags = [
     { label: '총 예산', value: `₩${budget.toLocaleString()}` },
@@ -445,18 +437,81 @@ export default function SimulatorPage() {
           <div className="border-t border-gray-50" />
 
           {/* 2. 캠페인 기간 */}
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onChange={(s, e) => { setStartDate(s); setEndDate(e); }}
-          />
-          {isPeakSeason && (
-            <div className="flex items-center gap-1.5 -mt-1">
-              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 font-medium">
-                🌙 시즌 가중치 적용됨
-              </span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">캠페인 기간</label>
+              <span className="text-sm font-bold text-indigo-600">{campaignDays}일</span>
             </div>
-          )}
+
+            {/* 프리셋 버튼 */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: '1주일 이하', days: null },
+                { label: '1주일',     days: 7 },
+                { label: '2주일',     days: 14 },
+                { label: '1개월',     days: 30 },
+                { label: '2개월',     days: 60 },
+                { label: '3개월',     days: 90 },
+                { label: '1년',       days: 365 },
+              ].map(({ label, days }) => {
+                const active = days !== null ? campaignDays === days : campaignDays < 7;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => days !== null && setCampaignDays(days)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      active
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    } ${days === null ? 'cursor-default' : ''}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 슬라이더 */}
+            <div className="px-1">
+              <input
+                type="range"
+                min={1}
+                max={365}
+                value={campaignDays}
+                onChange={(e) => setCampaignDays(Number(e.target.value))}
+                className="w-full accent-indigo-600 h-1.5 rounded-full cursor-pointer"
+              />
+              <div className="flex justify-between text-[11px] text-gray-400 mt-1">
+                <span>1일</span>
+                <span>1개월</span>
+                <span>6개월</span>
+                <span>1년</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-50" />
+
+          {/* 성수기/시즌 할증 */}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2.5 cursor-pointer select-none group">
+              <div
+                onClick={() => setApplySeasonBoost((v) => !v)}
+                className={`relative w-9 h-5 rounded-full transition-colors ${applySeasonBoost ? 'bg-amber-500' : 'bg-gray-200'}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${applySeasonBoost ? 'translate-x-4' : ''}`} />
+              </div>
+              <span className="text-sm font-medium text-gray-700">성수기/시즌 할증 적용</span>
+            </label>
+            <div className="group relative">
+              <span className="w-4 h-4 rounded-full bg-gray-100 text-gray-400 text-[11px] flex items-center justify-center cursor-help border border-gray-200">?</span>
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-gray-800 text-white text-[11px] rounded-lg px-3 py-2 leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-10 shadow-lg">
+                연말(11–12월), 명절, 대규모 세일 기간 등 광고 경쟁이 치열한 시기라면 체크하세요.
+                <br />CPM에 약 1.3배 할증이 반영됩니다.
+              </div>
+            </div>
+          </div>
 
           <div className="border-t border-gray-50" />
 
@@ -598,9 +653,9 @@ export default function SimulatorPage() {
           <div className="flex items-start justify-between mb-1">
             <h2 className="text-base font-semibold text-gray-800">예측 SCORE</h2>
             <div className="flex gap-2 flex-wrap justify-end">
-              {result.seasonalityMultiplier && result.seasonalityMultiplier > 1 && (
+              {applySeasonBoost && (
                 <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                  🌙 시즌 가중치 +{Math.round((result.seasonalityMultiplier - 1) * 100)}%
+                  🌙 시즌 할증이 반영된 결과입니다
                 </span>
               )}
               {result.saturationWarning && (
@@ -863,7 +918,7 @@ export default function SimulatorPage() {
             change={null} icon="👥" loading={loading} />
           <KPICard
             title="예상 CPM"
-            value={result ? `₩${(isPeakSeason ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
+            value={result ? `₩${(applySeasonBoost ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
             change={null} icon="📊" loading={loading} />
           <KPICard title="CPC(전체)" value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
             change={null} icon="🖱️" loading={loading} />
