@@ -694,10 +694,9 @@ export default function SimulatorPage() {
               )}
             </div>
           </div>
-          <p className="text-xs text-gray-400 mb-5">업종 평균 대비 예측 성과 점수 · {campaignDays}일 기준</p>
+          <p className="text-xs text-gray-400 mb-5">업종 평균 대비 예측 지표 비교 · {campaignDays}일 기준</p>
 
           {result.marketAvg.industrySelected ? (() => {
-            // 도달 비교: 동일 예산 · 동일 빈도 기준, 업종 평균 CPM으로 산출한 도달
             const mktCpm = result.marketAvg.cpm;
             const mktReach = mktCpm > 0 && result.cpm > 0
               ? Math.round(totalReach * result.cpm / mktCpm)
@@ -710,38 +709,8 @@ export default function SimulatorPage() {
 
             return (
               <>
-                {/* 종합 점수 */}
-                <div className="flex items-center gap-5 mb-6">
-                  <div className="flex flex-col items-center justify-center w-24 h-24 rounded-full border-4 border-indigo-100 bg-indigo-50 shrink-0">
-                    <span className="text-3xl font-extrabold text-indigo-600">{result.marketAvg.score}</span>
-                    <span className="text-xs text-indigo-400 font-semibold">점</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          result.marketAvg.score >= 65 ? 'bg-emerald-500' : result.marketAvg.score >= 50 ? 'bg-amber-400' : 'bg-red-400'
-                        }`}
-                        style={{ width: `${result.marketAvg.score}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1.5">
-                      {result.marketAvg.score >= 80 ? '업종 최상위 효율 구간입니다.'
-                        : result.marketAvg.score >= 65 ? '업종 평균보다 우수한 효율입니다.'
-                        : result.marketAvg.score >= 50 ? '업종 평균 수준입니다.'
-                        : result.marketAvg.score >= 35 ? '일부 지표가 업종 평균보다 낮습니다.'
-                        : '주요 지표가 업종 평균을 하회합니다.'}
-                    </p>
-                    {result.qualityIndex !== undefined && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        품질 지수 <strong className={`font-semibold ${result.qualityIndex >= 60 ? 'text-emerald-600' : result.qualityIndex >= 40 ? 'text-amber-600' : 'text-red-500'}`}>{result.qualityIndex}점</strong>
-                      </p>
-                    )}
-                  </div>
-                </div>
-
                 {/* 지표 카드 2×2 */}
-                <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">주요 지표 — 내 예측 / 업종 평균</p>
+                <p className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">내 예측 / 업종 평균</p>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     {
