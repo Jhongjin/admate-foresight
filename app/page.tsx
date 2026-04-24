@@ -787,8 +787,8 @@ export default function SimulatorPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-base font-extrabold text-gray-900 leading-tight">{fmt(predicted)}</p>
-                        <p className="text-xs text-gray-400 mt-1">업종 평균 {fmt(market)}</p>
+                        <p className="text-base font-extrabold text-[#111827] leading-tight num">{fmt(predicted)}</p>
+                        <p className="text-xs text-[#6B7280] mt-1">업종 평균 <span className="num">{fmt(market)}</span></p>
                         <p className="text-[11px] text-gray-300 mt-0.5">{sub}</p>
                       </div>
                     );
