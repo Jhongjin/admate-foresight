@@ -498,11 +498,25 @@ export default function SimulatorPage() {
                   className="w-full accent-indigo-600 h-1.5 rounded-full cursor-pointer"
                 />
               </div>
-              <div className="flex justify-between text-[11px] text-gray-400 mt-1">
-                <span>1일</span>
-                <span>1개월</span>
-                <span>6개월</span>
-                <span>1년</span>
+              {/* 눈금 레이블 — thumb 공식과 동일한 위치에 절대 배치 */}
+              <div className="relative h-4 mt-1">
+                {([
+                  { label: '1일',   days: 1 },
+                  { label: '1개월', days: 30 },
+                  { label: '6개월', days: 180 },
+                  { label: '1년',   days: 365 },
+                ] as { label: string; days: number }[]).map(({ label, days }) => {
+                  const pct = ((days - 1) / 364) * 100;
+                  return (
+                    <span
+                      key={label}
+                      className="absolute text-[11px] text-gray-400 -translate-x-1/2"
+                      style={{ left: `calc(${pct}% + ${(8 - pct * 0.16).toFixed(1)}px)` }}
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>
