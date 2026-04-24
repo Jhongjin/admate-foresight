@@ -218,14 +218,18 @@ export default function SimulatorPage() {
 
   // 시뮬레이션 시작 핸들러 — 이전 결과 초기화 후 즉시 fetch
   const handleStartSimulation = useCallback(() => {
+    const wasCalculated = isCalculated;
     setResult(null);
     setRangeData([]);
     setScenarios([]);
     setIsCalculated(true);
-    // isCalculated가 이미 true였던 경우에도 재계산 되도록 직접 호출
     fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget, monthFrom, monthTo });
-    fetchRange({ industries, genders, ageRanges, objectives, budget });
-  }, [industries, genders, ageRanges, objectives, budget, monthlyBudget, monthFrom, monthTo, fetchPrediction, fetchRange]);
+    // 이미 계산된 상태(재시뮬레이션)이면 useEffect가 재실행되지 않으므로 직접 호출
+    // 처음 계산 시에는 isCalculated 변화에 의해 useEffect가 fetchRange를 호출하므로 중복 방지
+    if (wasCalculated) {
+      fetchRange({ industries, genders, ageRanges, objectives, budget });
+    }
+  }, [isCalculated, industries, genders, ageRanges, objectives, budget, monthlyBudget, monthFrom, monthTo, fetchPrediction, fetchRange]);
 
   // 테이블 클릭 등 외부에서 budget 변경 시 input 동기화
   useEffect(() => {

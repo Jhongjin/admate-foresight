@@ -274,10 +274,16 @@ function calcReachFromCsv(budget: number) {
   const totalReach = csvData.reduce((s, r) => s + r.도달, 0);
   const totalImp = csvData.reduce((s, r) => s + r.노출, 0);
   const totalClicks = csvData.reduce((s, r) => s + r.클릭, 0);
-  const cpm = totalImp > 0 ? csvData.reduce((s, r) => s + r.CPM * r.노출, 0) / totalImp : 0;
-  const cpc = totalClicks > 0 ? csvData.reduce((s, r) => s + r.CPC * r.클릭, 0) / totalClicks : 0;
-  const frequency = totalReach > 0 ? totalImp / totalReach : 1;
-  const linearReach = cpm > 0 ? (budget / cpm) * 1000 / frequency : 0;
+  const csvCpm = totalImp > 0 ? csvData.reduce((s, r) => s + r.CPM * r.노출, 0) / totalImp : 0;
+  const csvCpc = totalClicks > 0 ? csvData.reduce((s, r) => s + r.CPC * r.클릭, 0) / totalClicks : 0;
+  const csvFrequency = totalReach > 0 ? totalImp / totalReach : 0;
+
+  // CSV 없거나 값이 0이면 한국 Meta 광고 시장 평균값으로 대체
+  const cpm       = csvCpm       > 0 ? csvCpm       : 4_500;  // 한국 평균 CPM ≈ ₩4,500
+  const cpc       = csvCpc       > 0 ? csvCpc       : 350;    // 한국 평균 CPC ≈ ₩350
+  const frequency = csvFrequency > 0 ? csvFrequency : 1.5;    // 평균 빈도 ≈ 1.5회
+
+  const linearReach = (budget / cpm) * 1000 / frequency;
   const diminishingFactor = budget > 0 ? Math.pow(budget / REF_BUDGET, BETA - 1) : 1;
   return {
     reach: Math.round(linearReach * diminishingFactor),

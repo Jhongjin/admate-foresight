@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { predict } from '@/lib/predictor';
-import { ensureDataLoaded } from '@/lib/xlsxLoader';
+import { ensureDataLoaded, loadXlsxData } from '@/lib/xlsxLoader';
 
 // 기본 구간 (1억 이하)
 const BASE_LEVELS = [
@@ -39,6 +39,13 @@ function buildLevels(budget: number): number[] {
 export async function POST(req: NextRequest) {
   try {
     await ensureDataLoaded();
+
+    // 데이터 로딩 실패 시 1회 재시도
+    if (loadXlsxData().length === 0) {
+      console.warn('[predict-range] 데이터 로딩 실패, 재시도...');
+      await ensureDataLoaded();
+    }
+
     const body = await req.json();
     const {
       industries = [],
@@ -57,9 +64,12 @@ export async function POST(req: NextRequest) {
       return { budget, reach: r.reach, cpm: r.cpm, cpc: r.cpc };
     });
 
+    const dataLoaded = loadXlsxData().length > 0;
+    console.log(`[predict-range] 완료: ${results.length}구간, 데이터로딩=${dataLoaded}, 첫 reach=${results[0]?.reach}`);
+
     return NextResponse.json(results);
   } catch (err) {
-    console.error(err);
+    console.error('[predict-range] 오류:', err);
     return NextResponse.json({ error: 'Prediction failed' }, { status: 500 });
   }
 }
