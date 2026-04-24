@@ -728,8 +728,7 @@ export default function SimulatorPage() {
           const mktVtr     = result?.marketAvg?.vtr     ?? 0;
           const mktReach = hasMarket && mktCpm > 0 && result!.cpm > 0
             ? Math.round(totalReach * result!.cpm / mktCpm) : 0;
-          const fmtR = (v: number) =>
-            v >= 10000 ? `${(v / 10000).toFixed(1)}만명` : `${v.toLocaleString()}명`;
+          const fmtR = (v: number) => `${v.toLocaleString()} 명`;
           const reachDiff = hasMarket && mktReach > 0 && totalReach > 0
             ? Math.round(((totalReach - mktReach) / mktReach) * 100 * 10) / 10 : null;
           const mktLabel = (val: string | number, fmt?: (v: number) => string) => {
@@ -796,7 +795,7 @@ export default function SimulatorPage() {
                   <span className="text-lg">✅</span>
                   <p className="text-sm text-gray-700">
                     예산을 <strong>20% 늘리면</strong> 약{' '}
-                    <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()}명</strong>의 고객에게 추가로 도달할 수 있습니다.
+                    <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()} 명</strong>의 고객에게 추가로 도달할 수 있습니다.
                     {' '}<span className="text-gray-400 text-xs">(+₩{(expansionPotential.additionalBudget ?? 0).toLocaleString()})</span>
                   </p>
                 </div>
@@ -819,7 +818,7 @@ export default function SimulatorPage() {
                     <div className="flex items-center justify-between rounded-lg px-3 py-2.5 bg-indigo-50 border border-indigo-100">
                       <div>
                         <p className="text-xs font-semibold text-indigo-700">현재 타겟 기준</p>
-                        <p className="text-[11px] text-indigo-400 mt-0.5">CPM ₩{result.cpm.toLocaleString()} · 도달 {totalReach.toLocaleString()}명</p>
+                        <p className="text-[11px] text-indigo-400 mt-0.5">CPM ₩{result.cpm.toLocaleString()} · 도달 {totalReach.toLocaleString()} 명</p>
                       </div>
                       <span className="text-xs font-bold text-indigo-600 bg-white px-2 py-1 rounded border border-indigo-200">기준값</span>
                     </div>
@@ -834,7 +833,7 @@ export default function SimulatorPage() {
                           <div>
                             <p className="text-xs font-semibold text-gray-700">{s.label}</p>
                             <p className="text-[11px] text-gray-400 mt-0.5">
-                              CPM ₩{s.cpm.toLocaleString()} · 도달 {Math.round(s.reach * durationFactor).toLocaleString()}명
+                              CPM ₩{s.cpm.toLocaleString()} · 도달 {Math.round(s.reach * durationFactor).toLocaleString()} 명
                             </p>
                           </div>
                           <span className={`text-xs font-bold px-2 py-1 rounded border ${
@@ -879,7 +878,7 @@ export default function SimulatorPage() {
                 width={64}
               />
               <Tooltip
-                formatter={(v) => [Number(v).toLocaleString() + '명', '예상 도달']}
+                formatter={(v) => [Number(v).toLocaleString() + ' 명', '예상 도달']}
                 labelFormatter={(label) => `예산 ${label}`}
               />
               <ReferenceLine
@@ -924,12 +923,12 @@ export default function SimulatorPage() {
                       ₩{row.budget.toLocaleString()}
                     </td>
                     <td className={`py-2.5 pr-4 text-right ${isSelected ? 'text-indigo-700' : 'text-gray-700'}`}>
-                      {row.reach.toLocaleString()}명
+                      {row.reach.toLocaleString()} 명
                     </td>
-                    <td className="py-2.5 pr-4 text-right text-gray-700">{row.impressions.toLocaleString()}회</td>
-                    <td className="py-2.5 pr-4 text-right text-gray-700">{row.clicks.toLocaleString()}회</td>
+                    <td className="py-2.5 pr-4 text-right text-gray-700">{row.impressions.toLocaleString()} 회</td>
+                    <td className="py-2.5 pr-4 text-right text-gray-700">{row.clicks.toLocaleString()} 회</td>
                     <td className={`py-2.5 text-right font-mono ${isSelected ? 'text-indigo-700' : 'text-gray-700'}`}>
-                      {row.reachEfficiency.toLocaleString()}명
+                      {row.reachEfficiency.toLocaleString()} 명
                     </td>
                   </tr>
                 );
