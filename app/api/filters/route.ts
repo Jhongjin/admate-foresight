@@ -60,9 +60,17 @@ export async function GET() {
     const objectives = getObjectives();
     const months = getAvailableMonths();
 
+    // 진단 로그 — Vercel 함수 로그에서 확인 가능
+    console.log('[filters] csvIndustries:', csvIndustries.length, '| xlsxIndustries:', xlsxIndustries.length, '| total:', allIndustries.length);
+    if (xlsxIndustries.length > 0) {
+      console.log('[filters] 업종 목록:', xlsxIndustries.join(', '));
+    } else {
+      console.warn('[filters] ⚠️  Supabase 업종 데이터 없음 — xlsxIndustries 비어있음');
+    }
+
     return NextResponse.json({ industries: allIndustries, ageRanges, genders, objectives, months });
   } catch (err) {
-    console.error(err);
+    console.error('[filters] 오류:', err);
     return NextResponse.json({ error: 'Failed to load filters' }, { status: 500 });
   }
 }

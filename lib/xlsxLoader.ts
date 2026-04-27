@@ -198,8 +198,14 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
   ]);
   console.log(`[xlsxLoader] 로딩 완료 — monthly:${monthRows.length}행, demo:${demoRows.length}행`);
 
+  // 업종 정규화 헬퍼: DB에 raw 변형값이 저장된 경우에도 통일된 이름으로 반환
+  const normalizeIndustry = (raw: string | null | undefined): string => {
+    const v = (raw ?? '').trim();
+    return INDUSTRY_NORMALIZE[v] ?? v;
+  };
+
   const monthly: XlsxRecord[] = monthRows.map((r) => ({
-    업종: r.업종 ?? '', 목표: r.목표 ?? '', 최적화목표: r.최적화목표 ?? '',
+    업종: normalizeIndustry(r.업종), 목표: r.목표 ?? '', 최적화목표: r.최적화목표 ?? '',
     노출위치: r.노출위치 ?? '', 소재형태: r.소재형태 ?? '',
     성별: '', 연령: '', 날짜: r.날짜 ?? '',
     CPM: Number(r.avg_cpm) || 0, CPC: Number(r.avg_cpc) || 0,
@@ -210,7 +216,7 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
   }));
 
   const demo: XlsxRecord[] = demoRows.map((r) => ({
-    업종: r.업종 ?? '', 목표: r.목표 ?? '', 최적화목표: r.최적화목표 ?? '',
+    업종: normalizeIndustry(r.업종), 목표: r.목표 ?? '', 최적화목표: r.최적화목표 ?? '',
     노출위치: '', 소재형태: '',
     성별: r.성별 ?? '', 연령: r.연령 ?? '', 날짜: '',
     CPM: Number(r.avg_cpm) || 0, CPC: Number(r.avg_cpc) || 0,
