@@ -93,6 +93,19 @@ interface RangePoint {
   cpc: number;
 }
 
+interface MLResult {
+  cpm:        number;
+  ctr:        number;    // % 단위
+  cpc:        number;
+  reach:      number;
+  r2_cpm:     number;
+  r2_ctr:     number;
+  cv_r2:      number;
+  model_type: string;
+  trained_at: string;
+  n_samples:  number;
+}
+
 function formatBudget(v: number) {
   if (v >= 100_000_000) return `${v / 100_000_000}억`;
   return `${v / 10_000}만`;
@@ -137,6 +150,11 @@ export default function SimulatorPage() {
   const [scenarios, setScenarios] = useState<ScenarioResult[]>([]);
   const [scenarioLoading, setScenarioLoading] = useState(false);
 
+  // ── ML 예측 (Python FastAPI) ────────────────────────────
+  const [mlResult, setMlResult]   = useState<MLResult | null>(null);
+  const [mlLoading, setMlLoading] = useState(false);
+  const [mlError, setMlError]     = useState('');
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rangeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scenarioDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,6 +183,31 @@ export default function SimulatorPage() {
       setResult(await res.json());
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  }, []);
+
+  const fetchMlPrediction = useCallback(async (params: {
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; campaignDays: number;
+  }) => {
+    setMlLoading(true);
+    setMlError('');
+    try {
+      const res = await fetch('/api/py-predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          업종:  params.industries[0] ?? '',
+          목표:  params.objectives[0] ?? '',
+          성별:  params.genders[0]   ?? '',
+          연령:  params.ageRanges[0] ?? '',
+          예산:  params.budget,
+          기간:  params.campaignDays,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setMlError(data.error ?? 'ML 예측 실패'); setMlResult(null); return; }
+      setMlResult(data as MLResult);
+    } catch { setMlError('ML 서비스 연결 실패'); setMlResult(null); }
+    finally { setMlLoading(false); }
   }, []);
 
   const fetchRange = useCallback(async (params: {
@@ -200,6 +243,15 @@ export default function SimulatorPage() {
       fetchRange({ industries, genders, ageRanges, objectives, budget });
     }, 400);
   }, [isCalculated, industries, genders, ageRanges, objectives, budget, fetchRange]);
+
+  // ML 예측 (Python FastAPI) — 조건 변경 시 자동 갱신
+  useEffect(() => {
+    if (!isCalculated) return;
+    const t = setTimeout(() => {
+      fetchMlPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget, campaignDays });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, campaignDays, fetchMlPrediction]);
 
   // 시뮬레이션 시작 핸들러 — 이전 결과 초기화 후 즉시 fetch
   const handleStartSimulation = useCallback(() => {
@@ -771,6 +823,98 @@ export default function SimulatorPage() {
           );
         })()}
       </div>
+
+      {/* ── ML 예측 패널 (Python FastAPI) ──────────────────── */}
+      {isCalculated && (mlLoading || mlResult || mlError) && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
+          {/* 헤더 */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🤖</span>
+              <h2 className="text-sm font-semibold text-gray-800">ML 모델 예측</h2>
+              {mlResult && (
+                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                  mlResult.model_type === 'random_forest'
+                    ? 'bg-violet-50 text-violet-600'
+                    : 'bg-blue-50 text-blue-600'
+                }`}>
+                  {mlResult.model_type === 'random_forest' ? 'Random Forest' : 'Ridge Regression'}
+                </span>
+              )}
+            </div>
+            {mlResult && (
+              <span className="text-[11px] text-gray-400 num">
+                학습 샘플 {mlResult.n_samples.toLocaleString()}건 · CV R²={mlResult.cv_r2.toFixed(3)}
+              </span>
+            )}
+          </div>
+
+          {/* 로딩 */}
+          {mlLoading && (
+            <div className="flex items-center gap-2 py-2">
+              <div className="w-3.5 h-3.5 border-2 border-violet-200 border-t-violet-500 rounded-full animate-spin" />
+              <span className="text-xs text-violet-500">Python ML 모델 예측 중...</span>
+            </div>
+          )}
+
+          {/* 에러 */}
+          {!mlLoading && mlError && (
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">{mlError}</p>
+          )}
+
+          {/* ML 결과 카드 */}
+          {!mlLoading && mlResult && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'CPM', value: `₩${mlResult.cpm.toLocaleString()}`, r2: mlResult.r2_cpm, lowerBetter: true },
+                { label: 'CTR', value: `${mlResult.ctr.toFixed(2)}%`,       r2: mlResult.r2_ctr, lowerBetter: false },
+                { label: 'CPC', value: `₩${mlResult.cpc.toLocaleString()}`, r2: null, lowerBetter: true },
+                { label: '예상 도달', value: `${mlResult.reach.toLocaleString()}명`, r2: null, lowerBetter: false },
+              ].map(({ label, value, r2 }) => (
+                <div key={label} className="bg-gray-50 rounded-xl p-3 space-y-1">
+                  <p className="text-[11px] font-medium text-gray-500">{label}</p>
+                  <p className="text-base font-bold text-gray-900 num">{value}</p>
+                  {r2 != null && (
+                    <p className="text-[10px] text-gray-400 num">
+                      R²={r2.toFixed(3)}
+                      <span className={`ml-1.5 ${r2 >= 0.7 ? 'text-emerald-500' : r2 >= 0.5 ? 'text-amber-500' : 'text-red-400'}`}>
+                        {r2 >= 0.7 ? '●' : r2 >= 0.5 ? '◐' : '○'}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 모델 재학습 버튼 */}
+          {!mlLoading && (
+            <div className="flex items-center justify-end pt-1 border-t border-gray-50">
+              <button
+                type="button"
+                onClick={async () => {
+                  setMlLoading(true);
+                  try {
+                    const res = await fetch('/api/py-retrain', { method: 'POST' });
+                    const data = await res.json();
+                    if (res.ok) {
+                      alert(`✅ ${data.message}`);
+                      // 재학습 완료 후 ML 예측 갱신
+                      await fetchMlPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget, campaignDays });
+                    } else {
+                      alert(`❌ 재학습 실패: ${data.error}`);
+                    }
+                  } catch { alert('재학습 서비스 연결 실패'); }
+                  finally { setMlLoading(false); }
+                }}
+                className="text-[11px] text-gray-400 hover:text-violet-600 border border-gray-200 hover:border-violet-300 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                🔄 모델 재학습
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 캠페인 최적화 가이드 */}
       {result && (() => {

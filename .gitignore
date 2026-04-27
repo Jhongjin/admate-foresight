@@ -43,3 +43,4 @@ data/ad_data_cache.json
 
 # sensitive scripts (contains API tokens)
 scripts/meta_api_to_supabase.py
+python/models/
