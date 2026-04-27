@@ -1,17 +1,19 @@
 /**
  * Playwright 스크래핑 워커 (Next.js 번들링 우회용 독립 Node.js 스크립트)
- * 사용: node scripts/scrape_worker.js <URL> <limit>
+ * 사용: node scripts/scrape_worker.js <URL> <limit> [chromiumPath]
  * 결과: JSON을 stdout으로 출력
  */
 
 const { chromium } = require('playwright');
+const path = require('path');
+const fs   = require('fs');
 
-const url              = process.argv[2];
-const limit            = parseInt(process.argv[3] || '30');
-const preComputedPath  = process.argv[4] || '';   // route.ts가 미리 탐색한 chromium 경로
+const url             = process.argv[2];
+const limit           = parseInt(process.argv[3] || '30');
+const preComputedPath = process.argv[4] || '';
 
 if (!url) {
-  console.error(JSON.stringify({ error: 'URL 인수 없음' }));
+  process.stdout.write(JSON.stringify({ error: 'URL 인수 없음' }));
   process.exit(1);
 }
 
@@ -22,9 +24,9 @@ function decodeUnicode(str) {
 }
 
 function unescapeUrl(str) {
-  return str.replace(/\\\//g, '/').replace(/\\u([0-9a-fA-F]{4})/g, (_, code) =>
-    String.fromCharCode(parseInt(code, 16))
-  );
+  return str
+    .replace(/\\\//g, '/')
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, code) => String.fromCharCode(parseInt(code, 16)));
 }
 
 function extractAdsFromHtml(html, limit) {
@@ -55,12 +57,12 @@ function extractAdsFromHtml(html, limit) {
     const pageName = pageNameMatch ? decodeUnicode(pageNameMatch[1]) : '';
 
     const bodyObjMatch  = chunk.match(/"body":\{"text":"([^"]+)"/);
-    const cardBodyMatch = chunk.match(/"cards":\[.*?"body":"([^"]{5,}?)"/s);
+    const cardBodyMatch = chunk.match(/"cards":\[[\s\S]*?"body":"([^"]{5,}?)"/);
     const body = decodeUnicode(
       (bodyObjMatch?.[1] || cardBodyMatch?.[1] || '').replace(/\\n/g, ' ').replace(/\\t/g, ' ')
     );
 
-    const cardTitleMatch   = chunk.match(/"cards":\[.*?"title":"([^"]{3,}?)"/s);
+    const cardTitleMatch   = chunk.match(/"cards":\[[\s\S]*?"title":"([^"]{3,}?)"/);
     const simpleTitleMatch = chunk.match(/"title":"([^"]{3,2000})"/);
     const title = decodeUnicode(cardTitleMatch?.[1] || simpleTitleMatch?.[1] || '');
 
@@ -70,8 +72,8 @@ function extractAdsFromHtml(html, limit) {
     const ctaMatch = chunk.match(/"cta_text":"([^"]+)"/);
     const cta = decodeUnicode(ctaMatch?.[1] || '');
 
-    const imgMatch       = chunk.match(/"resized_image_url":"(https:\\\/\\\/[^"]+)"/);
-    const imgMatch2      = chunk.match(/"original_image_url":"(https:\\\/\\\/[^"]+)"/);
+    const imgMatch        = chunk.match(/"resized_image_url":"(https:\\\/\\\/[^"]+)"/);
+    const imgMatch2       = chunk.match(/"original_image_url":"(https:\\\/\\\/[^"]+)"/);
     const videoThumbMatch = chunk.match(/"video_preview_image_url":"(https:\\\/\\\/[^"]+)"/);
     const imageUrl = unescapeUrl(imgMatch?.[1] || imgMatch2?.[1] || videoThumbMatch?.[1] || '');
 
@@ -86,51 +88,74 @@ function extractAdsFromHtml(html, limit) {
     const snapshotUrl = `https://www.facebook.com/ads/library/?id=${archiveId}`;
 
     if (pageName || body) {
-      results.push({ id: archiveId, page_name: pageName, body, title, caption, cta,
-        snapshot_url: snapshotUrl, start_date: startDate, image_url: imageUrl, profile_image: profileImage });
+      results.push({
+        id: archiveId, page_name: pageName, body, title, caption, cta,
+        snapshot_url: snapshotUrl, start_date: startDate,
+        image_url: imageUrl, profile_image: profileImage,
+      });
     }
   }
   return results;
 }
 
-(async () => {
-  let browser;
-  try {
-    const path = require('path');
-    const fs   = require('fs');
+function findChromiumPath() {
+  // 1) 인수로 받은 경로 사용
+  if (preComputedPath && fs.existsSync(preComputedPath)) return preComputedPath;
 
-    // 1순위: route.ts가 미리 탐색해서 인수로 넘겨준 경로
-    let executablePath = preComputedPath || '';
+  // 2) ms-playwright 디렉토리 탐색 (Windows / macOS / Linux)
+  const bases = [
+    process.env.LOCALAPPDATA || '',                    // Windows
+    process.env.APPDATA || '',                         // Windows alt
+    path.join(process.env.HOME || '', '.cache'),       // Linux/macOS
+    path.join(process.env.HOME || '', 'Library', 'Caches'), // macOS
+  ].filter(Boolean);
 
-    // 2순위: LOCALAPPDATA 기반 디렉토리 스캔 (worker 자체 탐색)
-    if (!executablePath) {
-      const playwrightDir = path.join(process.env.LOCALAPPDATA || '', 'ms-playwright');
-      if (fs.existsSync(playwrightDir)) {
-        const dirs = fs.readdirSync(playwrightDir);
-        for (const dir of dirs) {
-          if (dir.startsWith('chromium_headless_shell')) {
-            const candidate = path.join(playwrightDir, dir, 'chrome-headless-shell-win64', 'chrome-headless-shell.exe');
-            if (fs.existsSync(candidate)) { executablePath = candidate; break; }
-          }
-        }
-        if (!executablePath) {
-          for (const dir of dirs) {
-            if (dir.startsWith('chromium-') && !dir.includes('headless')) {
-              const candidate = path.join(playwrightDir, dir, 'chrome-win64', 'chrome.exe');
-              if (fs.existsSync(candidate)) { executablePath = candidate; break; }
-            }
-          }
-        }
+  for (const base of bases) {
+    const playwrightDir = path.join(base, 'ms-playwright');
+    if (!fs.existsSync(playwrightDir)) continue;
+
+    const dirs = fs.readdirSync(playwrightDir);
+
+    // headless-shell 우선
+    for (const dir of dirs) {
+      if (!dir.startsWith('chromium_headless_shell')) continue;
+      for (const exe of [
+        path.join(playwrightDir, dir, 'chrome-headless-shell-win64', 'chrome-headless-shell.exe'),
+        path.join(playwrightDir, dir, 'chrome-headless-shell-linux', 'chrome-headless-shell'),
+        path.join(playwrightDir, dir, 'chrome-headless-shell-mac_arm', 'chrome-headless-shell'),
+        path.join(playwrightDir, dir, 'chrome-headless-shell-mac', 'chrome-headless-shell'),
+      ]) {
+        if (fs.existsSync(exe)) return exe;
       }
     }
 
-    // 3순위: playwright 자체 executablePath() (fs 검증 없이 사용)
-    if (!executablePath) {
-      try { executablePath = chromium.executablePath(); } catch (_) {}
+    // full chromium fallback
+    for (const dir of dirs) {
+      if (!dir.startsWith('chromium-') || dir.includes('headless')) continue;
+      for (const exe of [
+        path.join(playwrightDir, dir, 'chrome-win64', 'chrome.exe'),
+        path.join(playwrightDir, dir, 'chrome-linux', 'chrome'),
+        path.join(playwrightDir, dir, 'chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium'),
+        path.join(playwrightDir, dir, 'chrome-mac-arm64', 'Chromium.app', 'Contents', 'MacOS', 'Chromium'),
+      ]) {
+        if (fs.existsSync(exe)) return exe;
+      }
     }
+  }
 
+  // 3) playwright 내장 경로 (설치 시 자동 설정)
+  try { return chromium.executablePath(); } catch (_) { return ''; }
+}
+
+(async () => {
+  let browser;
+  try {
+    const executablePath = findChromiumPath();
     if (!executablePath) {
-      throw new Error('Playwright chromium 경로를 찾을 수 없습니다. LOCALAPPDATA=' + process.env.LOCALAPPDATA);
+      throw new Error(
+        'Playwright Chromium을 찾을 수 없습니다. "npx playwright install chromium"을 실행하세요.\n' +
+        'LOCALAPPDATA=' + (process.env.LOCALAPPDATA || '(없음)')
+      );
     }
 
     browser = await chromium.launch({
@@ -146,16 +171,15 @@ function extractAdsFromHtml(html, limit) {
     });
 
     const page = await context.newPage();
-    // 이미지·스타일시트·미디어 차단 → 페이지 로드 속도 향상 (URL은 HTML에 text로 포함되므로 문제 없음)
     await page.route('**/*.{woff,woff2,ttf,png,jpg,jpeg,gif,webp,svg,ico,css,mp4,mp3,wav}', (route) => route.abort());
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2000);
 
     for (let i = 0; i < 4; i++) {
       await page.evaluate(() => window.scrollBy(0, 1500));
       await page.waitForTimeout(500);
     }
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(1000);
 
     const html = await page.content();
     await browser.close();
@@ -164,7 +188,7 @@ function extractAdsFromHtml(html, limit) {
     process.stdout.write(JSON.stringify({ ads, total: ads.length }));
   } catch (err) {
     if (browser) await browser.close().catch(() => null);
-    process.stdout.write(JSON.stringify({ error: String(err.message) }));
+    process.stdout.write(JSON.stringify({ error: String(err.message || err) }));
     process.exit(1);
   }
 })();
