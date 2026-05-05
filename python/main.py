@@ -19,16 +19,16 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 from contextlib import asynccontextmanager
 from typing import Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 import model as m
-from data_loader import load_monthly_data
 
 # ── 환경변수 ──────────────────────────────────────────────────
 load_dotenv()
@@ -38,6 +38,29 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+INTERNAL_KEY_HEADER = "x-admate-internal-key"
+INTERNAL_KEY_ENV_NAMES = (
+    "ADMATE_INTERNAL_KEY",
+    "FORESIGHT_INTERNAL_KEY",
+    "INTERNAL_API_KEY",
+)
+
+
+def _get_internal_key() -> Optional[str]:
+    for name in INTERNAL_KEY_ENV_NAMES:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return None
+
+
+def _require_internal_key(provided: Optional[str]) -> None:
+    expected = _get_internal_key()
+    if not expected:
+        raise HTTPException(status_code=503, detail="Internal access is not configured.")
+    if not provided or not secrets.compare_digest(provided, expected):
+        raise HTTPException(status_code=403, detail="Forbidden")
 
 
 # ══════════════════════════════════════════════════════════════
@@ -49,6 +72,8 @@ async def lifespan(app: FastAPI):
     if not loaded:
         logger.info("[startup] 저장된 모델 없음 → Supabase 데이터로 초기 학습 시작")
         try:
+            from data_loader import load_monthly_data
+
             df = load_monthly_data()
             m.train(df)
             m.load_model()
@@ -155,20 +180,23 @@ def predict(req: PredictRequest):
             기간=req.기간,
         )
         return PredictResponse(**result)
-    except Exception as e:
+    except Exception:
         logger.exception("[predict] 예측 오류")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Prediction failed.")
 
 
 @app.post("/retrain", response_model=RetrainResponse, summary="모델 재학습")
-def retrain():
+def retrain(x_admate_internal_key: Optional[str] = Header(default=None)):
     """
     Supabase에서 최신 데이터를 다시 불러와 모델을 재학습합니다.
 
     - 학습 완료 후 **R-squared (R²)** 및 교차검증 점수 반환
     - 새 모델은 즉시 메모리에 적재되어 다음 예측에 사용
     """
+    _require_internal_key(x_admate_internal_key)
     try:
+        from data_loader import load_monthly_data
+
         logger.info("[retrain] 데이터 로딩 시작")
         df = load_monthly_data()
         meta = m.train(df)
@@ -177,9 +205,9 @@ def retrain():
             message=f"모델 갱신 완료 — {meta['n_samples']:,}개 샘플, R²(CPM)={meta['r2_cpm']:.4f}",
             **meta,
         )
-    except Exception as e:
+    except Exception:
         logger.exception("[retrain] 재학습 오류")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Model retrain failed.")
 
 
 @app.get("/model-info", response_model=ModelInfoResponse, summary="현재 모델 정보")

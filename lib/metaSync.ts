@@ -11,6 +11,7 @@
  */
 
 import { extractIndustry } from './xlsxLoader';
+import { maskIdentifier, sanitizeError } from './security';
 
 const GRAPH_API = 'https://graph.facebook.com/v21.0';
 
@@ -75,7 +76,7 @@ async function fetchPages<T>(url: string): Promise<T[]> {
 
     // 응답 구조 디버그 로그 (서버 콘솔에서 확인)
     if (!res.ok || json.error) {
-      console.error('[metaSync] API 오류:', JSON.stringify(json.error ?? json));
+      console.error('[metaSync] API error:', sanitizeError(JSON.stringify(json.error ?? json)));
       throw new Error(json.error?.message ?? `HTTP ${res.status}`);
     }
 
@@ -206,8 +207,8 @@ async function syncOneAccount(accountId: string, accessToken: string, datePreset
         노출위치: buildPlacement(r.publisher_platform, r.platform_position, r.impression_device),
       }));
     }
-    console.log(`[metaSync] ${accountId} 노출위치 ${data.length}건`);
-  } catch (e) { errors.push(`${accountId} 노출위치 fetch 실패: ${e}`); }
+    console.log(`[metaSync] ${maskIdentifier(accountId)} 노출위치 ${data.length}건`);
+  } catch (e) { errors.push(`${maskIdentifier(accountId)} 노출위치 fetch 실패: ${sanitizeError(e)}`); }
 
   // 2) 성별/연령 breakdown
   try {
@@ -217,8 +218,8 @@ async function syncOneAccount(accountId: string, accessToken: string, datePreset
     for (const r of data) {
       rows.push(toRow(r, { 성별: r.gender ?? '', 연령: r.age ?? '' }));
     }
-    console.log(`[metaSync] ${accountId} 성별/연령 ${data.length}건`);
-  } catch (e) { errors.push(`${accountId} 성별/연령 fetch 실패: ${e}`); }
+    console.log(`[metaSync] ${maskIdentifier(accountId)} 성별/연령 ${data.length}건`);
+  } catch (e) { errors.push(`${maskIdentifier(accountId)} 성별/연령 fetch 실패: ${sanitizeError(e)}`); }
 
   // 3) 소재형태
   try {
@@ -235,7 +236,7 @@ async function syncOneAccount(accountId: string, accessToken: string, datePreset
     for (const row of rows) {
       if (!row.소재형태) row.소재형태 = fmtMap.get(row.캠페인이름) ?? '';
     }
-  } catch (e) { errors.push(`${accountId} 소재형태 fetch 실패 (fallback 빈값): ${e}`); }
+  } catch (e) { errors.push(`${maskIdentifier(accountId)} 소재형태 fetch 실패 (fallback 빈값): ${sanitizeError(e)}`); }
 
   return { rows, errors };
 }
@@ -249,9 +250,9 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
     const id = opts.adAccountId.startsWith('act_') ? opts.adAccountId : `act_${opts.adAccountId}`;
     accountIds = [id];
   } else if (opts.businessId) {
-    console.log(`[metaSync] 비즈니스 ${opts.businessId} 하위 계정 조회 중...`);
+    console.log(`[metaSync] 비즈니스 ${maskIdentifier(opts.businessId)} 하위 계정 조회 중...`);
     accountIds = await fetchAdAccounts(opts.businessId, accessToken);
-    console.log(`[metaSync] 광고계정 ${accountIds.length}개 발견:`, accountIds);
+    console.log(`[metaSync] 광고계정 ${accountIds.length}개 발견`);
   } else {
     return { inserted: 0, errors: ['adAccountId 또는 businessId 필요'], accounts: 0 };
   }
@@ -265,11 +266,11 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
 
   // 계정별 순차 동기화
   for (const accountId of accountIds) {
-    console.log(`[metaSync] 계정 동기화 시작: ${accountId}`);
+    console.log(`[metaSync] 계정 동기화 시작: ${maskIdentifier(accountId)}`);
     const { rows, errors } = await syncOneAccount(accountId, accessToken, datePreset, since, until);
     allRows.push(...rows);
     allErrors.push(...errors);
-    console.log(`[metaSync] 계정 ${accountId} 완료: ${rows.length}행`);
+    console.log(`[metaSync] 계정 ${maskIdentifier(accountId)} 완료: ${rows.length}행`);
   }
 
   if (allRows.length === 0) {

@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
+import { blockProductionDebugRoute, sanitizeError } from '@/lib/security';
 import { ensureDataLoaded, loadXlsxData, loadDemoData } from '@/lib/xlsxLoader';
 
 export async function GET() {
+  const blocked = blockProductionDebugRoute();
+  if (blocked) return blocked;
+
   try {
     await ensureDataLoaded();
     const monthly = loadXlsxData();
     const demo    = loadDemoData();
-
-    const sample = monthly[0] ?? null;
 
     // 업종 분포 (상위 30개)
     const industryCount: Record<string, number> = {};
@@ -34,9 +36,9 @@ export async function GET() {
       industry_unique:  Object.keys(industryCount).length,
       top_industries:   topIndustries,
       objective_dist:   objectiveCount,
-      sample_row:       sample,
     });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    console.error('[debug-data] failed:', sanitizeError(err));
+    return NextResponse.json({ error: 'Failed to load debug data' }, { status: 500 });
   }
 }

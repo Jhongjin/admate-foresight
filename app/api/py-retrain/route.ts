@@ -1,4 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  getConfiguredInternalKey,
+  INTERNAL_KEY_HEADER,
+  requireInternalKey,
+  sanitizeError,
+} from '@/lib/security';
 
 /**
  * POST /api/py-retrain
@@ -17,20 +23,27 @@ import { NextResponse } from 'next/server';
  *     trained_at: "2025-04-27T10:23:45Z"
  *   }
  */
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const blocked = requireInternalKey(req);
+  if (blocked) return blocked;
+
   const PY_API = process.env.PYTHON_API_URL;
 
   if (!PY_API) {
     return NextResponse.json(
-      { error: 'PYTHON_API_URL 환경변수를 설정하세요.' },
+      { error: 'ML service is not configured.' },
       { status: 503 },
     );
   }
 
   try {
+    const internalKey = getConfiguredInternalKey();
     const res = await fetch(`${PY_API}/retrain`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(internalKey ? { [INTERNAL_KEY_HEADER]: internalKey } : {}),
+      },
       signal:  AbortSignal.timeout(120_000), // 재학습은 최대 2분
     });
 
@@ -38,15 +51,16 @@ export async function POST() {
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: data.detail ?? '재학습 실패' },
+        { error: 'Model retrain failed.' },
         { status: res.status },
       );
     }
 
     return NextResponse.json(data);
   } catch (err) {
+    console.error('[py-retrain] failed:', sanitizeError(err));
     return NextResponse.json(
-      { error: 'ML 서비스 연결 실패', detail: String(err) },
+      { error: 'ML service request failed.' },
       { status: 503 },
     );
   }
