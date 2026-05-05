@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { sanitizeError } from '@/lib/security';
 
 const BASE = 'https://adstransparency.google.com/anji/_/rpc';
 const HEADERS = {
@@ -40,6 +42,7 @@ async function searchAdvertisers(keyword: string, limit = 5): Promise<{ id: stri
   const res = await fetch(`${BASE}/SearchService/SearchSuggestions?authuser=`, {
     method: 'POST', headers: HEADERS, body,
   });
+  if (!res.ok) throw new Error(`SearchSuggestions HTTP ${res.status}`);
   const data = await res.json();
   const items = data['1'] ?? [];
   return items.map((item: Record<string, Record<string, string>>) => ({
@@ -70,6 +73,7 @@ async function searchCreatives(advertiserIds: string[], limit = 12): Promise<{
   const res = await fetch(`${BASE}/SearchService/SearchCreatives?authuser=`, {
     method: 'POST', headers: HEADERS, body,
   });
+  if (!res.ok) throw new Error(`SearchCreatives HTTP ${res.status}`);
   const data = await res.json();
   const items: Record<string, unknown>[] = data['1'] ?? [];
 
@@ -119,6 +123,13 @@ async function searchCreatives(advertiserIds: string[], limit = 12): Promise<{
 }
 
 export async function GET(req: NextRequest) {
+  const limited = checkRateLimit(req, {
+    key: 'google-ads',
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   const { searchParams } = new URL(req.url);
   const industry = searchParams.get('industry') ?? '';
   const keyword  = searchParams.get('keyword')  ?? '';
@@ -152,7 +163,7 @@ export async function GET(req: NextRequest) {
       total: ads.length,
     });
   } catch (err) {
-    console.error('[google-ads]', err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    console.error('[google-ads] request failed:', sanitizeError(err));
+    return NextResponse.json({ error: 'External ads lookup failed.' }, { status: 502 });
   }
 }

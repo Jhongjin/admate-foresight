@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { checkRateLimit } from '@/lib/rateLimit';
+import { isProductionRuntime, requireInternalKey, sanitizeError } from '@/lib/security';
 
 // Vercel serverless 환경 timeout (Pro 300s, Hobby 60s)
 export const maxDuration = 60;
@@ -229,9 +231,9 @@ async function scrapeOnVercel(url: string, limit: number): Promise<AdResult[]> {
     try {
       execPath = await ChromiumClass.executablePath();
       if (!execPath) throw new Error('empty path');
-      console.log(`[meta-ads-scrape] Vercel: local execPath = ${String(execPath).slice(0, 80)}`);
+      console.log('[meta-ads-scrape] Vercel: local chromium executable resolved');
     } catch {
-      console.log(`[meta-ads-scrape] Vercel: downloading chromium from ${CHROMIUM_REMOTE_URL.slice(0, 60)}...`);
+      console.log('[meta-ads-scrape] Vercel: downloading chromium package...');
       execPath = await ChromiumClass.executablePath(CHROMIUM_REMOTE_URL);
       console.log(`[meta-ads-scrape] Vercel: downloaded in ${Date.now() - t0}ms`);
     }
@@ -325,11 +327,10 @@ async function scrapeLocal(url: string, limit: number): Promise<AdResult[]> {
   }
 
   const chromiumPath = findChromiumPath();
-  console.log('[meta-ads-scrape] local chromium:', chromiumPath || '(default)');
+  console.log('[meta-ads-scrape] local chromium:', chromiumPath ? 'custom' : 'default');
 
   return new Promise((resolve, reject) => {
     let stdout = '';
-    let stderr = '';
     const workerArgs = [workerPath, url, String(limit * 4)];
     if (chromiumPath) workerArgs.push(chromiumPath);
 
@@ -339,16 +340,14 @@ async function scrapeLocal(url: string, limit: number): Promise<AdResult[]> {
       env: { ...process.env },
     });
     child.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
-    child.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
+    child.stderr.on('data', () => null);
     child.on('close', (code: number) => {
       try {
         const parsed = JSON.parse(stdout);
         if (parsed.error) return reject(new Error(parsed.error));
         resolve(parsed.ads || []);
       } catch {
-        reject(new Error(
-          `scrape_worker exit=${code} stderr=${stderr.substring(0, 400)} stdout=${stdout.substring(0, 200)}`
-        ));
+        reject(new Error(`scrape_worker failed exit=${code}`));
       }
     });
     child.on('error', reject);
@@ -359,6 +358,13 @@ async function scrapeLocal(url: string, limit: number): Promise<AdResult[]> {
 // 5. GET 핸들러 — Meta API 우선, Playwright 폴백
 // ══════════════════════════════════════════════════════════════
 export async function GET(req: NextRequest) {
+  const limited = checkRateLimit(req, {
+    key: 'meta-ads-scrape',
+    limit: 5,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   const { searchParams } = new URL(req.url);
   const industry = searchParams.get('industry') || '';
   const kw       = searchParams.get('keyword')  || '';
@@ -368,7 +374,12 @@ export async function GET(req: NextRequest) {
   const searchKeyword  = kw || INDUSTRY_KEYWORDS[industry] || industry || '브랜드';
   const libraryUrl     = `https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(searchKeyword)}&search_type=keyword_unordered`;
 
-  console.log(`[meta-ads-scrape] industry="${industry}" kw="${kw}" → keyword="${searchKeyword}" env=Vercel:${isVercel}`);
+  console.log('[meta-ads-scrape] requested:', {
+    hasIndustry: !!industry,
+    hasKeyword:  !!kw,
+    limit,
+    env: isVercel ? 'vercel' : 'local',
+  });
 
   let rawAds: AdResult[] = [];
   let method = '';
@@ -379,8 +390,15 @@ export async function GET(req: NextRequest) {
     method = 'meta_api';
     console.log(`[meta-ads-scrape] Meta API 성공 — ${rawAds.length}건`);
   } catch (apiErr) {
-    const apiErrStr = String(apiErr);
-    console.warn('[meta-ads-scrape] Meta API 실패, Playwright 폴백:', apiErrStr.slice(0, 200));
+    console.warn('[meta-ads-scrape] Meta API failed:', sanitizeError(apiErr, 160));
+
+    if (isProductionRuntime()) {
+      const blocked = requireInternalKey(req);
+      if (blocked) {
+        console.warn('[meta-ads-scrape] Playwright fallback blocked for public production request');
+        return blocked;
+      }
+    }
 
     // ── 2순위: Playwright 스크래핑 ──
     try {
@@ -390,17 +408,10 @@ export async function GET(req: NextRequest) {
       method = 'playwright';
       console.log(`[meta-ads-scrape] Playwright 성공 — ${rawAds.length}건`);
     } catch (scrapeErr) {
-      const scrapeErrStr = String(scrapeErr);
-      console.error('[meta-ads-scrape] Playwright도 실패:', scrapeErrStr.slice(0, 300));
+      console.error('[meta-ads-scrape] Playwright failed:', sanitizeError(scrapeErr));
 
       return NextResponse.json(
-        {
-          error: '광고 소재를 불러오지 못했습니다.',
-          detail_api: apiErrStr.includes('META_ACCESS_TOKEN') ? 'META_ACCESS_TOKEN 환경변수 없음' : apiErrStr.slice(0, 200),
-          detail_scrape: scrapeErrStr.slice(0, 200),
-          tip: 'Vercel 환경변수에 META_ACCESS_TOKEN을 설정하면 스크래핑 없이 바로 작동합니다.',
-          env: isVercel ? 'vercel' : 'local',
-        },
+        { error: 'External ads lookup failed.' },
         { status: 500 }
       );
     }
@@ -426,7 +437,6 @@ export async function GET(req: NextRequest) {
     ads,
     industry,
     searchTerm: searchKeyword,
-    url: libraryUrl,
     total: ads.length,
     method,
   });
