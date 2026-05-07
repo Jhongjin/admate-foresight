@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "benchmark:dry-run": "node --experimental-strip-types scripts/benchmark-dry-run.mjs",
     "start": "next start",
     "lint": "eslint"
   },
