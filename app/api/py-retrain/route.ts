@@ -6,6 +6,41 @@ import {
   sanitizeError,
 } from '@/lib/security';
 
+const NO_STORE_HEADERS = {
+  'Cache-Control': 'no-store',
+};
+
+const OPERATION = 'py_retrain';
+
+interface PyRetrainRequestBody {
+  operation?: string;
+  dryRun?: boolean;
+  execute?: boolean;
+  reason?: string;
+}
+
+function jsonResponse(body: Record<string, unknown>, status = 200): NextResponse {
+  return NextResponse.json(body, {
+    status,
+    headers: NO_STORE_HEADERS,
+  });
+}
+
+function withNoStore(res: NextResponse): NextResponse {
+  res.headers.set('Cache-Control', 'no-store');
+  return res;
+}
+
+function isEnabled(name: string): boolean {
+  return process.env[name] === 'true';
+}
+
+function cleanString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 /**
  * POST /api/py-retrain
  *
@@ -25,15 +60,39 @@ import {
  */
 export async function POST(req: NextRequest) {
   const blocked = requireInternalKey(req);
-  if (blocked) return blocked;
+  if (blocked) return withNoStore(blocked);
+
+  const body = await req.json().catch(() => ({})) as PyRetrainRequestBody;
+  const operation = cleanString(body.operation) ?? OPERATION;
+  if (operation !== OPERATION) {
+    return jsonResponse({ error: 'Invalid operation.' }, 400);
+  }
+
+  const dryRun = body.dryRun !== false;
+  if (dryRun) {
+    return jsonResponse({
+      status: 'dry_run',
+      operation: OPERATION,
+      dryRun: true,
+      executionEnabled: false,
+      wouldCallPythonRetrain: false,
+      wouldMutateModelArtifact: false,
+    });
+  }
+
+  const reason = cleanString(body.reason);
+  if (body.execute !== true || !reason) {
+    return jsonResponse({ error: 'Execution requires explicit approval.' }, 403);
+  }
+
+  if (!isEnabled('FORESIGHT_RETRAIN_EXECUTE_ENABLED')) {
+    return jsonResponse({ error: 'Model retrain execution is disabled.' }, 403);
+  }
 
   const PY_API = process.env.PYTHON_API_URL;
 
   if (!PY_API) {
-    return NextResponse.json(
-      { error: 'ML service is not configured.' },
-      { status: 503 },
-    );
+    return jsonResponse({ error: 'ML service is not configured.' }, 503);
   }
 
   try {
@@ -50,18 +109,17 @@ export async function POST(req: NextRequest) {
     const data = await res.json();
 
     if (!res.ok) {
-      return NextResponse.json(
-        { error: 'Model retrain failed.' },
-        { status: res.status },
-      );
+      return jsonResponse({ error: 'Model retrain failed.' }, res.status);
     }
 
-    return NextResponse.json(data);
+    return jsonResponse({
+      status: 'execution_completed',
+      operation: OPERATION,
+      modelType: data?.model_type ?? 'unknown',
+      sampleCount: data?.n_samples ?? null,
+    });
   } catch (err) {
     console.error('[py-retrain] failed:', sanitizeError(err));
-    return NextResponse.json(
-      { error: 'ML service request failed.' },
-      { status: 503 },
-    );
+    return jsonResponse({ error: 'ML service request failed.' }, 503);
   }
 }
