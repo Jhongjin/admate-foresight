@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 
 /**
  * POST /api/py-predict
@@ -13,6 +14,9 @@ import { NextRequest, NextResponse } from 'next/server';
  *   { cpm, ctr, cpc, reach, r2_cpm, r2_ctr, cv_r2, model_type, trained_at, n_samples }
  */
 export async function POST(req: NextRequest) {
+  const authResponse = await requireForesightApiSession();
+  if (authResponse) return authResponse;
+
   const PY_API = process.env.PYTHON_API_URL;
 
   if (!PY_API) {

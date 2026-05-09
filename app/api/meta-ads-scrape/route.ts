@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { isProductionRuntime, requireInternalKey, sanitizeError } from '@/lib/security';
 
@@ -358,6 +359,9 @@ async function scrapeLocal(url: string, limit: number): Promise<AdResult[]> {
 // 5. GET 핸들러 — Meta API 우선, Playwright 폴백
 // ══════════════════════════════════════════════════════════════
 export async function GET(req: NextRequest) {
+  const authResponse = await requireForesightApiSession();
+  if (authResponse) return authResponse;
+
   const limited = checkRateLimit(req, {
     key: 'meta-ads-scrape',
     limit: 5,

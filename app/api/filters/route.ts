@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { getIndustries, getAgeRanges } from '@/lib/csvLoader';
 import { getObjectives, getXlsxIndustries, getAvailableMonths, ensureDataLoaded } from '@/lib/xlsxLoader';
 
@@ -50,6 +51,9 @@ function sortIndustries(industries: string[]): string[] {
 }
 
 export async function GET() {
+  const authResponse = await requireForesightApiSession();
+  if (authResponse) return authResponse;
+
   try {
     await ensureDataLoaded();
     const csvIndustries = getIndustries();

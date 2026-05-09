@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { sanitizeError } from '@/lib/security';
 
@@ -123,6 +124,9 @@ async function searchCreatives(advertiserIds: string[], limit = 12): Promise<{
 }
 
 export async function GET(req: NextRequest) {
+  const authResponse = await requireForesightApiSession();
+  if (authResponse) return authResponse;
+
   const limited = checkRateLimit(req, {
     key: 'google-ads',
     limit: 20,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { predict } from '@/lib/predictor';
 import { ensureDataLoaded, loadXlsxData } from '@/lib/xlsxLoader';
 
@@ -37,6 +38,9 @@ function buildLevels(budget: number): number[] {
 }
 
 export async function POST(req: NextRequest) {
+  const authResponse = await requireForesightApiSession();
+  if (authResponse) return authResponse;
+
   try {
     await ensureDataLoaded();
 
