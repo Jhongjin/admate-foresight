@@ -1,3 +1,5 @@
+import { isProductionRuntime } from '@/lib/security';
+
 export const FORESIGHT_ACCESS_REQUEST_URL =
   'https://home.admate.ai.kr/access-request?product=foresight';
 
@@ -7,9 +9,12 @@ export const FORESIGHT_ACCESS_REQUEST_FALLBACK_URL =
 export const FORESIGHT_RESET_PASSWORD_URL =
   'https://sentinel.admate.ai.kr/reset-password';
 
+export const FORESIGHT_PRODUCT_ID = 'foresight';
+
 const FORESIGHT_NEXT_ORIGIN = 'https://foresight.admate.ai.kr';
 const DEFAULT_NEXT_PATH = '/';
 const MAX_NEXT_LENGTH = 512;
+const CORE_PRODUCT_START_PATH = '/auth/product/start';
 
 const ALLOWED_NEXT_PATHS = new Set([
   '/',
@@ -74,6 +79,37 @@ export function sanitizeForesightNextPath(raw: unknown): string {
 export function buildForesightLoginPath(rawNext: unknown): string {
   const next = sanitizeForesightNextPath(rawNext);
   return `/login?next=${encodeURIComponent(next)}`;
+}
+
+export function isForesightHandoffEnabled(): boolean {
+  return process.env.FORESIGHT_AUTH_HANDOFF_ENABLED === 'true';
+}
+
+export function getAdMateCoreBaseUrl(): URL | null {
+  const raw = process.env.ADMATE_CORE_BASE_URL?.trim();
+  if (!raw) return null;
+
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    if (isProductionRuntime() && url.protocol !== 'https:') return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+export function buildForesightCoreStartUrl(rawNext: unknown): string | null {
+  if (!isForesightHandoffEnabled()) return null;
+
+  const coreBaseUrl = getAdMateCoreBaseUrl();
+  if (!coreBaseUrl) return null;
+
+  const next = sanitizeForesightNextPath(rawNext);
+  const url = new URL(CORE_PRODUCT_START_PATH, coreBaseUrl);
+  url.searchParams.set('product', FORESIGHT_PRODUCT_ID);
+  url.searchParams.set('next', next);
+  return url.toString();
 }
 
 export function getForesightAuthRequiredResponse() {

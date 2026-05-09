@@ -1,7 +1,7 @@
 import { requireForesightPageSession } from '@/lib/auth/foresightPageGuard';
 import InsightsPage from './InsightsPageClient';
 
-export default function Page() {
-  requireForesightPageSession('/insights');
+export default async function Page() {
+  await requireForesightPageSession('/insights');
   return <InsightsPage />;
 }

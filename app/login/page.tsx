@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import {
+  buildForesightCoreStartUrl,
   FORESIGHT_ACCESS_REQUEST_URL,
   sanitizeForesightNextPath,
 } from '@/lib/auth/foresightAuth';
+import { isForesightHandoffConfigured } from '@/lib/auth/foresightSession';
 
 export const metadata: Metadata = {
   title: 'AdMate Foresight 로그인',
@@ -17,6 +19,10 @@ interface LoginPageProps {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const nextPath = sanitizeForesightNextPath(params?.next);
+  const coreStartUrl = isForesightHandoffConfigured()
+    ? buildForesightCoreStartUrl(nextPath)
+    : null;
+  const handoffStatus = Array.isArray(params?.handoff) ? params?.handoff[0] : params?.handoff;
 
   return (
     <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center py-10">
@@ -32,16 +38,42 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         <div className="space-y-3">
-          <button
-            type="button"
-            disabled
-            className="flex w-full cursor-not-allowed items-center justify-center rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white opacity-60"
-          >
-            AdMate 계정으로 계속
-          </button>
+          {coreStartUrl ? (
+            <a
+              href={coreStartUrl}
+              className="flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-800"
+            >
+              AdMate 계정으로 계속
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="flex w-full cursor-not-allowed items-center justify-center rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white opacity-60"
+            >
+              AdMate 계정으로 계속
+            </button>
+          )}
           <p className="text-xs leading-5 text-gray-500">
-            로그인 연결이 준비되면 현재 보려던 Foresight 화면으로 돌아갑니다.
+            {coreStartUrl
+              ? 'AdMate 로그인 후 현재 보려던 Foresight 화면으로 돌아갑니다.'
+              : '로그인 연결이 아직 준비되지 않았습니다.'}
           </p>
+          {handoffStatus === 'expired' ? (
+            <p className="text-xs leading-5 text-red-600">
+              로그인 확인이 만료되었습니다. 다시 로그인해 주세요.
+            </p>
+          ) : null}
+          {handoffStatus === 'invalid' ? (
+            <p className="text-xs leading-5 text-red-600">
+              로그인 연결을 완료할 수 없습니다. 다시 시도해 주세요.
+            </p>
+          ) : null}
+          {handoffStatus === 'disabled' ? (
+            <p className="text-xs leading-5 text-red-600">
+              로그인 연결이 아직 준비되지 않았습니다.
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
