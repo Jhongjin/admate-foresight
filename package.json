@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "benchmark:dry-run": "node --experimental-strip-types scripts/benchmark-dry-run.mjs",
+    "benchmark:ui-fixtures": "node --experimental-strip-types scripts/benchmark-ui-state-fixtures.mjs",
     "start": "next start",
     "lint": "eslint"
   },
