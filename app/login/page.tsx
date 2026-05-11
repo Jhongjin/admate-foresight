@@ -9,7 +9,7 @@ import { isForesightHandoffConfigured } from '@/lib/auth/foresightSession';
 
 export const metadata: Metadata = {
   title: 'AdMate Foresight 로그인',
-  description: '성과 예측과 기준 데이터 검토를 이용하려면 AdMate 계정으로 로그인하세요',
+  description: 'AdMate Foresight에 접근하려면 AdMate 계정으로 로그인하세요.',
 };
 
 interface LoginPageProps {
@@ -33,7 +33,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
           <h1 className="text-2xl font-bold text-gray-950">AdMate Foresight 로그인</h1>
           <p className="mt-3 text-sm leading-6 text-gray-600">
-            성과 예측과 기준 데이터 검토를 이용하려면 AdMate 계정으로 로그인하세요
+            성과 예측과 기준 데이터 검토를 이용하려면 AdMate 계정으로 로그인하세요.
           </p>
         </div>
 
@@ -41,7 +41,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           {coreStartUrl ? (
             <a
               href={coreStartUrl}
-              className="flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-800"
+              className="flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
               AdMate 계정으로 계속
             </a>
@@ -56,7 +56,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           )}
           <p className="text-xs leading-5 text-gray-500">
             {coreStartUrl
-              ? 'AdMate 로그인 후 현재 보려던 Foresight 화면으로 돌아갑니다.'
+              ? 'AdMate 로그인 후 요청한 Foresight 화면으로 돌아갑니다.'
               : '로그인 연결이 아직 준비되지 않았습니다.'}
           </p>
           {handoffStatus === 'expired' ? (
@@ -84,13 +84,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
           <Link
             href="/reset-password"
-            className="flex flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            className="flex flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
             비밀번호 재설정
           </Link>
           <a
             href={FORESIGHT_ACCESS_REQUEST_URL}
-            className="flex flex-1 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+            className="flex flex-1 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
             이용 신청
           </a>

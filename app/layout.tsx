@@ -3,8 +3,8 @@ import "./globals.css";
 import Navigation from "@/components/Navigation";
 
 export const metadata: Metadata = {
-  title: "Ad-Planner AI — 성과 예측 시뮬레이터",
-  description: "디지털 광고 성과를 AI로 예측하는 플랫폼",
+  title: "AdMate Foresight — 성과 예측 시뮬레이터",
+  description: "디지털 광고 성과를 예측하고 기준 데이터를 검토하는 AdMate Foresight",
 };
 
 export default function RootLayout({

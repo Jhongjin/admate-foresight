@@ -17,20 +17,20 @@ export default function ResetPasswordPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-950">비밀번호 재설정</h1>
           <p className="mt-3 text-sm leading-6 text-gray-600">
-            AdMate 계정의 비밀번호를 재설정한 뒤 Foresight로 돌아와 로그인하세요.
+            AdMate 계정의 비밀번호를 재설정한 뒤 AdMate Foresight로 돌아와 로그인하세요.
           </p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
           <a
             href={FORESIGHT_RESET_PASSWORD_URL}
-            className="flex flex-1 items-center justify-center rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-semibold text-white hover:bg-gray-800"
+            className="flex flex-1 items-center justify-center rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
             재설정 계속하기
           </a>
           <Link
             href="/login"
-            className="flex flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            className="flex flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
             로그인으로 돌아가기
           </Link>
