@@ -1,4 +1,6 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -7,6 +9,10 @@ import {
 } from '../../lib/benchmark/uiStateFixtures.mts';
 import { buildBenchmarkUiStateViewModel } from '../../lib/benchmark/uiStateViewModel';
 import KPICard from '../../components/KPICard';
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 const REQUIRED_RENDER_CONCEPTS: Record<BenchmarkTrustState, RegExp[]> = {
   'benchmark-ready': [
@@ -108,4 +114,83 @@ describe('benchmark UI state rendering adapter', () => {
       expect(renderedText).not.toMatch(/promotion ready:\s*true/i);
     },
   );
+
+  it.each(buildForesightBenchmarkUiStateFixtures())(
+    'exposes benchmark trust semantics for %s',
+    (fixture) => {
+      const viewModel = buildBenchmarkUiStateViewModel(fixture);
+
+      render(<BenchmarkStateProbe fixture={fixture} />);
+
+      const article = screen.getByRole('article', { name: fixture.state });
+      const card = within(article).getByRole('region', {
+        name: new RegExp(`${escapeRegExp(viewModel.metricLabel)} benchmark trust details`, 'i'),
+      });
+
+      expect(within(card).getByRole('status')).toHaveAccessibleName(
+        `Benchmark status: ${viewModel.statusLabel}`,
+      );
+
+      const basis = card.querySelector('dl');
+      expect(basis).not.toBeNull();
+      expect(basis).toHaveAccessibleName(
+        `${viewModel.metricLabel} benchmark basis`,
+      );
+      expect(within(basis as HTMLElement).getAllByRole('term')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ textContent: 'Platform' }),
+          expect.objectContaining({ textContent: 'Coverage' }),
+        ]),
+      );
+      expect(within(basis as HTMLElement).getAllByRole('definition')).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ textContent: fixture.basis.platform }),
+          expect.objectContaining({ textContent: fixture.basis.sample_or_coverage }),
+        ]),
+      );
+
+      const blockedOutputs = within(card).getByRole('list', {
+        name: new RegExp(`${escapeRegExp(viewModel.metricLabel)} blocked benchmark outputs`, 'i'),
+      });
+
+      for (const output of viewModel.blockedOutputs) {
+        expect(within(blockedOutputs).getByText(output)).toBeInTheDocument();
+      }
+    },
+  );
+
+  it('keeps long synthetic labels and blocked outputs wrapped inside named regions', () => {
+    const longContextLabel = 'synthetic-local-fixture-only-with-a-deliberately-long-context-label-that-must-wrap-without-overflow';
+    const longBlockedOutput = 'llm-prompt-payload-with-a-deliberately-long-synthetic-output-name-that-must-wrap-cleanly';
+
+    render(
+      <KPICard
+        title="Synthetic benchmark CPM"
+        value="CPM 9,750"
+        icon="📊"
+        benchmarkStatusLabel="Security review required"
+        benchmarkBasisLines={[
+          'Platform: Meta',
+          'Coverage: Identifier columns detected; aggregate output only',
+        ]}
+        benchmarkConfidenceLabel="Aggregate-only fixture"
+        benchmarkVisibleCopy={[
+          'Raw identifiers were excluded from report-ready output.',
+        ]}
+        benchmarkSyntheticContextLabel={longContextLabel}
+        benchmarkBlockedOutputs={[longBlockedOutput]}
+      />,
+    );
+
+    const card = screen.getByRole('region', {
+      name: /synthetic benchmark cpm benchmark trust details/i,
+    });
+    const context = screen.getByText(longContextLabel);
+    const blockedOutputs = within(card).getByRole('list', {
+      name: /synthetic benchmark cpm blocked benchmark outputs/i,
+    });
+
+    expect(context).toHaveClass('break-words', 'whitespace-normal');
+    expect(within(blockedOutputs).getByText(longBlockedOutput)).toHaveClass('break-words');
+  });
 });
