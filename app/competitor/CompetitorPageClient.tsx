@@ -120,7 +120,6 @@ export default function CompetitorPage() {
   useEffect(() => {
     setSearchLabel(ALL_LABEL);
     fetchMeta(ALL_LABEL, '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleIndustryClick(ind: string) {
@@ -253,7 +252,7 @@ export default function CompetitorPage() {
       {!loading && !error && ads.length === 0 && searchLabel && (
         <div className="text-center py-16 text-gray-400 text-sm">
           <p className="text-2xl mb-2">🔍</p>
-          <p>'{searchLabel}' 관련 광고 소재를 찾지 못했습니다.</p>
+          <p>&quot;{searchLabel}&quot; 관련 광고 소재를 찾지 못했습니다.</p>
           <p className="text-xs mt-1">다른 키워드로 검색하거나 업종을 변경해 보세요.</p>
         </div>
       )}

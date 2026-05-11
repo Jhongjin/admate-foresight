@@ -4,6 +4,8 @@
  * 결과: JSON을 stdout으로 출력
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 const { chromium } = require('playwright');
 const path = require('path');
 const fs   = require('fs');
@@ -144,7 +146,7 @@ function findChromiumPath() {
   }
 
   // 3) playwright 내장 경로 (설치 시 자동 설정)
-  try { return chromium.executablePath(); } catch (_) { return ''; }
+  try { return chromium.executablePath(); } catch { return ''; }
 }
 
 (async () => {

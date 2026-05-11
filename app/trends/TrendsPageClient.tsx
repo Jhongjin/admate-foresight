@@ -146,6 +146,8 @@ export default function TrendsPage() {
 
   // 월별 추이 데이터
   useEffect(() => {
+    // Loading state intentionally resets whenever the filter-driven fetch starts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch(`/api/trends?${buildParams(objectives, trendIndustries)}`)
       .then((r) => r.json())

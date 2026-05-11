@@ -208,6 +208,8 @@ export default function InsightsPage() {
   }, []);
 
   useEffect(() => {
+    // Loading state intentionally resets whenever the filter-driven fetch starts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSeasonLoading(true);
     const params = selectedIndustries.length > 0
       ? `?industries=${selectedIndustries.join(',')}` : '';
