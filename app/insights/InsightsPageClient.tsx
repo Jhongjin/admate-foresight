@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, LineChart, Line,
+  ResponsiveContainer,
 } from 'recharts';
 
 interface SeasonInsight {
@@ -44,14 +44,9 @@ interface SeasonalityEvent {
   vtrChange: number | null;
 }
 
-const COLORS: Record<string, string> = { 뷰티: '#f59e0b', 식음료: '#6366f1' };
-const DEFAULT_COLOR = '#10b981';
-function getColor(ind: string) { return COLORS[ind] ?? DEFAULT_COLOR; }
-
 /* ── 변화율 뱃지 ── */
 function ChangeBadge({ value, inverse = false }: { value: number | null; inverse?: boolean }) {
   if (value === null) return <span className="text-xs text-gray-300">-</span>;
-  const isGood = inverse ? value < 0 : value > 0;
   const color = value > 0
     ? (inverse ? 'text-red-500 bg-red-50' : 'text-emerald-600 bg-emerald-50')
     : (inverse ? 'text-emerald-600 bg-emerald-50' : 'text-red-500 bg-red-50');
@@ -188,7 +183,6 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
 }
 
 export default function InsightsPage() {
-  const [data, setData]           = useState<SeasonInsight[]>([]);
   const [seasonality, setSeasonality] = useState<SeasonalityEvent[]>([]);
   const [loading, setLoading]     = useState(true);
   const [seasonLoading, setSeasonLoading] = useState(true);
@@ -199,7 +193,6 @@ export default function InsightsPage() {
     fetch('/api/insights')
       .then((r) => r.json())
       .then((d) => {
-        setData(d);
         const inds = [...new Set((d as SeasonInsight[]).map((x) => x.industry))].sort();
         setAvailableIndustries(inds);
       })
@@ -225,36 +218,6 @@ export default function InsightsPage() {
       prev.includes(ind) ? prev.filter((i) => i !== ind) : [...prev, ind]
     );
   }
-
-  const industries = [...new Set(data.map((d) => d.industry))];
-  const months     = [...new Set(data.map((d) => d.month))].sort();
-
-  const spendByMonth = months.map((m) => {
-    const row: Record<string, string | number> = { month: m };
-    for (const ind of industries) {
-      const found = data.find((d) => d.month === m && d.industry === ind);
-      row[ind] = found ? found.totalSpend : 0;
-    }
-    return row;
-  });
-
-  const cpmByMonth = months.map((m) => {
-    const row: Record<string, string | number> = { month: m };
-    for (const ind of industries) {
-      const found = data.find((d) => d.month === m && d.industry === ind);
-      row[ind] = found ? found.avgCPM : 0;
-    }
-    return row;
-  });
-
-  const summaryCards = industries.map((ind) => {
-    const rows = data.filter((d) => d.industry === ind);
-    const totalReach = rows.reduce((s, r) => s + r.totalReach, 0);
-    const totalSpend = rows.reduce((s, r) => s + r.totalSpend, 0);
-    const avgCPM = rows.length > 0 ? Math.round(rows.reduce((s, r) => s + r.avgCPM, 0) / rows.length) : 0;
-    const avgCPC = rows.length > 0 ? Math.round(rows.reduce((s, r) => s + r.avgCPC, 0) / rows.length) : 0;
-    return { industry: ind, totalReach, totalSpend, avgCPM, avgCPC };
-  });
 
   if (loading) {
     return (

@@ -111,16 +111,6 @@ function formatBudget(v: number) {
   return `${v / 10_000}만`;
 }
 
-function formatBudgetFull(v: number): string {
-  if (v >= 100_000_000) {
-    const eok = Math.floor(v / 100_000_000);
-    const rem = v % 100_000_000;
-    return rem === 0 ? `${eok}억원` : `${eok}억 ${(rem / 10_000).toLocaleString()}만원`;
-  }
-  return `${(v / 10_000).toLocaleString()}만원`;
-}
-
-
 export default function SimulatorPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
@@ -434,7 +424,7 @@ export default function SimulatorPage() {
     } finally {
       setExporting(false);
     }
-  }, [result, rangeData, industryLabel, genderLabel, ageLabel, ageRanges, budget]);
+  }, [result, rangeData, industryLabel, genderLabel, ageLabel, budget]);
 
   return (
     <div className="space-y-8">

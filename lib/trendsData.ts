@@ -43,7 +43,6 @@ function filterData(
 // CTR 집계: clicks = spend / CPC (CPC>0인 행만)
 function aggregateMonthRecords(records: XlsxRecord[]): Omit<TrendPoint, 'month'> {
   const totalImpressions = records.reduce((s, r) => s + r.노출, 0);
-  const totalSpend = records.reduce((s, r) => s + r.지출금액, 0);
   const totalReach = records.reduce((s, r) => s + r.도달, 0);
 
   // 가중평균 CPM (노출 기준)

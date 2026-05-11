@@ -1,6 +1,3 @@
-import path from 'path';
-import * as XLSX from 'xlsx';
-
 export interface XlsxRecord {
   업종: string;
   목표: string;
@@ -19,20 +16,6 @@ export interface XlsxRecord {
   영상조회수: number; // video_view (3초 조회수)
   영상조회비용: number; // cost_per_action_type.video_view (3초 조회당 비용)
   날짜: string;
-}
-
-/** Python 스타일 단따옴표 JSON 파싱 */
-function parseActionMap(str: string | undefined): Record<string, number> {
-  if (!str || str === 'nan') return {};
-  try {
-    const fixed = str.replace(/'/g, '"');
-    const arr = JSON.parse(fixed) as Array<{ action_type: string; value: string }>;
-    const map: Record<string, number> = {};
-    for (const item of arr) map[item.action_type] = parseFloat(item.value) || 0;
-    return map;
-  } catch {
-    return {};
-  }
 }
 
 // 업종명 정규화 맵 (유사 업종 통합)
