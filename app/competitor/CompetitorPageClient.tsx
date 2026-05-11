@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import StatePanel from '@/components/StatePanel';
 
 /* ─── 타입 ─── */
 interface MetaAd {
@@ -250,11 +251,12 @@ export default function CompetitorPage() {
 
       {/* 결과 없음 */}
       {!loading && !error && ads.length === 0 && searchLabel && (
-        <div className="text-center py-16 text-gray-400 text-sm">
-          <p className="text-2xl mb-2">🔍</p>
-          <p>&quot;{searchLabel}&quot; 관련 광고 소재를 찾지 못했습니다.</p>
-          <p className="text-xs mt-1">다른 키워드로 검색하거나 업종을 변경해 보세요.</p>
-        </div>
+        <StatePanel
+          variant="empty"
+          title={`"${searchLabel}" 관련 광고 소재를 찾지 못했습니다`}
+          description="다른 키워드로 검색하거나 업종을 변경해 보세요."
+          className="min-h-64"
+        />
       )}
 
       {/* 에러 */}

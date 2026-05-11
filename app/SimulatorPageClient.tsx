@@ -8,6 +8,7 @@ import {
 import KPICard from '@/components/KPICard';
 import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
+import StatePanel from '@/components/StatePanel';
 
 const ALL_GENDERS = [
   { value: 'male', label: '남성' },
@@ -1025,8 +1026,20 @@ export default function SimulatorPage() {
                 dot={{ r: 4, fill: '#6366f1' }} activeDot={{ r: 6 }} name="예상 도달" />
             </LineChart>
           </ResponsiveContainer>
+        ) : rangeLoading ? (
+          <StatePanel
+            variant="loading"
+            title="예산별 도달 곡선을 계산하고 있습니다"
+            description="현재 조건과 예산 범위를 기준으로 비교 데이터를 준비 중입니다."
+            className="h-64"
+          />
         ) : (
-          <div className="h-64 flex items-center justify-center text-gray-400 text-sm">데이터 로딩 중...</div>
+          <StatePanel
+            variant="empty"
+            title="표시할 예산 구간이 아직 준비되지 않았습니다"
+            description="조건을 조금 넓히거나 시뮬레이션을 다시 실행하면 도달 곡선이 표시됩니다."
+            className="h-64"
+          />
         )}
       </div>
 

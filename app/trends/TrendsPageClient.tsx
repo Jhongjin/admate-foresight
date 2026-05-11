@@ -6,6 +6,7 @@ import {
   BarChart, Bar, Cell,
 } from 'recharts';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
+import StatePanel from '@/components/StatePanel';
 
 interface TrendPoint {
   month: string;
@@ -305,11 +306,19 @@ export default function TrendsPage() {
           />
         </div>
         {loading ? (
-          <div className="h-64 flex items-center justify-center">
-            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-          </div>
+          <StatePanel
+            variant="loading"
+            title="월별 추이 데이터를 불러오고 있습니다"
+            description="선택한 목표와 업종 필터를 기준으로 지표를 집계 중입니다."
+            className="h-64"
+          />
         ) : trendChartData.length === 0 ? (
-          <div className="h-64 flex items-center justify-center text-gray-400 text-sm">데이터가 없습니다.</div>
+          <StatePanel
+            variant="empty"
+            title="월별 추이를 표시할 데이터가 아직 없습니다"
+            description="목표 또는 업종 필터를 조정하면 표시할 수 있는 데이터가 늘어날 수 있습니다."
+            className="h-64"
+          />
         ) : (
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={trendChartData}>
@@ -361,7 +370,12 @@ export default function TrendsPage() {
           />
         </div>
         {genderChartData.length === 0 ? (
-          <div className="h-48 flex items-center justify-center text-gray-400 text-sm mt-4">데이터가 없습니다.</div>
+          <StatePanel
+            variant="empty"
+            title="성별 분포를 표시할 데이터가 아직 없습니다"
+            description="다른 업종을 선택하거나 전체 업종으로 되돌려 확인해 보세요."
+            className="h-48 mt-4"
+          />
         ) : (
           <div className="mt-6">
             <ResponsiveContainer width="100%" height={240}>
@@ -394,7 +408,12 @@ export default function TrendsPage() {
           />
         </div>
         {ageChartData.length === 0 ? (
-          <div className="h-48 flex items-center justify-center text-gray-400 text-sm mt-4">데이터가 없습니다.</div>
+          <StatePanel
+            variant="empty"
+            title="연령대별 분포를 표시할 데이터가 아직 없습니다"
+            description="필터 범위를 넓히면 연령대 비교 차트가 표시될 수 있습니다."
+            className="h-48 mt-4"
+          />
         ) : (
           <div className="mt-6">
             <ResponsiveContainer width="100%" height={260}>

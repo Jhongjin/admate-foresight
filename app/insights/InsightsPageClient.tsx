@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from 'recharts';
+import StatePanel from '@/components/StatePanel';
 
 interface SeasonInsight {
   month: string;
@@ -221,9 +222,12 @@ export default function InsightsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-      </div>
+      <StatePanel
+        variant="loading"
+        title="시즌 인사이트를 준비하고 있습니다"
+        description="사용 가능한 업종과 시즌 분석 범위를 확인하는 중입니다."
+        className="h-64"
+      />
     );
   }
 
@@ -274,10 +278,17 @@ export default function InsightsPage() {
         </div>
 
         {seasonLoading ? (
-          <div className="flex items-center gap-2 py-8 justify-center text-gray-400 text-sm">
-            <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin" />
-            분석 중...
-          </div>
+          <StatePanel
+            variant="loading"
+            title="시즌 이벤트 성과를 분석하고 있습니다"
+            description="선택한 업종의 이벤트 전후 지표를 비교 중입니다."
+          />
+        ) : seasonality.length === 0 ? (
+          <StatePanel
+            variant="empty"
+            title="표시할 시즌 이벤트가 아직 준비되지 않았습니다"
+            description="업종 필터를 줄이거나 전체 업종으로 변경해 분석 대상을 확인해 보세요."
+          />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {seasonality.map((event) => (
