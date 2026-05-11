@@ -1,6 +1,10 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import {
+  getForesightLoginCopy,
+  resolveForesightLoginState,
+} from '@/lib/auth/foresightAccessCopy';
+import {
   buildForesightCoreStartUrl,
   FORESIGHT_ACCESS_REQUEST_URL,
   sanitizeForesightNextPath,
@@ -37,10 +41,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const nextPath = sanitizeForesightNextPath(params?.next);
   const nextDescription = describeNextDestination(nextPath);
+  const loginState = resolveForesightLoginState(params);
+  const loginCopy = getForesightLoginCopy(loginState);
   const coreStartUrl = isForesightHandoffConfigured()
     ? buildForesightCoreStartUrl(nextPath)
     : null;
-  const handoffStatus = Array.isArray(params?.handoff) ? params?.handoff[0] : params?.handoff;
+  const primaryActionHref =
+    loginState === 'handoff_disabled' ? FORESIGHT_ACCESS_REQUEST_URL : coreStartUrl;
+  const noticeToneClass =
+    loginCopy.noticeTone === 'danger' ? 'text-red-600' : 'text-gray-500';
 
   return (
     <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center py-10">
@@ -49,19 +58,19 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
             AF
           </div>
-          <h1 className="text-2xl font-bold text-gray-950">AdMate Foresight 로그인</h1>
+          <h1 className="text-2xl font-bold text-gray-950">{loginCopy.title}</h1>
           <p className="mt-3 text-sm leading-6 text-gray-600">
-            성과 예측과 기준 데이터 검토를 이용하려면 AdMate 계정으로 로그인하세요.
+            {loginCopy.body}
           </p>
         </div>
 
         <div className="space-y-3">
-          {coreStartUrl ? (
+          {primaryActionHref ? (
             <a
-              href={coreStartUrl}
+              href={primaryActionHref}
               className="flex w-full items-center justify-center rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             >
-              AdMate 계정으로 계속
+              {loginCopy.primaryAction}
             </a>
           ) : (
             <button
@@ -69,27 +78,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               disabled
               className="flex w-full cursor-not-allowed items-center justify-center rounded-lg bg-gray-900 px-4 py-3 text-sm font-semibold text-white opacity-60"
             >
-              AdMate 계정으로 계속
+              {loginCopy.primaryAction}
             </button>
           )}
           <p className="text-xs leading-5 text-gray-500">
-            {coreStartUrl
-              ? 'AdMate 로그인 후 요청한 Foresight 화면으로 돌아갑니다.'
-              : '로그인 연결이 아직 준비되지 않았습니다.'}
+            {primaryActionHref ? loginCopy.helper : '로그인 연결이 아직 준비되지 않았습니다.'}
           </p>
-          {handoffStatus === 'expired' ? (
-            <p className="text-xs leading-5 text-red-600">
-              로그인 확인이 만료되었습니다. 다시 로그인해 주세요.
-            </p>
-          ) : null}
-          {handoffStatus === 'invalid' ? (
-            <p className="text-xs leading-5 text-red-600">
-              로그인 연결을 완료할 수 없습니다. 다시 시도해 주세요.
-            </p>
-          ) : null}
-          {handoffStatus === 'disabled' ? (
-            <p className="text-xs leading-5 text-red-600">
-              로그인 연결이 아직 준비되지 않았습니다.
+          {loginCopy.notice ? (
+            <p className={`text-xs leading-5 ${noticeToneClass}`}>
+              {loginCopy.notice}
             </p>
           ) : null}
         </div>

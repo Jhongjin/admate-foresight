@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { FORESIGHT_ACCOUNT_ACCESS_COPY } from '@/lib/auth/foresightAccessCopy';
 import { sanitizeForesightNextPath, FORESIGHT_ACCESS_REQUEST_URL } from '@/lib/auth/foresightAuth';
 import { requireForesightPageSession } from '@/lib/auth/foresightPageGuard';
 
@@ -38,7 +39,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const params = await searchParams;
   const safeNextPath = sanitizeForesightNextPath(params?.next);
   const returnPath = safeNextPath.startsWith('/account') ? '/' : safeNextPath;
-  const returnLabel = describeReturnTarget(returnPath);
+  const accountCopy = FORESIGHT_ACCOUNT_ACCESS_COPY.active;
+  const returnLabel =
+    returnPath === '/' ? accountCopy.primaryAction : describeReturnTarget(returnPath);
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-10rem)] w-full max-w-4xl flex-col justify-center px-4 py-10 sm:px-6 sm:py-12">
@@ -46,32 +49,31 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-indigo-700">AdMate Foresight</p>
-            <h1 className="mt-3 text-2xl font-bold text-gray-950">계정 및 접근 상태</h1>
+            <h1 className="mt-3 text-2xl font-bold text-gray-950">{accountCopy.title}</h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-600">
-              현재 Foresight 접근이 활성화되어 있습니다. 분석 화면으로 돌아가거나 필요한
-              보조 화면을 열 수 있습니다.
+              {accountCopy.body}
             </p>
           </div>
           <div
             aria-label="접근 상태"
             className="inline-flex w-fit items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700"
           >
-            활성 접근
+            {accountCopy.statusLabel}
           </div>
         </div>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
             <p className="text-xs font-medium text-gray-500">제품 접근</p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">Foresight 사용 가능</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">{accountCopy.productSummary}</p>
           </div>
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
             <p className="text-xs font-medium text-gray-500">역할</p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">역할 정보 없음</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">{accountCopy.roleSummary}</p>
           </div>
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
             <p className="text-xs font-medium text-gray-500">작업 공간</p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">표시 가능한 이름 없음</p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">{accountCopy.workspaceSummary}</p>
           </div>
         </div>
 
@@ -86,7 +88,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             href={FORESIGHT_ACCESS_REQUEST_URL}
             className="flex min-h-11 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
-            접근 문의
+            {accountCopy.secondaryAction}
           </a>
         </div>
 

@@ -41,7 +41,7 @@ export default function Navigation() {
         cache: 'no-store',
       });
     } finally {
-      window.location.assign('/login');
+      window.location.assign('/login?logout=complete');
     }
   }
 
