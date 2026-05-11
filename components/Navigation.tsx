@@ -15,7 +15,8 @@ export default function Navigation() {
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const showLogout = pathname !== '/login' && pathname !== '/reset-password';
+  const isAuthRoute = pathname === '/login' || pathname === '/reset-password';
+  const showLogout = !isAuthRoute;
 
   function getLinkClass(href: string, variant: 'desktop' | 'mobile') {
     const isActive = href === '/' ? pathname === href : pathname.startsWith(href);
@@ -42,6 +43,23 @@ export default function Navigation() {
     } finally {
       window.location.assign('/login');
     }
+  }
+
+  if (isAuthRoute) {
+    return (
+      <nav aria-label="제품 정보" className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-16 items-center py-3">
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600">
+                <span className="text-white text-xs font-bold">AF</span>
+              </div>
+              <span className="text-lg font-bold text-gray-900">AdMate Foresight</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
   }
 
   return (

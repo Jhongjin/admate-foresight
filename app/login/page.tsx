@@ -16,9 +16,27 @@ interface LoginPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
+function describeNextDestination(nextPath: string): string {
+  const pathname = nextPath.split('?')[0];
+
+  switch (pathname) {
+    case '/trends':
+      return '업종별 트렌드 화면으로 돌아갑니다.';
+    case '/insights':
+      return '시즌 인사이트 화면으로 돌아갑니다.';
+    case '/competitor':
+      return '경쟁사 모니터링 화면으로 돌아갑니다.';
+    case '/account':
+      return '계정 접근 상태 화면으로 돌아갑니다.';
+    default:
+      return '성과 예측 시뮬레이터로 돌아갑니다.';
+  }
+}
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const nextPath = sanitizeForesightNextPath(params?.next);
+  const nextDescription = describeNextDestination(nextPath);
   const coreStartUrl = isForesightHandoffConfigured()
     ? buildForesightCoreStartUrl(nextPath)
     : null;
@@ -78,7 +96,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
           <p className="text-xs font-medium text-gray-500">로그인 후 이동</p>
-          <p className="mt-1 break-all text-sm font-semibold text-gray-800">{nextPath}</p>
+          <p className="mt-1 text-sm font-semibold text-gray-800">{nextDescription}</p>
         </div>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row">
