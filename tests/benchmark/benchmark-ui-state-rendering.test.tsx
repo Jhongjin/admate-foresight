@@ -6,6 +6,7 @@ import {
   type BenchmarkTrustState,
 } from '../../lib/benchmark/uiStateFixtures.mts';
 import { buildBenchmarkUiStateViewModel } from '../../lib/benchmark/uiStateViewModel';
+import KPICard from '../../components/KPICard';
 
 const REQUIRED_RENDER_CONCEPTS: Record<BenchmarkTrustState, RegExp[]> = {
   'benchmark-ready': [
@@ -68,33 +69,20 @@ function BenchmarkStateProbe({
 
   return (
     <article aria-label={viewModel.state}>
-      <h1>{viewModel.statusLabel}</h1>
-      <p>{viewModel.metricLabel}</p>
-      <p>{viewModel.metricValue}</p>
-      <p>{viewModel.confidenceLabel}</p>
-      <p>{viewModel.syntheticContextLabel}</p>
-      <section aria-label="basis">
-        {viewModel.basisLines.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </section>
-      <section aria-label="visible-copy">
-        {viewModel.visibleCopy.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </section>
-      <section aria-label="blocked-outputs">
-        {viewModel.blockedOutputs.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </section>
-      <section aria-label="redaction">
-        {viewModel.redactionExpectations.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </section>
-      <output aria-label="report-ready">{String(viewModel.reportReady)}</output>
-      <output aria-label="promotion-ready">{String(viewModel.promotionReady)}</output>
+      <KPICard
+        title={viewModel.metricLabel}
+        value={viewModel.metricValue}
+        icon="📊"
+        benchmarkStatusLabel={viewModel.statusLabel}
+        benchmarkBasisLines={viewModel.basisLines}
+        benchmarkConfidenceLabel={viewModel.confidenceLabel}
+        benchmarkVisibleCopy={[
+          ...viewModel.visibleCopy,
+          ...viewModel.redactionExpectations,
+        ]}
+        benchmarkSyntheticContextLabel={viewModel.syntheticContextLabel}
+        benchmarkBlockedOutputs={viewModel.blockedOutputs}
+      />
     </article>
   );
 }
@@ -116,8 +104,8 @@ describe('benchmark UI state rendering adapter', () => {
         expect(renderedText).toMatch(concept);
       }
 
-      expect(screen.getByLabelText('report-ready').textContent).toBe('false');
-      expect(screen.getByLabelText('promotion-ready').textContent).toBe('false');
+      expect(renderedText).not.toMatch(/report ready:\s*true/i);
+      expect(renderedText).not.toMatch(/promotion ready:\s*true/i);
     },
   );
 });

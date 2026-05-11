@@ -12,6 +12,12 @@ interface KPICardProps {
   marketLabel?: string;
   diff?: number | null;   // (내 예측 - 업종평균) / 업종평균 × 100
   lowerBetter?: boolean;  // true = CPM·CPC, false = 도달·VTR
+  benchmarkStatusLabel?: string;
+  benchmarkBasisLines?: string[];
+  benchmarkConfidenceLabel?: string;
+  benchmarkVisibleCopy?: string[];
+  benchmarkSyntheticContextLabel?: string;
+  benchmarkBlockedOutputs?: string[];
 }
 
 /**
@@ -29,6 +35,12 @@ function splitValue(val: string) {
 export default function KPICard({
   title, value, icon, loading,
   marketLabel, diff, lowerBetter = false,
+  benchmarkStatusLabel,
+  benchmarkBasisLines = [],
+  benchmarkConfidenceLabel,
+  benchmarkVisibleCopy = [],
+  benchmarkSyntheticContextLabel,
+  benchmarkBlockedOutputs = [],
 }: KPICardProps) {
   const { prefix, number, suffix } = splitValue(value);
 
@@ -37,6 +49,14 @@ export default function KPICard({
   const isGood   = hasDiff ? (lowerBetter ? diff! < 0 : diff! > 0) : false;
   const isNeutral = hasDiff ? Math.abs(diff!) < 2 : false;
   const arrow    = diff != null && diff > 0 ? '▲' : '▼';
+  const hasBenchmarkDisplay = !loading && Boolean(
+    benchmarkStatusLabel
+      || benchmarkConfidenceLabel
+      || benchmarkSyntheticContextLabel
+      || benchmarkBasisLines.length
+      || benchmarkVisibleCopy.length
+      || benchmarkBlockedOutputs.length,
+  );
 
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3">
@@ -82,6 +102,58 @@ export default function KPICard({
             {marketLabel}
           </span>
         </p>
+      )}
+
+      {hasBenchmarkDisplay && (
+        <section
+          aria-label={`${title} benchmark trust state`}
+          className="border-t border-gray-100 pt-3 space-y-2"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            {benchmarkStatusLabel && (
+              <p className="text-[11px] font-semibold text-[#111827] leading-snug">
+                {benchmarkStatusLabel}
+              </p>
+            )}
+            {benchmarkSyntheticContextLabel && (
+              <span className="max-w-full text-[10px] font-medium text-[#4F46E5] bg-indigo-50 px-1.5 py-0.5 rounded-full">
+                {benchmarkSyntheticContextLabel}
+              </span>
+            )}
+          </div>
+
+          {benchmarkConfidenceLabel && (
+            <p className="text-[11px] text-[#4B5563] leading-snug">
+              {benchmarkConfidenceLabel}
+            </p>
+          )}
+
+          {benchmarkVisibleCopy.length > 0 && (
+            <ul className="space-y-1">
+              {benchmarkVisibleCopy.map((line) => (
+                <li key={line} className="text-[11px] text-[#4B5563] leading-snug">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {benchmarkBasisLines.length > 0 && (
+            <dl className="grid grid-cols-1 gap-1">
+              {benchmarkBasisLines.map((line) => (
+                <div key={line} className="text-[11px] text-[#6B7280] leading-snug">
+                  {line}
+                </div>
+              ))}
+            </dl>
+          )}
+
+          {benchmarkBlockedOutputs.length > 0 && (
+            <p className="text-[11px] text-[#991B1B] leading-snug">
+              Blocked outputs: {benchmarkBlockedOutputs.join(', ')}
+            </p>
+          )}
+        </section>
       )}
     </div>
   );
