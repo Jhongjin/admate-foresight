@@ -9,6 +9,7 @@ const navItems = [
   { href: '/trends', label: '업종별 트렌드' },
   { href: '/insights', label: '시즌 인사이트' },
   { href: '/competitor', label: '경쟁사 모니터링' },
+  { href: '/account', label: '계정' },
 ];
 
 export default function Navigation() {

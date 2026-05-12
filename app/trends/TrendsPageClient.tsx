@@ -433,14 +433,14 @@ export default function TrendsPage() {
       </div>
 
       {/* ── 경쟁사 모니터링 바로가기 ── */}
-      <div className="bg-indigo-50 rounded-2xl border border-indigo-100 p-5 flex items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-indigo-800">경쟁사 광고 소재가 궁금하다면?</p>
           <p className="text-xs text-indigo-500 mt-0.5">Meta 광고 라이브러리에서 전 세계 실제 집행 소재를 탐색할 수 있습니다.</p>
         </div>
         <a
           href="/competitor"
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors"
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 sm:w-auto sm:shrink-0"
         >
           경쟁사 모니터링 →
         </a>

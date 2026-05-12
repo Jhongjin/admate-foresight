@@ -19,6 +19,7 @@ interface MetaAd {
 
 /* ─── 상수 ─── */
 const ALL_LABEL = '전체';
+const PRODUCT_SAFE_ERROR = '현재 광고 소재 데이터를 불러올 수 없습니다.';
 const INDUSTRIES = [
   ALL_LABEL,
   '식음료', '의약/건기식', '패션', '뷰티', '생활/잡화', '기관/단체',
@@ -107,11 +108,11 @@ export default function CompetitorPage() {
       if (kw) params.set('keyword', kw);
       const res  = await fetch(`/api/meta-ads-scrape?${params}`);
       const data = await res.json();
-      if (!res.ok) { setError(data.error || '오류가 발생했습니다.'); return; }
+      if (!res.ok) { setError(PRODUCT_SAFE_ERROR); return; }
       setAds(data.ads ?? []);
       setSearchTerm(data.searchTerm ?? '');
     } catch {
-      setError('데이터를 불러오지 못했습니다.');
+      setError(PRODUCT_SAFE_ERROR);
     } finally {
       setLoading(false);
     }
@@ -153,20 +154,20 @@ export default function CompetitorPage() {
         {/* 키워드 검색 */}
         <div>
           <label className="text-sm font-medium text-gray-700 block mb-2">브랜드 · 키워드 직접 검색</label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleKeywordSearch()}
               placeholder="예: 올리브영, 설화수, 다이슨..."
-              className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200"
+              className="min-w-0 flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200"
             />
             <button
               type="button"
               onClick={handleKeywordSearch}
               disabled={!keyword.trim() || loading}
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-40"
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-40 sm:w-auto"
             >
               검색
             </button>
@@ -264,7 +265,7 @@ export default function CompetitorPage() {
         <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl space-y-2">
           <p className="text-sm font-semibold text-amber-700">광고 소재 연결 상태를 확인하고 있습니다.</p>
           <p className="text-xs text-amber-600">
-            현재 광고 소재 데이터를 불러올 수 없습니다.
+            {PRODUCT_SAFE_ERROR}
           </p>
           <p className="text-xs text-gray-600 bg-white border border-amber-100 rounded-lg p-3 leading-relaxed">
             잠시 후 다시 시도해 주세요. 같은 문제가 반복되면 운영 담당자에게 연결 상태 확인을 요청하세요.

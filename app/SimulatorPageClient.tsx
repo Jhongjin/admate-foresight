@@ -441,9 +441,9 @@ export default function SimulatorPage() {
         <div className="space-y-4">
 
           {/* 1. 캠페인 예산 */}
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 shrink-0 w-24">총 캠페인 예산</label>
-            <div className="flex items-center border border-gray-200 rounded-lg px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500 bg-white flex-1 max-w-xs">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <label className="text-sm font-medium text-gray-700 sm:w-24 sm:shrink-0">총 캠페인 예산</label>
+            <div className="flex w-full min-w-0 items-center border border-gray-200 rounded-lg px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500 bg-white sm:max-w-xs sm:flex-1">
               <span className="text-sm text-gray-400 mr-1">₩</span>
               <input
                 type="number"
@@ -466,7 +466,7 @@ export default function SimulatorPage() {
                 className="flex-1 text-sm text-gray-800 font-medium focus:outline-none min-w-0"
               />
             </div>
-            <span className="text-sm font-bold text-indigo-600">
+            <span className="text-sm font-bold text-indigo-600 sm:shrink-0">
               {budget >= 100_000_000 ? `${budget / 100_000_000}억` : budget >= 10_000 ? `${(budget / 10_000).toLocaleString()}만원` : `${budget.toLocaleString()}원`}
             </span>
           </div>

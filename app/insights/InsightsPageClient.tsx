@@ -87,8 +87,8 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
       {/* 헤더 */}
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 border-b border-gray-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
           <span className="text-2xl">{event.emoji}</span>
           <div>
             <h3 className="text-base font-semibold text-gray-900">{event.name}</h3>
@@ -96,13 +96,13 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
           </div>
         </div>
         {event.during.count === 0 && (
-          <span className="text-xs text-orange-400 bg-orange-50 px-2 py-1 rounded-lg">시즌 중 데이터 없음</span>
+          <span className="w-fit text-xs text-orange-400 bg-orange-50 px-2 py-1 rounded-lg">시즌 중 데이터 없음</span>
         )}
       </div>
 
       <div className="p-6 space-y-6">
         {/* 3구간 비교 카드 */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {periods.map(({ key, label, data, bg, border }) => (
             <div key={key} className={`rounded-xl border ${border} ${bg} p-4`}>
               <p className="text-xs font-semibold text-gray-500 mb-1">{label}</p>
