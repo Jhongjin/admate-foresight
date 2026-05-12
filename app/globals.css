@@ -40,12 +40,12 @@ body {
   font-feature-settings: 'tnum' on, 'lnum' on;
 }
 
-/* ── 버튼: 약간 좁은 자간으로 꽉 찬 느낌 ──────────── */
+/* ── 버튼: 한국어 UI 가독성을 위해 기본 자간 유지 ───── */
 button {
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 /* ── 섹션 타이틀 자간 ──────────────────────────────── */
 h1, h2, h3 {
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
 }

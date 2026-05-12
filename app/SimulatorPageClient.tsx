@@ -878,30 +878,12 @@ export default function SimulatorPage() {
             </div>
           )}
 
-          {/* 모델 재학습 버튼 */}
+          {/* 운영 파이프라인에서 관리되는 모델 상태 안내 */}
           {!mlLoading && (
             <div className="flex items-center justify-end pt-1 border-t border-gray-50">
-              <button
-                type="button"
-                onClick={async () => {
-                  setMlLoading(true);
-                  try {
-                    const res = await fetch('/api/py-retrain', { method: 'POST' });
-                    const data = await res.json();
-                    if (res.ok) {
-                      alert(`✅ ${data.message}`);
-                      // 재학습 완료 후 ML 예측 갱신
-                      await fetchMlPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget, campaignDays });
-                    } else {
-                      alert(`❌ 재학습 실패: ${data.error}`);
-                    }
-                  } catch { alert('재학습 서비스 연결 실패'); }
-                  finally { setMlLoading(false); }
-                }}
-                className="text-[11px] text-gray-400 hover:text-violet-600 border border-gray-200 hover:border-violet-300 rounded-lg px-3 py-1.5 transition-colors"
-              >
-                🔄 모델 재학습
-              </button>
+              <p className="text-[11px] text-gray-400">
+                모델 기준 데이터는 운영 파이프라인에서 관리됩니다.
+              </p>
             </div>
           )}
         </div>

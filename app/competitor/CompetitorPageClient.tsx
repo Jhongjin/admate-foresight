@@ -261,13 +261,13 @@ export default function CompetitorPage() {
 
       {/* 에러 */}
       {!loading && error && (
-        <div className="p-4 bg-red-50 border border-red-100 rounded-xl space-y-2">
-          <p className="text-sm font-semibold text-red-600">광고 소재를 불러오지 못했습니다.</p>
-          <p className="text-xs text-red-500">{error}</p>
-          <p className="text-xs text-gray-500 bg-white border border-gray-100 rounded-lg p-3 leading-relaxed">
-            💡 <strong>해결 방법</strong>: Vercel 대시보드 → Settings → Environment Variables에
-            {' '}<code className="bg-gray-100 px-1 rounded">META_ACCESS_TOKEN</code>을 설정하면
-            스크래핑 없이 Meta 공식 API로 바로 작동합니다.
+        <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl space-y-2">
+          <p className="text-sm font-semibold text-amber-700">광고 소재 연결 상태를 확인하고 있습니다.</p>
+          <p className="text-xs text-amber-600">
+            현재 광고 소재 데이터를 불러올 수 없습니다.
+          </p>
+          <p className="text-xs text-gray-600 bg-white border border-amber-100 rounded-lg p-3 leading-relaxed">
+            잠시 후 다시 시도해 주세요. 같은 문제가 반복되면 운영 담당자에게 연결 상태 확인을 요청하세요.
           </p>
         </div>
       )}
