@@ -45,6 +45,11 @@ interface SeasonalityEvent {
   vtrChange: number | null;
 }
 
+function toJsonOrThrow(response: Response) {
+  if (!response.ok) throw new Error('request_failed');
+  return response.json();
+}
+
 /* ── 변화율 뱃지 ── */
 function ChangeBadge({ value, inverse = false }: { value: number | null; inverse?: boolean }) {
   if (value === null) return <span className="text-xs text-gray-300">-</span>;
@@ -187,17 +192,20 @@ export default function InsightsPage() {
   const [seasonality, setSeasonality] = useState<SeasonalityEvent[]>([]);
   const [loading, setLoading]     = useState(true);
   const [seasonLoading, setSeasonLoading] = useState(true);
+  const [filtersError, setFiltersError] = useState(false);
+  const [seasonError, setSeasonError] = useState(false);
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/api/insights')
-      .then((r) => r.json())
+      .then(toJsonOrThrow)
       .then((d) => {
+        setFiltersError(false);
         const inds = [...new Set((d as SeasonInsight[]).map((x) => x.industry))].sort();
         setAvailableIndustries(inds);
       })
-      .catch(console.error)
+      .catch(() => setFiltersError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -208,9 +216,15 @@ export default function InsightsPage() {
     const params = selectedIndustries.length > 0
       ? `?industries=${selectedIndustries.join(',')}` : '';
     fetch(`/api/seasonality${params}`)
-      .then((r) => r.json())
-      .then(setSeasonality)
-      .catch(console.error)
+      .then(toJsonOrThrow)
+      .then((data) => {
+        setSeasonError(false);
+        setSeasonality(data);
+      })
+      .catch(() => {
+        setSeasonality([]);
+        setSeasonError(true);
+      })
       .finally(() => setSeasonLoading(false));
   }, [selectedIndustries]);
 
@@ -240,6 +254,14 @@ export default function InsightsPage() {
 
       {/* ══ 시즈널리티 분석 ══ */}
       <div>
+        {filtersError && (
+          <StatePanel
+            variant="error"
+            title="업종 필터를 불러오지 못했습니다"
+            description="전체 범위 기준으로 시즌 인사이트를 표시합니다. 잠시 후 새로고침하거나 운영 담당자에게 문의해 주세요."
+            className="mb-5 min-h-32"
+          />
+        )}
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div>
             <h2 className="text-base font-semibold text-gray-800">시즌 이벤트 전·중·후 분석</h2>
@@ -282,6 +304,12 @@ export default function InsightsPage() {
             variant="loading"
             title="시즌 이벤트 성과를 분석하고 있습니다"
             description="선택한 업종의 이벤트 전후 지표를 비교 중입니다."
+          />
+        ) : seasonError ? (
+          <StatePanel
+            variant="error"
+            title="시즌 이벤트 성과를 불러오지 못했습니다"
+            description="일시적으로 시즌 분석 데이터를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
           />
         ) : seasonality.length === 0 ? (
           <StatePanel

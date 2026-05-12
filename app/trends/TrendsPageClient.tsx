@@ -93,6 +93,11 @@ function buildParams(objectives: string[], industries: string[]) {
   return params.toString();
 }
 
+function toJsonOrThrow(response: Response) {
+  if (!response.ok) throw new Error('request_failed');
+  return response.json();
+}
+
 // 차트 내 업종 필터 컴포넌트
 function ChartIndustryFilter({
   availableIndustries,
@@ -135,14 +140,21 @@ export default function TrendsPage() {
   const [genderBreakdown, setGenderBreakdown] = useState<BreakdownRow[]>([]);
   const [ageBreakdown, setAgeBreakdown] = useState<BreakdownRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filtersError, setFiltersError] = useState(false);
+  const [trendError, setTrendError] = useState(false);
+  const [efficiencyError, setEfficiencyError] = useState(false);
+  const [genderError, setGenderError] = useState(false);
+  const [ageError, setAgeError] = useState(false);
 
   useEffect(() => {
     fetch('/api/filters')
-      .then((r) => r.json())
+      .then(toJsonOrThrow)
       .then((f) => {
+        setFiltersError(false);
         setAvailableIndustries(f.industries ?? []);
         setAvailableObjectives(f.objectives ?? []);
-      });
+      })
+      .catch(() => setFiltersError(true));
   }, []);
 
   // 월별 추이 데이터
@@ -151,9 +163,15 @@ export default function TrendsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch(`/api/trends?${buildParams(objectives, trendIndustries)}`)
-      .then((r) => r.json())
-      .then(setTrendData)
-      .catch(console.error)
+      .then(toJsonOrThrow)
+      .then((data) => {
+        setTrendError(false);
+        setTrendData(data);
+      })
+      .catch(() => {
+        setTrendData([]);
+        setTrendError(true);
+      })
       .finally(() => setLoading(false));
   }, [objectives, trendIndustries]);
 
@@ -162,25 +180,43 @@ export default function TrendsPage() {
     const params = new URLSearchParams();
     if (objectives.length > 0) params.set('objectives', objectives.join(','));
     fetch(`/api/breakdown?${params}`)
-      .then((r) => r.json())
-      .then((d) => setEfficiencyRanks(d.efficiencyRanks ?? []))
-      .catch(console.error);
+      .then(toJsonOrThrow)
+      .then((d) => {
+        setEfficiencyError(false);
+        setEfficiencyRanks(d.efficiencyRanks ?? []);
+      })
+      .catch(() => {
+        setEfficiencyRanks([]);
+        setEfficiencyError(true);
+      });
   }, [objectives]);
 
   // 성별 분포
   useEffect(() => {
     fetch(`/api/breakdown?${buildParams(objectives, genderIndustries)}`)
-      .then((r) => r.json())
-      .then((d) => setGenderBreakdown(d.byGender ?? []))
-      .catch(console.error);
+      .then(toJsonOrThrow)
+      .then((d) => {
+        setGenderError(false);
+        setGenderBreakdown(d.byGender ?? []);
+      })
+      .catch(() => {
+        setGenderBreakdown([]);
+        setGenderError(true);
+      });
   }, [objectives, genderIndustries]);
 
   // 연령대 분포
   useEffect(() => {
     fetch(`/api/breakdown?${buildParams(objectives, ageIndustries)}`)
-      .then((r) => r.json())
-      .then((d) => setAgeBreakdown(d.byAge ?? []))
-      .catch(console.error);
+      .then(toJsonOrThrow)
+      .then((d) => {
+        setAgeError(false);
+        setAgeBreakdown(d.byAge ?? []);
+      })
+      .catch(() => {
+        setAgeBreakdown([]);
+        setAgeError(true);
+      });
   }, [objectives, ageIndustries]);
 
   function selectObjective(value: string) {
@@ -225,6 +261,14 @@ export default function TrendsPage() {
 
       {/* 전역 필터: 캠페인 목표 + 지표 */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        {filtersError && (
+          <StatePanel
+            variant="error"
+            title="필터 정보를 불러오지 못했습니다"
+            description="기본 범위로 화면을 표시합니다. 잠시 후 새로고침하거나 운영 담당자에게 문의해 주세요."
+            className="mb-5 min-h-32"
+          />
+        )}
         <div className="flex flex-wrap gap-8 items-start">
 
           {/* 캠페인 목표 */}
@@ -274,6 +318,13 @@ export default function TrendsPage() {
       </div>
 
       {/* ── 업종별 효율 순위 Top 3 ── */}
+      {efficiencyError && (
+        <StatePanel
+          variant="error"
+          title="효율 순위를 불러오지 못했습니다"
+          description="업종별 순위 영역만 일시적으로 표시할 수 없습니다. 다른 차트는 가능한 범위에서 계속 표시됩니다."
+        />
+      )}
       {top3.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">업종별 효율 순위 Top 3</h2>
@@ -310,6 +361,13 @@ export default function TrendsPage() {
             variant="loading"
             title="월별 추이 데이터를 불러오고 있습니다"
             description="선택한 목표와 업종 필터를 기준으로 지표를 집계 중입니다."
+            className="h-64"
+          />
+        ) : trendError ? (
+          <StatePanel
+            variant="error"
+            title="월별 추이 데이터를 불러오지 못했습니다"
+            description="일시적으로 지표 연결을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
             className="h-64"
           />
         ) : trendChartData.length === 0 ? (
@@ -371,9 +429,11 @@ export default function TrendsPage() {
         </div>
         {genderChartData.length === 0 ? (
           <StatePanel
-            variant="empty"
-            title="성별 분포를 표시할 데이터가 아직 없습니다"
-            description="다른 업종을 선택하거나 전체 업종으로 되돌려 확인해 보세요."
+            variant={genderError ? 'error' : 'empty'}
+            title={genderError ? '성별 분포를 불러오지 못했습니다' : '성별 분포를 표시할 데이터가 아직 없습니다'}
+            description={genderError
+              ? '일시적으로 성별 비교 데이터를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+              : '다른 업종을 선택하거나 전체 업종으로 되돌려 확인해 보세요.'}
             className="h-48 mt-4"
           />
         ) : (
@@ -409,9 +469,11 @@ export default function TrendsPage() {
         </div>
         {ageChartData.length === 0 ? (
           <StatePanel
-            variant="empty"
-            title="연령대별 분포를 표시할 데이터가 아직 없습니다"
-            description="필터 범위를 넓히면 연령대 비교 차트가 표시될 수 있습니다."
+            variant={ageError ? 'error' : 'empty'}
+            title={ageError ? '연령대별 분포를 불러오지 못했습니다' : '연령대별 분포를 표시할 데이터가 아직 없습니다'}
+            description={ageError
+              ? '일시적으로 연령대 비교 데이터를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+              : '필터 범위를 넓히면 연령대 비교 차트가 표시될 수 있습니다.'}
             className="h-48 mt-4"
           />
         ) : (
