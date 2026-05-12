@@ -81,28 +81,28 @@ function getReport(reports: BenchmarkDryRunReport[], caseName: string): Benchmar
 
 function formatCurrencyBasis(report: BenchmarkDryRunReport): string {
   const previewCurrency = report.normalized_preview_sample[0]?.currency;
-  const currency = previewCurrency && previewCurrency !== 'missing' ? previewCurrency : 'requires reviewer confirmation';
-  return `${currency}, net basis, markup policy included`;
+  const currency = previewCurrency && previewCurrency !== 'missing' ? previewCurrency : '검토자 확인 필요';
+  return `${currency}, 순매체비 기준, 마크업 정책 포함`;
 }
 
 function formatAggregateMetric(preview: DerivedMetricPreview): string {
   const cpm = preview.aggregate_preview.cpm;
-  if (typeof cpm !== 'number') return 'calculation blocked';
+  if (typeof cpm !== 'number') return '계산 제한';
   return `CPM ${Math.round(cpm).toLocaleString('en-US')}`;
 }
 
 function baseBasis(report: BenchmarkDryRunReport, overrides: Partial<BenchmarkUiStateFixture['basis']> = {}): BenchmarkUiStateFixture['basis'] {
   return {
     platform: 'Meta',
-    objective: 'Traffic / link clicks',
+    objective: '트래픽 / 링크 클릭',
     metric: 'CPM',
     date_window: report.mapping_report.window_policy === 'long_term_trend'
-      ? 'Older than recent six-month benchmark window'
-      : 'Recent six-month benchmark window',
+      ? '최근 6개월 기준보다 오래된 기간'
+      : '최근 6개월 기준 기간',
     recent_data_policy: report.mapping_report.excluded_from_default_benchmark
-      ? 'Excluded from default benchmark'
-      : 'Eligible for default recent benchmark review',
-    sample_or_coverage: `${report.sheet_summary[0]?.estimated_rows ?? 0} synthetic aggregate rows`,
+      ? '기본 벤치마크 기준에서 제외'
+      : '최근 벤치마크 검토 가능',
+    sample_or_coverage: `예시 집계 행 ${report.sheet_summary[0]?.estimated_rows ?? 0}건`,
     currency_basis: formatCurrencyBasis(report),
     mock_status: 'synthetic_local_fixture',
     ...overrides,
@@ -125,182 +125,182 @@ export function buildForesightBenchmarkUiStateFixtures(): BenchmarkUiStateFixtur
     {
       state: 'benchmark-ready',
       source_case: good.case_name,
-      status_label: 'Ready for reviewer approval',
+      status_label: '검토자 승인 대기',
       primary_surface: 'kpi_card',
       metric: {
-        label: 'Synthetic benchmark CPM',
+        label: '예시 벤치마크 CPM',
         value_label: formatAggregateMetric(good.derived_metric_preview),
-        confidence_label: 'High confidence fixture',
-        basis_label: 'Recent aggregate mock, explicit KRW/net basis',
+        confidence_label: '신뢰도 높음',
+        basis_label: '최근 집계 예시, KRW 순매체비 기준 명시',
       },
       basis: baseBasis(good),
       visible_copy: [
-        'Benchmark basis is visible with the metric.',
-        'Synthetic fixture only.',
+        '지표와 함께 벤치마크 기준을 표시합니다.',
+        '로컬 검증용 예시 데이터입니다.',
       ],
       reviewer_actions: reviewerActionLabels(good),
       redaction_expectations: [
-        'No campaign, account, advertiser, or row-level values are displayed.',
+        '캠페인, 계정, 광고주, 행 단위 값은 표시하지 않습니다.',
       ],
       blocked_outputs: [
-        'benchmark import',
-        'DB promotion',
-        'LLM prompt payload',
+        '벤치마크 가져오기',
+        '데이터베이스 반영',
+        '외부 생성 요청',
       ],
     },
     {
       state: 'low-confidence',
       source_case: 'synthetic_low_confidence_overlay',
-      status_label: 'Low confidence',
+      status_label: '신뢰도 낮음',
       primary_surface: 'forecast_panel',
       metric: {
-        label: 'Synthetic forecast CPM',
-        value_label: 'CPM range withheld',
-        confidence_label: 'Low confidence: low sample coverage',
-        basis_label: 'Synthetic coverage warning near metric',
+        label: '예시 예측 CPM',
+        value_label: 'CPM 범위 표시 제한',
+        confidence_label: '신뢰도 낮음: 표본 범위 부족',
+        basis_label: '지표 옆 표본 범위 주의 안내',
       },
       basis: baseBasis(good, {
-        sample_or_coverage: 'Low synthetic coverage',
+        sample_or_coverage: '예시 표본 범위 부족',
       }),
       visible_copy: [
-        'Benchmark basis is limited for this scope.',
-        'Low confidence reason is shown before report/export action.',
+        '이 범위의 벤치마크 기준은 제한적입니다.',
+        '보고서 또는 내보내기 전에 낮은 신뢰도 사유를 표시합니다.',
       ],
       reviewer_actions: ['review_basis_before_export'],
       redaction_expectations: [
-        'No real volume, spend, conversion, revenue, or private benchmark value is present.',
+        '실제 볼륨, 지출, 전환, 매출, 비공개 벤치마크 값은 표시하지 않습니다.',
       ],
       blocked_outputs: [
-        'overclaiming forecast copy',
-        'report export without confidence reason',
+        '과도한 예측 확정 표현',
+        '신뢰도 사유 없는 보고서 내보내기',
       ],
     },
     {
       state: 'long-term-trend-only',
       source_case: longTerm.case_name,
-      status_label: 'Long-term trend reference only',
+      status_label: '장기 추세 참고 전용',
       primary_surface: 'trend_table',
       metric: {
-        label: 'Synthetic historical CPM',
+        label: '예시 과거 CPM',
         value_label: formatAggregateMetric(longTerm.derived_metric_preview),
-        confidence_label: 'Trend-only fixture',
-        basis_label: 'Older period excluded from default benchmark',
+        confidence_label: '추세 참고 전용',
+        basis_label: '기본 벤치마크에서 제외된 과거 기간',
       },
       basis: baseBasis(longTerm),
       visible_copy: [
-        'Long-term trend reference only.',
-        'Recent benchmark and trend-only data are separated.',
+        '장기 추세 참고용으로만 사용합니다.',
+        '최근 벤치마크와 추세 참고 데이터는 분리해 표시합니다.',
       ],
       reviewer_actions: reviewerActionLabels(longTerm),
       redaction_expectations: [
-        'No stale data is labeled as current benchmark evidence.',
+        '오래된 데이터를 현재 벤치마크 근거로 표시하지 않습니다.',
       ],
       blocked_outputs: [
-        'default benchmark use',
-        'mixed recent and stale benchmark card',
+        '기본 벤치마크 적용',
+        '최근 기준과 오래된 기준을 섞은 카드',
       ],
     },
     {
       state: 'validation-error',
       source_case: missingSpend.case_name,
-      status_label: 'Validation error',
+      status_label: '검증 오류',
       primary_surface: 'upload_mapping_panel',
       basis: baseBasis(missingSpend, {
         metric: 'CPM / CPC',
-        sample_or_coverage: 'Required spend field missing',
+        sample_or_coverage: '필수 지출 항목 누락',
       }),
       visible_copy: [
-        'Missing required field: spend.',
-        'Request corrected metadata or a new synthetic export.',
+        '필수 항목인 지출 값이 누락되었습니다.',
+        '수정된 메타데이터 또는 새 예시 내보내기를 요청하세요.',
       ],
       reviewer_actions: reviewerActionLabels(missingSpend),
       redaction_expectations: [
-        'Only canonical field names and remediation are shown.',
+        '표준 필드명과 조치 안내만 표시합니다.',
       ],
       blocked_outputs: [
-        'storage',
-        'benchmark promotion',
-        'model use',
-        'report-ready output',
+        '저장',
+        '벤치마크 반영',
+        '모델 사용',
+        '보고서 표시',
       ],
     },
     {
       state: 'security-review-required',
       source_case: security.case_name,
-      status_label: 'Security review required',
+      status_label: '보안 검토 필요',
       primary_surface: 'blocked_promotion_panel',
       basis: baseBasis(security, {
-        metric: 'All metrics blocked',
-        sample_or_coverage: 'Guarded value redacted',
+        metric: '전체 지표 제한',
+        sample_or_coverage: '보호 대상 값 마스킹됨',
       }),
       visible_copy: [
-        'Security review is required before promotion.',
-        'Guarded source value was redacted and blocked.',
+        '반영 전 보안 검토가 필요합니다.',
+        '보호 대상 원천 값은 마스킹되어 제한되었습니다.',
       ],
       reviewer_actions: reviewerActionLabels(security),
       redaction_expectations: [
-        'No URL, credential-like value, or raw row is displayed.',
+        'URL, 인증정보 유사 값, 원본 행은 표시하지 않습니다.',
       ],
       blocked_outputs: [
-        'normalized preview',
-        'benchmark promotion',
-        'report export',
-        'LLM prompt payload',
+        '정규화 미리보기',
+        '벤치마크 반영',
+        '보고서 내보내기',
+        '외부 생성 요청',
       ],
     },
     {
       state: 'raw-identifier-risk',
       source_case: identifiers.case_name,
-      status_label: 'Raw identifier risk',
+      status_label: '원본 식별자 위험',
       primary_surface: 'report_preview',
       metric: {
-        label: 'Synthetic aggregate CPM',
+        label: '예시 집계 CPM',
         value_label: formatAggregateMetric(identifiers.derived_metric_preview),
-        confidence_label: 'Aggregate-only fixture',
-        basis_label: 'Identifiers excluded from report-ready output',
+        confidence_label: '집계 기준만 표시',
+        basis_label: '보고서 표시에서 식별자 제외',
       },
       basis: baseBasis(identifiers, {
-        sample_or_coverage: 'Identifier columns detected; aggregate output only',
+        sample_or_coverage: '식별자 열 감지, 집계 출력만 허용',
       }),
       visible_copy: [
-        'Raw identifiers were excluded from report-ready output.',
-        'Aggregate-only confirmation is required.',
+        '원본 식별자는 보고서 표시에서 제외되었습니다.',
+        '집계 기준 표시만 가능하다는 확인이 필요합니다.',
       ],
       reviewer_actions: reviewerActionLabels(identifiers),
       redaction_expectations: [
-        'Account, campaign, ad set, ad, and advertiser identifiers stay out of UI copy.',
+        '계정, 캠페인, 광고 세트, 광고, 광고주 식별자는 UI 문구에 표시하지 않습니다.',
       ],
       blocked_outputs: [
-        'raw identifier display',
-        'LLM prompt payload with identifiers',
+        '원본 식별자 표시',
+        '식별자를 포함한 외부 생성 요청',
       ],
     },
     {
       state: 'no-benchmark-data',
       source_case: 'synthetic_empty_scope',
-      status_label: 'No usable benchmark data',
+      status_label: '사용 가능한 벤치마크 없음',
       primary_surface: 'empty_benchmark_table',
       basis: {
         platform: 'Meta',
-        objective: 'Synthetic narrow objective',
+        objective: '좁은 예시 목표',
         metric: 'CPM',
-        date_window: 'Recent six-month benchmark window checked',
-        recent_data_policy: 'No default benchmark evidence available',
-        sample_or_coverage: '0 synthetic aggregate rows',
-        currency_basis: 'Not applicable until data exists',
+        date_window: '최근 6개월 기준 기간 확인',
+        recent_data_policy: '기본 벤치마크 근거 없음',
+        sample_or_coverage: '예시 집계 행 0건',
+        currency_basis: '데이터 확보 전 적용 불가',
         mock_status: 'synthetic_local_fixture',
       },
       visible_copy: [
-        'No usable aggregate benchmark exists for this selection.',
-        'Adjust filters or request a reviewed aggregate benchmark source.',
+        '이 선택 조건에는 사용할 수 있는 집계 벤치마크가 없습니다.',
+        '필터를 조정하거나 검토된 집계 벤치마크 소스를 요청하세요.',
       ],
       reviewer_actions: ['adjust_filters_or_request_reviewed_source'],
       redaction_expectations: [
-        'No forecast is fabricated from an empty scope.',
+        '빈 범위에서 예측을 임의 생성하지 않습니다.',
       ],
       blocked_outputs: [
-        'forecast fabrication',
-        'empty source shell shown as evidence',
+        '예측 임의 생성',
+        '빈 소스를 근거처럼 표시',
       ],
     },
   ];

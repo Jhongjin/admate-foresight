@@ -16,53 +16,53 @@ function escapeRegExp(value: string): string {
 
 const REQUIRED_RENDER_CONCEPTS: Record<BenchmarkTrustState, RegExp[]> = {
   'benchmark-ready': [
-    /synthetic benchmark cpm/i,
-    /ready for reviewer approval/i,
-    /high confidence/i,
-    /recent six-month benchmark window/i,
-    /synthetic local fixture only/i,
-    /benchmark import/i,
-    /db promotion/i,
+    /예시 벤치마크 cpm/i,
+    /검토자 승인 대기/i,
+    /신뢰도 높음/i,
+    /최근 6개월 기준 기간/i,
+    /로컬 검증용 예시 데이터/i,
+    /벤치마크 가져오기/i,
+    /데이터베이스 반영/i,
   ],
   'low-confidence': [
-    /low confidence/i,
-    /low sample coverage/i,
-    /before report\/export action/i,
-    /overclaiming forecast copy/i,
+    /신뢰도 낮음/i,
+    /표본 범위 부족/i,
+    /보고서 또는 내보내기 전에 낮은 신뢰도 사유/i,
+    /과도한 예측 확정 표현/i,
   ],
   'long-term-trend-only': [
-    /long-term trend reference only/i,
-    /older than recent six-month benchmark window/i,
-    /excluded from default benchmark/i,
-    /recent benchmark and trend-only data are separated/i,
+    /장기 추세 참고 전용/i,
+    /최근 6개월 기준보다 오래된 기간/i,
+    /기본 벤치마크 기준에서 제외/i,
+    /최근 벤치마크와 추세 참고 데이터는 분리/i,
   ],
   'validation-error': [
-    /validation error/i,
-    /missing required field: spend/i,
-    /storage/i,
-    /model use/i,
-    /report-ready output/i,
+    /검증 오류/i,
+    /필수 항목인 지출 값이 누락/i,
+    /저장/i,
+    /모델 사용/i,
+    /보고서 표시/i,
   ],
   'security-review-required': [
-    /security review required/i,
-    /before promotion/i,
-    /normalized preview/i,
-    /report export/i,
-    /llm prompt payload/i,
+    /보안 검토 필요/i,
+    /반영 전 보안 검토/i,
+    /정규화 미리보기/i,
+    /보고서 내보내기/i,
+    /외부 생성 요청/i,
   ],
   'raw-identifier-risk': [
-    /raw identifier risk/i,
-    /aggregate-only/i,
-    /raw identifiers were excluded/i,
-    /raw identifier display/i,
-    /llm prompt payload with identifiers/i,
+    /원본 식별자 위험/i,
+    /집계 기준만 표시/i,
+    /원본 식별자는 보고서 표시에서 제외/i,
+    /원본 식별자 표시/i,
+    /식별자를 포함한 외부 생성 요청/i,
   ],
   'no-benchmark-data': [
-    /no usable benchmark data/i,
-    /no usable aggregate benchmark exists/i,
-    /0 synthetic aggregate rows/i,
-    /forecast fabrication/i,
-    /empty source shell shown as evidence/i,
+    /사용 가능한 벤치마크 없음/i,
+    /사용할 수 있는 집계 벤치마크가 없습니다/i,
+    /예시 집계 행 0건/i,
+    /예측 임의 생성/i,
+    /빈 소스를 근거처럼 표시/i,
   ],
 };
 
@@ -124,22 +124,22 @@ describe('benchmark UI state rendering adapter', () => {
 
       const article = screen.getByRole('article', { name: fixture.state });
       const card = within(article).getByRole('region', {
-        name: new RegExp(`${escapeRegExp(viewModel.metricLabel)} benchmark trust details`, 'i'),
+        name: new RegExp(`${escapeRegExp(viewModel.metricLabel)} 벤치마크 신뢰도 세부 정보`, 'i'),
       });
 
       expect(within(card).getByRole('status')).toHaveAccessibleName(
-        `Benchmark status: ${viewModel.statusLabel}`,
+        `벤치마크 상태: ${viewModel.statusLabel}`,
       );
 
       const basis = card.querySelector('dl');
       expect(basis).not.toBeNull();
       expect(basis).toHaveAccessibleName(
-        `${viewModel.metricLabel} benchmark basis`,
+        `${viewModel.metricLabel} 벤치마크 기준`,
       );
       expect(within(basis as HTMLElement).getAllByRole('term')).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ textContent: 'Platform' }),
-          expect.objectContaining({ textContent: 'Coverage' }),
+          expect.objectContaining({ textContent: '플랫폼' }),
+          expect.objectContaining({ textContent: '표본 범위' }),
         ]),
       );
       expect(within(basis as HTMLElement).getAllByRole('definition')).toEqual(
@@ -150,7 +150,7 @@ describe('benchmark UI state rendering adapter', () => {
       );
 
       const blockedOutputs = within(card).getByRole('list', {
-        name: new RegExp(`${escapeRegExp(viewModel.metricLabel)} blocked benchmark outputs`, 'i'),
+        name: new RegExp(`${escapeRegExp(viewModel.metricLabel)} 제한된 벤치마크 출력`, 'i'),
       });
 
       for (const output of viewModel.blockedOutputs) {
@@ -159,23 +159,23 @@ describe('benchmark UI state rendering adapter', () => {
     },
   );
 
-  it('keeps long synthetic labels and blocked outputs wrapped inside named regions', () => {
-    const longContextLabel = 'synthetic-local-fixture-only-with-a-deliberately-long-context-label-that-must-wrap-without-overflow';
-    const longBlockedOutput = 'llm-prompt-payload-with-a-deliberately-long-synthetic-output-name-that-must-wrap-cleanly';
+  it('keeps long synthetic labels and 제한 출력 문구 wrapped inside named regions', () => {
+    const longContextLabel = '로컬-검증용-예시-데이터-라벨이-아주-길어도-카드-밖으로-넘치지-않아야-합니다';
+    const longBlockedOutput = '식별자를-포함한-외부-생성-요청-같은-긴-제한-출력-문구도-줄바꿈되어야-합니다';
 
     render(
       <KPICard
-        title="Synthetic benchmark CPM"
+        title="예시 벤치마크 CPM"
         value="CPM 9,750"
         icon="📊"
-        benchmarkStatusLabel="Security review required"
+        benchmarkStatusLabel="보안 검토 필요"
         benchmarkBasisLines={[
-          'Platform: Meta',
-          'Coverage: Identifier columns detected; aggregate output only',
+          '플랫폼: Meta',
+          '표본 범위: 식별자 열 감지, 집계 출력만 허용',
         ]}
-        benchmarkConfidenceLabel="Aggregate-only fixture"
+        benchmarkConfidenceLabel="집계 기준만 표시"
         benchmarkVisibleCopy={[
-          'Raw identifiers were excluded from report-ready output.',
+          '원본 식별자는 보고서 표시에서 제외되었습니다.',
         ]}
         benchmarkSyntheticContextLabel={longContextLabel}
         benchmarkBlockedOutputs={[longBlockedOutput]}
@@ -183,11 +183,11 @@ describe('benchmark UI state rendering adapter', () => {
     );
 
     const card = screen.getByRole('region', {
-      name: /synthetic benchmark cpm benchmark trust details/i,
+      name: /예시 벤치마크 cpm 벤치마크 신뢰도 세부 정보/i,
     });
     const context = screen.getByText(longContextLabel);
     const blockedOutputs = within(card).getByRole('list', {
-      name: /synthetic benchmark cpm blocked benchmark outputs/i,
+      name: /예시 벤치마크 cpm 제한된 벤치마크 출력/i,
     });
 
     expect(context).toHaveClass('break-words', 'whitespace-normal');

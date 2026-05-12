@@ -8,37 +8,37 @@ import { buildBenchmarkRouteOutputGuardResults } from '../../lib/benchmark/route
 
 const REQUIRED_BLOCKED_OUTPUTS: Record<BenchmarkTrustState, string[]> = {
   'benchmark-ready': [
-    'benchmark import',
-    'DB promotion',
-    'LLM prompt payload',
+    '벤치마크 가져오기',
+    '데이터베이스 반영',
+    '외부 생성 요청',
   ],
   'low-confidence': [
-    'overclaiming forecast copy',
-    'report export without confidence reason',
+    '과도한 예측 확정 표현',
+    '신뢰도 사유 없는 보고서 내보내기',
   ],
   'long-term-trend-only': [
-    'default benchmark use',
-    'mixed recent and stale benchmark card',
+    '기본 벤치마크 적용',
+    '최근 기준과 오래된 기준을 섞은 카드',
   ],
   'validation-error': [
-    'storage',
-    'benchmark promotion',
-    'model use',
-    'report-ready output',
+    '저장',
+    '벤치마크 반영',
+    '모델 사용',
+    '보고서 표시',
   ],
   'security-review-required': [
-    'normalized preview',
-    'benchmark promotion',
-    'report export',
-    'LLM prompt payload',
+    '정규화 미리보기',
+    '벤치마크 반영',
+    '보고서 내보내기',
+    '외부 생성 요청',
   ],
   'raw-identifier-risk': [
-    'raw identifier display',
-    'LLM prompt payload with identifiers',
+    '원본 식별자 표시',
+    '식별자를 포함한 외부 생성 요청',
   ],
   'no-benchmark-data': [
-    'forecast fabrication',
-    'empty source shell shown as evidence',
+    '예측 임의 생성',
+    '빈 소스를 근거처럼 표시',
   ],
 };
 
@@ -71,7 +71,7 @@ describe('benchmark route output guards', () => {
       expect(result.promotionReady).toBe(false);
       expect(result.unsafeFindings).toEqual([]);
       expect(result.safeOutput.syntheticContextLabel).toBe(
-        'synthetic local fixture only',
+        '로컬 검증용 예시 데이터',
       );
 
       for (const pattern of FORBIDDEN_RENDERED_OUTPUTS) {
@@ -100,10 +100,10 @@ describe('benchmark route output guards', () => {
     );
 
     expect(results.get('security-review-required')?.safeOutput.blockedOutputs)
-      .toEqual(expect.arrayContaining(['normalized preview', 'LLM prompt payload']));
+      .toEqual(expect.arrayContaining(['정규화 미리보기', '외부 생성 요청']));
     expect(results.get('raw-identifier-risk')?.safeOutput.blockedOutputs)
-      .toEqual(expect.arrayContaining(['raw identifier display']));
+      .toEqual(expect.arrayContaining(['원본 식별자 표시']));
     expect(results.get('no-benchmark-data')?.safeOutput.blockedOutputs)
-      .toEqual(expect.arrayContaining(['forecast fabrication']));
+      .toEqual(expect.arrayContaining(['예측 임의 생성']));
   });
 });

@@ -36,7 +36,7 @@ function splitBenchmarkBasisLine(line: string) {
   const separatorIndex = line.indexOf(':');
 
   if (separatorIndex === -1) {
-    return { term: 'Basis', description: line };
+    return { term: '기준', description: line };
   }
 
   return {
@@ -128,23 +128,23 @@ export default function KPICard({
 
       {hasBenchmarkDisplay && (
         <section
-          aria-label={`${title} benchmark trust details`}
+          aria-label={`${title} 벤치마크 신뢰도 세부 정보`}
           className="min-w-0 border-t border-gray-100 pt-3 space-y-2"
         >
           <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
             {benchmarkStatusLabel && (
               <p
                 role="status"
-                aria-label={`Benchmark status: ${benchmarkStatusLabel}`}
+                aria-label={`벤치마크 상태: ${benchmarkStatusLabel}`}
                 className="min-w-0 flex-1 text-[11px] font-semibold text-[#111827] leading-snug break-words"
               >
-                <span className="sr-only">Benchmark status: </span>
+                <span className="sr-only">벤치마크 상태: </span>
                 {benchmarkStatusLabel}
               </p>
             )}
             {benchmarkSyntheticContextLabel && (
               <span className="max-w-full whitespace-normal break-words text-[10px] font-medium text-[#4F46E5] bg-indigo-50 px-1.5 py-0.5 rounded-md">
-                <span className="sr-only">Benchmark context: </span>
+                <span className="sr-only">벤치마크 기준: </span>
                 {benchmarkSyntheticContextLabel}
               </span>
             )}
@@ -152,16 +152,16 @@ export default function KPICard({
 
           {benchmarkConfidenceLabel && (
             <p
-              aria-label={`Benchmark confidence: ${benchmarkConfidenceLabel}`}
+              aria-label={`벤치마크 신뢰도: ${benchmarkConfidenceLabel}`}
               className="text-[11px] text-[#4B5563] leading-snug break-words"
             >
-              <span className="sr-only">Benchmark confidence: </span>
+              <span className="sr-only">벤치마크 신뢰도: </span>
               {benchmarkConfidenceLabel}
             </p>
           )}
 
           {benchmarkVisibleCopy.length > 0 && (
-            <ul aria-label={`${title} benchmark notes`} className="space-y-1">
+            <ul aria-label={`${title} 벤치마크 안내`} className="space-y-1">
               {benchmarkVisibleCopy.map((line) => (
                 <li key={line} className="text-[11px] text-[#4B5563] leading-snug break-words">
                   {line}
@@ -171,7 +171,7 @@ export default function KPICard({
           )}
 
           {benchmarkBasisLines.length > 0 && (
-            <dl aria-label={`${title} benchmark basis`} className="grid grid-cols-1 gap-1">
+            <dl aria-label={`${title} 벤치마크 기준`} className="grid grid-cols-1 gap-1">
               {benchmarkBasisLines.map((line) => {
                 const { term, description } = splitBenchmarkBasisLine(line);
 
@@ -187,9 +187,9 @@ export default function KPICard({
 
           {benchmarkBlockedOutputs.length > 0 && (
             <div className="text-[11px] text-[#991B1B] leading-snug">
-              <p className="font-medium">Blocked outputs</p>
+              <p className="font-medium">제한된 출력</p>
               <ul
-                aria-label={`${title} blocked benchmark outputs`}
+                aria-label={`${title} 제한된 벤치마크 출력`}
                 className="mt-1 list-disc space-y-1 pl-4"
               >
                 {benchmarkBlockedOutputs.map((output) => (
