@@ -354,6 +354,56 @@ export default function SimulatorPage() {
   // 기간 스케일 팩터 (월 기준 예측값 → 캠페인 기간 환산)
   const durationFactor = campaignDays / 30;
   const totalReach = result ? Math.round(result.reach * durationFactor) : 0;
+  const selectedTargetCount = industries.length + genders.length + ageRanges.length + objectives.length;
+  const marketSelected = result?.marketAvg?.industrySelected === true;
+  const marketSampleCount = result?.marketAvg?.count ?? 0;
+  const matchedSampleCount = result?.matchedCount ?? 0;
+  const readinessTone = loading
+    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+    : !isCalculated
+      ? 'border-gray-200 bg-gray-50 text-gray-600'
+      : result
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+        : 'border-amber-200 bg-amber-50 text-amber-700';
+  const readinessLabel = loading
+    ? '계산 중'
+    : !isCalculated
+      ? '설정 대기'
+      : result
+        ? '예측 준비'
+        : '결과 대기';
+  const benchmarkLabel = !isCalculated
+    ? '시뮬레이션 후 확인'
+    : loading
+      ? '벤치마크 확인 중'
+      : marketSelected
+        ? '업종 벤치마크 사용'
+        : '전체 기준 사용';
+  const benchmarkDetail = !isCalculated
+    ? '업종을 선택하면 평균 비교가 더 선명해집니다.'
+    : marketSelected
+      ? `업종 표본 ${marketSampleCount.toLocaleString()}건 · 매칭 ${matchedSampleCount.toLocaleString()}건`
+      : matchedSampleCount > 0
+        ? `매칭 ${matchedSampleCount.toLocaleString()}건 · 업종 평균 미선택`
+        : '표시 가능한 벤치마크가 아직 없습니다.';
+  const actionHint = loading
+    ? '예측, 구간, 모델 비교를 계산하고 있습니다.'
+    : !isCalculated
+      ? '조건을 정한 뒤 시뮬레이션을 실행하세요.'
+      : result
+        ? '결과를 검토하고 필요하면 예산/타겟을 조정하세요.'
+        : '조건을 넓히거나 다시 실행해 결과를 확인하세요.';
+  const forecastPreview = result
+    ? [
+        { label: '예상 도달', value: `${totalReach.toLocaleString()}명` },
+        { label: '예상 CPM', value: `₩${(applySeasonBoost ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` },
+        { label: '빈도', value: result.frequency > 0 ? result.frequency.toFixed(2) : '-' },
+      ]
+    : [
+        { label: '예상 도달', value: loading ? '계산 중' : '-' },
+        { label: '예상 CPM', value: loading ? '계산 중' : '-' },
+        { label: '빈도', value: loading ? '계산 중' : '-' },
+      ];
 
   // ── 성과 확장 잠재력 ────────────────────────────────────────
   // 조건: 빈도 < 1.5 AND 현재도달 / rangeData 최대도달 ≤ 30%
@@ -428,16 +478,45 @@ export default function SimulatorPage() {
   }, [result, rangeData, industryLabel, genderLabel, ageLabel, budget]);
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">성과 예측 시뮬레이터</h1>
-        <p className="text-sm text-gray-500 mt-1">캠페인 조건을 입력하면 예상 성과를 실시간으로 예측합니다.</p>
-      </div>
+    <div className="space-y-6">
+      {/* Planning console header */}
+      <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${readinessTone}`}>
+                {readinessLabel}
+              </span>
+              <span className="inline-flex rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-500">
+                {campaignDays}일 · 일 {dailyBudget.toLocaleString()}원
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">Foresight 계획 콘솔</h1>
+            <p className="mt-2 text-sm leading-6 text-gray-500">
+              예산, 기간, 타겟을 한 번에 조정하고 예측 신뢰도와 다음 액션을 확인합니다.
+            </p>
+          </div>
+          <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3 lg:w-[460px]">
+            {forecastPreview.map((item) => (
+              <div key={item.label} className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                <p className="text-[11px] font-medium text-gray-400">{item.label}</p>
+                <p className="mt-1 truncate text-lg font-bold text-gray-950 num">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
       {/* Campaign Settings */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">캠페인 설정</h2>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-800">계획 설정</h2>
+            <p className="text-xs text-gray-400">매체 플래닝에 필요한 최소 조건을 먼저 고정합니다.</p>
+          </div>
+          <span className="text-xs font-medium text-gray-400">선택 조건 {selectedTargetCount}개</span>
+        </div>
         <div className="space-y-4">
 
           {/* 1. 캠페인 예산 */}
@@ -678,37 +757,68 @@ export default function SimulatorPage() {
         </div>
       </div>
 
-      {/* Condition Tags */}
-      <div>
-        <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wide">현재 적용 조건</p>
-        <ConditionTags tags={tags} />
+      <aside className="space-y-4">
+        <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-800">준비 상태</h2>
+              <p className="mt-1 text-xs text-gray-400">실행 전후 기준을 같은 자리에서 확인합니다.</p>
+            </div>
+            {loading && <div className="h-4 w-4 rounded-full border-2 border-indigo-100 border-t-indigo-600 animate-spin" />}
+          </div>
+          <div className="mt-4 grid gap-2">
+            <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+              <p className="text-[11px] font-semibold text-gray-400">벤치마크</p>
+              <p className="mt-1 text-sm font-bold text-gray-900">{benchmarkLabel}</p>
+              <p className="mt-1 text-xs leading-5 text-gray-500">{benchmarkDetail}</p>
+            </div>
+            <div className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+              <p className="text-[11px] font-semibold text-gray-400">현재 플랜</p>
+              <p className="mt-1 text-sm font-bold text-gray-900">총 ₩{budget.toLocaleString()}</p>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                {durationLabel} 운영 · 일 평균 ₩{dailyBudget.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-gray-800">다음 액션</h2>
+          <p className="mt-1 text-xs leading-5 text-gray-500">{actionHint}</p>
+          <button
+            onClick={handleStartSimulation}
+            disabled={loading}
+            className="mt-4 flex min-h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-sm shadow-indigo-100 transition-colors hover:bg-indigo-700 active:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? (
+              <>
+                <div className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                예측 계산 중
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {isCalculated ? '다시 시뮬레이션' : '시뮬레이션 시작'}
+              </>
+            )}
+          </button>
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">현재 적용 조건</p>
+            <ConditionTags tags={tags} />
+          </div>
+        </section>
+      </aside>
       </div>
 
-      {/* 시뮬레이션 START 버튼 */}
-      <div className="flex flex-col items-center gap-3 py-2">
-        <button
-          onClick={handleStartSimulation}
-          disabled={loading}
-          className="w-full max-w-sm flex items-center justify-center gap-2.5 px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold text-base shadow-lg shadow-indigo-200 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {loading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              예측 계산 중...
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              {isCalculated ? '다시 시뮬레이션' : '시뮬레이션 시작'}
-            </>
-          )}
-        </button>
-        {!isCalculated && (
-          <p className="text-xs text-gray-400">조건을 입력하고 버튼을 눌러주세요</p>
-        )}
-      </div>
+      {!isCalculated && !loading && (
+        <StatePanel
+          variant="empty"
+          title="아직 예측 결과가 없습니다"
+          description="좌측 조건을 확인한 뒤 시뮬레이션을 시작하면 KPI, 벤치마크, 예산 곡선이 표시됩니다."
+        />
+      )}
 
       {/* 결과 영역 (isCalculated 이후 노출) */}
       {isCalculated && (
