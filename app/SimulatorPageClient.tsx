@@ -548,6 +548,36 @@ export default function SimulatorPage() {
         ];
       })()
     : [];
+  const decisionGateRows = [
+    {
+      label: 'Benchmark scope',
+      status: marketSelected ? 'Industry matched' : isCalculated ? 'General baseline' : 'Awaiting run',
+      detail: marketSelected
+        ? `${marketSampleCount.toLocaleString()}건 표본`
+        : isCalculated
+          ? '업종 평균 미선택'
+          : '시뮬레이션 후 확정',
+      tone: marketSelected ? 'ok' : isCalculated ? 'watch' : 'idle',
+    },
+    {
+      label: 'Forecast confidence',
+      status: confidenceScore == null ? 'Not scored' : confidenceScore >= 66 ? 'Reviewable' : 'Needs basis',
+      detail: confidenceScore == null ? '계산 전' : `${confidenceScore}% · ${confidenceLabel}`,
+      tone: confidenceScore == null ? 'idle' : confidenceScore >= 66 ? 'ok' : 'watch',
+    },
+    {
+      label: 'Delivery pressure',
+      status: result?.saturationWarning ? 'Saturation watch' : result ? 'In range' : 'Not measured',
+      detail: result ? `빈도 ${result.frequency > 0 ? result.frequency.toFixed(2) : '-'}` : '결과 대기',
+      tone: result?.saturationWarning ? 'risk' : result ? 'ok' : 'idle',
+    },
+    {
+      label: 'Scenario range',
+      status: chartData.length > 0 ? `${chartData.length} budget rows` : rangeLoading ? 'Calculating' : 'No range yet',
+      detail: chartData.length > 0 ? '곡선/표 동시 검토 가능' : '예산 구간 대기',
+      tone: chartData.length > 0 ? 'ok' : rangeLoading ? 'watch' : 'idle',
+    },
+  ];
 
   const exportToExcel = useCallback(async () => {
     if (!result) return;
@@ -952,6 +982,50 @@ export default function SimulatorPage() {
                     <div key={check.label} className="flex items-center justify-between gap-3 rounded-md bg-[#f7faf8] px-3 py-2">
                       <span className="text-xs font-medium text-slate-500">{check.label}</span>
                       <span className="truncate text-right text-xs font-semibold text-slate-950">{check.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className="rounded-md border border-stone-200 bg-[#fbfaf6] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Media Plan Gate</p>
+                    <h2 className="mt-1 text-sm font-semibold text-slate-950">집행 전 검토 신호</h2>
+                  </div>
+                  <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] font-semibold text-stone-500">
+                    planner control
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-2">
+                  {decisionGateRows.map((row) => (
+                    <div
+                      key={row.label}
+                      className={`rounded-md border px-3 py-2 ${
+                        row.tone === 'ok'
+                          ? 'border-emerald-100 bg-emerald-50/70'
+                          : row.tone === 'watch'
+                            ? 'border-amber-100 bg-amber-50/70'
+                            : row.tone === 'risk'
+                              ? 'border-red-100 bg-red-50/70'
+                              : 'border-slate-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500">{row.label}</p>
+                        <span className={`shrink-0 text-[11px] font-bold ${
+                          row.tone === 'ok'
+                            ? 'text-emerald-700'
+                            : row.tone === 'watch'
+                              ? 'text-amber-700'
+                              : row.tone === 'risk'
+                                ? 'text-red-600'
+                                : 'text-slate-500'
+                        }`}>
+                          {row.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-snug text-slate-500">{row.detail}</p>
                     </div>
                   ))}
                 </div>
