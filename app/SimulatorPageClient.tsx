@@ -460,11 +460,23 @@ export default function SimulatorPage() {
     { label: '벤치마크', value: benchmarkLabel },
     { label: '신뢰도', value: confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}` },
   ];
+  const planningBasis = [
+    { label: 'Benchmark window', value: '최근 6개월', detail: benchmarkLabel },
+    { label: 'Currency basis', value: 'KRW · Net', detail: 'VAT/수수료 제외 매체비 기준' },
+    { label: 'Adjustment rule', value: '보수적 보정', detail: '성수기·포화·CPC 압력은 별도 배지로 표시' },
+    {
+      label: 'Sample match',
+      value: marketSelected ? `${matchedSampleCount}/${marketSampleCount || '-'}` : `${marketSampleCount || '-'}건`,
+      detail: marketSelected ? '선택 업종 매칭 표본' : '업종 전체 벤치마크',
+    },
+    { label: 'Active filters', value: `${selectedTargetCount}개`, detail: `${objectiveLabel} · ${genderLabel} · ${ageLabel}` },
+    { label: 'Planning use', value: 'Scenario only', detail: '확정 성과가 아닌 조건별 예상 범위' },
+  ];
   const cockpitTimeline = [
     { label: 'Brief', active: true },
     { label: 'Forecast', active: isCalculated || loading },
     { label: 'Optimize', active: Boolean(result) },
-      ];
+  ];
 
   // ── 성과 확장 잠재력 ────────────────────────────────────────
   // 조건: 빈도 < 1.5 AND 현재도달 / rangeData 최대도달 ≤ 30%
@@ -540,29 +552,29 @@ export default function SimulatorPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm">
-        <div className="border-b border-slate-800 bg-[#13201e] px-5 py-4 text-white sm:px-6">
+      <section className="overflow-hidden rounded-md border border-stone-300 bg-white shadow-sm">
+        <div className="border-b border-stone-200 bg-[#f6f8f1] px-5 py-4 text-slate-950 sm:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${readinessTone}`}>
                   {readinessLabel}
                 </span>
-                <span className="inline-flex rounded-md border border-teal-300/25 bg-teal-300/10 px-2.5 py-1 text-xs font-semibold text-teal-100">
-                  Benchmark forecast desk
+                <span className="inline-flex rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-800">
+                  Market benchmark desk
                 </span>
               </div>
-              <h1 className="text-2xl font-bold text-white sm:text-3xl">Foresight Media Plan Desk</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                예산, 기간, 타겟 조건을 벤치마크 표본과 맞춰 보며 집행 전 예상 성과를 검토합니다.
+              <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">Foresight Forecast Desk</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                최근 성과 표본을 기준선으로 삼아 예산, 기간, 타겟 조건의 집행 압력을 검토합니다.
               </p>
             </div>
-            <div className="grid min-w-0 grid-cols-3 gap-1 rounded-md border border-white/10 bg-white/5 p-1">
+            <div className="grid min-w-0 grid-cols-3 gap-1 rounded-md border border-stone-300 bg-white p-1 shadow-sm">
               {cockpitTimeline.map((step) => (
                 <div
                   key={step.label}
                   className={`rounded px-3 py-2 text-center text-[11px] font-semibold ${
-                    step.active ? 'bg-teal-100 text-slate-950' : 'text-slate-400'
+                    step.active ? 'bg-slate-950 text-white' : 'text-slate-500'
                   }`}
                 >
                   {step.label}
@@ -592,6 +604,21 @@ export default function SimulatorPage() {
                     <p className="mt-1 truncate text-[11px] text-slate-500">{item.detail}</p>
                   </div>
                 ))}
+              </div>
+              <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-900">Benchmark Basis</h3>
+                  <span className="rounded-md border border-amber-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-800">planning evidence</span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {planningBasis.map((item) => (
+                    <div key={item.label} className="rounded-md border border-amber-100 bg-white px-3 py-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-amber-700">{item.label}</p>
+                      <p className="mt-1 text-sm font-bold text-slate-950">{item.value}</p>
+                      <p className="mt-0.5 break-words text-[11px] leading-snug text-slate-500">{item.detail}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -727,18 +754,24 @@ export default function SimulatorPage() {
 
           {/* 성수기/시즌 할증 */}
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-              <div
-                onClick={() => setApplySeasonBoost((v) => !v)}
-                className={`relative w-9 h-5 rounded-full transition-colors ${applySeasonBoost ? 'bg-amber-500' : 'bg-gray-200'}`}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={applySeasonBoost}
+              onClick={() => setApplySeasonBoost((v) => !v)}
+              className="group flex items-center gap-2.5 rounded-md py-1 pr-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2"
+            >
+              <span
+                aria-hidden="true"
+                className={`relative h-5 w-9 rounded-full transition-colors ${applySeasonBoost ? 'bg-amber-500' : 'bg-gray-200'}`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${applySeasonBoost ? 'translate-x-4' : ''}`} />
-              </div>
+                <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${applySeasonBoost ? 'translate-x-4' : ''}`} />
+              </span>
               <span className="text-sm font-medium text-slate-700">성수기/시즌 할증 적용</span>
-            </label>
+            </button>
             <div className="group relative">
               <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[11px] flex items-center justify-center cursor-help border border-slate-200">?</span>
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-gray-800 text-white text-[11px] rounded-lg px-3 py-2 leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-10 shadow-lg">
+              <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 w-[min(16rem,calc(100vw-3rem))] rounded-md bg-slate-900 px-3 py-2 text-[11px] leading-relaxed text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 sm:left-1/2 sm:w-64 sm:-translate-x-1/2">
                 연말(11–12월), 명절, 대규모 세일 기간 등 광고 경쟁이 치열한 시기라면 체크하세요.
                 <br />CPM에 약 1.3배 할증이 반영됩니다.
               </div>
@@ -888,14 +921,14 @@ export default function SimulatorPage() {
                 </div>
               </section>
 
-              <section className="rounded-md border border-slate-800 bg-[#13201e] p-4 text-white">
-                <p className="text-[11px] font-semibold uppercase text-teal-100">Next Action</p>
+              <section className="rounded-md border border-amber-300 bg-[#fff7e8] p-4 text-slate-950">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">Next Decision</p>
                 <h2 className="mt-1 text-lg font-bold">{nextActionTitle}</h2>
-                <p className="mt-2 text-xs leading-5 text-gray-300">{actionHint}</p>
+                <p className="mt-2 text-xs leading-5 text-slate-600">{actionHint}</p>
                 <button
                   onClick={handleStartSimulation}
                   disabled={loading}
-                  className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-teal-300 px-5 py-3 text-sm font-bold text-slate-950 transition-colors hover:bg-teal-200 active:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 active:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? (
                     <>
@@ -911,8 +944,8 @@ export default function SimulatorPage() {
                     </>
                   )}
                 </button>
-                <div className="mt-4 border-t border-white/10 pt-4">
-                  <p className="mb-2 text-[11px] font-semibold text-gray-400">현재 적용 조건</p>
+                <div className="mt-4 border-t border-amber-200 pt-4">
+                  <p className="mb-2 text-[11px] font-semibold text-amber-800">현재 적용 조건</p>
                   <ConditionTags tags={tags} />
                 </div>
               </section>
@@ -946,17 +979,17 @@ export default function SimulatorPage() {
           <div className="flex items-center gap-2 flex-wrap justify-end">
             {result && applySeasonBoost && (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                🌙 시즌 할증 반영
+                Season boost
               </span>
             )}
             {result?.saturationWarning && (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 font-medium">
-                🚨 포화 구간
+                Saturation watch
               </span>
             )}
             {result?.qualityPenaltyPct !== undefined && result.qualityPenaltyPct > 0 && (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium">
-                ⚠️ CPC 패널티 +{result.qualityPenaltyPct}%
+                CPC penalty +{result.qualityPenaltyPct}%
               </span>
             )}
             <button
@@ -1002,31 +1035,31 @@ export default function SimulatorPage() {
           return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <KPICard title={`예상 도달 (${campaignDays}일)`} value={result ? fmtR(totalReach) : '—'}
-                icon="👥" loading={loading} marketLabel={result ? mktLabel(mktReach, fmtR) : undefined}
+                icon="Reach" loading={loading} marketLabel={result ? mktLabel(mktReach, fmtR) : undefined}
                 diff={hasMarket ? reachDiff : null} lowerBetter={false} />
               <KPICard title="예상 CPM"
                 value={result ? `₩${(applySeasonBoost ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
-                icon="📊" loading={loading} marketLabel={result ? mktLabel(mktCpm) : undefined}
+                icon="CPM" loading={loading} marketLabel={result ? mktLabel(mktCpm) : undefined}
                 diff={hasMarket ? (result?.marketAvg?.cpmDiff ?? null) : null} lowerBetter={true} />
               <KPICard title="CPC(전체)"
                 value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
-                icon="🖱️" loading={loading} marketLabel={result ? mktLabel(mktCpc) : undefined}
+                icon="CPC" loading={loading} marketLabel={result ? mktLabel(mktCpc) : undefined}
                 diff={hasMarket ? (result?.marketAvg?.cpcDiff ?? null) : null} lowerBetter={true} />
               <KPICard title="CPC(링크)"
                 value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
-                icon="🔗" loading={loading}
+                icon="Link" loading={loading}
                 marketLabel={result ? mktLabel(mktCpcLink) : undefined}
                 diff={hasMarket ? (result?.marketAvg?.cpcLinkDiff ?? null) : null}
                 lowerBetter={true} />
               <KPICard title="동영상 3초 조회당 비용"
                 value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
-                icon="🎬" loading={loading}
+                icon="View" loading={loading}
                 marketLabel={result ? (hasMarket ? (mktCpv > 0 ? `₩${mktCpv.toLocaleString()}` : '—') : '-') : undefined}
                 diff={hasMarket ? (result?.marketAvg?.cpvDiff ?? null) : null}
                 lowerBetter={true} />
               <KPICard title="VTR(3s)"
                 value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
-                icon="▶️" loading={loading}
+                icon="VTR" loading={loading}
                 marketLabel={result ? (hasMarket ? (mktVtr > 0 ? `${mktVtr.toFixed(2)}%` : '—') : '-') : undefined}
                 diff={hasMarket ? (result?.marketAvg?.vtrDiff ?? null) : null} lowerBetter={false} />
             </div>
@@ -1040,7 +1073,7 @@ export default function SimulatorPage() {
           {/* 헤더 */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-base">🤖</span>
+              <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600">ML</span>
               <h2 className="text-sm font-semibold text-gray-800">ML 모델 예측</h2>
               {mlResult && (
                 <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
@@ -1122,13 +1155,13 @@ export default function SimulatorPage() {
             {/* B. 성장 기회 안내 */}
             {expansionPotential?.canExpand && (
               <div className="rounded-md p-4 border-l-4 border-emerald-400 bg-emerald-50">
-                <p className="text-sm font-semibold text-gray-800 mb-2">🚀 추가 확보 가능 성과</p>
+                <p className="text-sm font-semibold text-gray-800 mb-2">추가 확보 가능 성과</p>
                 <p className="text-sm text-gray-600 leading-relaxed mb-3">
                   현재 설정한 타겟 시장에 광고가 아직 충분히 노출되지 않아,
                   {' '}<strong className="text-emerald-700">성과를 더 키울 수 있는 여유가 있습니다.</strong>
                 </p>
                 <div className="flex items-center gap-2 bg-white rounded-md px-3 py-2.5 border border-emerald-200">
-                  <span className="text-lg">✅</span>
+                  <span className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">+20%</span>
                   <p className="text-sm text-gray-700">
                     예산을 <strong>20% 늘리면</strong> 약{' '}
                     <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()} 명</strong>의 고객에게 추가로 도달할 수 있습니다.
@@ -1141,7 +1174,7 @@ export default function SimulatorPage() {
             {/* C. 타겟 확장 시나리오 */}
             {(scenarioLoading || scenarios.length > 0) && (
               <div className="rounded-md p-4 border border-slate-200 bg-slate-50">
-                <p className="text-sm font-semibold text-gray-800 mb-1">🎯 타겟 범위 확장 시 효율 변화</p>
+                <p className="text-sm font-semibold text-gray-800 mb-1">타겟 범위 확장 시 효율 변화</p>
                 <p className="text-xs text-gray-400 mb-3">성별 또는 연령 타겟을 전체로 넓혔을 때 예상 성과를 비교합니다</p>
                 {scenarioLoading ? (
                   <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -1177,7 +1210,7 @@ export default function SimulatorPage() {
                               ? 'bg-emerald-600 text-white border-emerald-600'
                               : 'bg-gray-100 text-gray-500 border-gray-200'
                           }`}>
-                            {overallBetter ? '🚀 효율 개선' : '변화 없음'}
+                            {overallBetter ? '효율 개선' : '변화 없음'}
                           </span>
                         </div>
                       );
