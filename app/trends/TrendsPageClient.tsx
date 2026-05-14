@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, Cell,
@@ -49,11 +49,11 @@ const OBJECTIVE_LABELS: Record<string, string> = {
   OUTCOME_SALES: '전환/판매',
 };
 
-const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4'];
-const GENDER_COLORS: Record<string, string> = { male: '#6366f1', female: '#f59e0b', unknown: '#10b981' };
+const COLORS = ['#0f766e', '#b45309', '#2563eb', '#be123c', '#475569', '#0891b2'];
+const GENDER_COLORS: Record<string, string> = { male: '#2563eb', female: '#b45309', unknown: '#0f766e' };
 const GENDER_LABELS: Record<string, string> = { male: '남성', female: '여성', unknown: '전체' };
-const AGE_COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
-const RANK_BADGE = ['🥇', '🥈', '🥉'];
+const AGE_COLORS = ['#0f766e', '#0891b2', '#2563eb', '#64748b', '#b45309', '#be123c'];
+const RANK_BADGE = ['01', '02', '03'];
 
 const METRIC_OPTIONS = [
   { key: 'avgCPM',     label: 'CPM (원)',  format: (v: number) => `₩${v.toLocaleString()}` },
@@ -135,6 +135,106 @@ function ChartIndustryFilter({
         onChange={onChange}
         placeholder="업종 전체"
       />
+    </div>
+  );
+}
+
+function SignalPill({ label, value, tone }: { label: string; value: string; tone: 'ready' | 'watch' | 'idle' }) {
+  const toneClass = {
+    ready: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    watch: 'border-amber-200 bg-amber-50 text-amber-800',
+    idle: 'border-slate-200 bg-slate-50 text-slate-700',
+  }[tone];
+
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${toneClass}`}>
+      <p className="text-[11px] font-semibold uppercase opacity-70">{label}</p>
+      <p className="mt-1 text-sm font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function SectionShell({
+  title,
+  caption,
+  action,
+  children,
+  className = '',
+}: {
+  title: string;
+  caption: string;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`rounded-lg border border-slate-200 bg-white shadow-sm ${className}`}>
+      <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase text-slate-400">Benchmark deck</p>
+          <h2 className="mt-1 text-base font-semibold text-slate-950">{title}</h2>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">{caption}</p>
+        </div>
+        {action}
+      </div>
+      <div className="p-4 sm:p-5">{children}</div>
+    </section>
+  );
+}
+
+function ForecastEmptyPanel({
+  title,
+  description,
+  eyebrow = 'Baseline pending',
+}: {
+  title: string;
+  description: string;
+  eyebrow?: string;
+}) {
+  return (
+    <div
+      role="region"
+      aria-label={title}
+      className="relative flex min-h-64 overflow-hidden rounded-lg border border-dashed border-slate-300 bg-[#f7f5ef] px-5 py-6"
+    >
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-70"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(15,23,42,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.08) 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+      />
+      <div className="relative grid w-full gap-5 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase text-slate-500">{eyebrow}</p>
+          <h3 className="mt-2 text-lg font-semibold text-slate-950">{title}</h3>
+          <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">{description}</p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {['sample size', 'objective map', 'industry baseline'].map((item) => (
+              <span key={item} className="rounded-full border border-slate-300 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase text-slate-600">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="relative h-36 rounded-lg border border-slate-300 bg-white/70 p-4">
+          <div className="absolute left-4 right-4 top-1/2 border-t border-slate-300" />
+          <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-2">
+            {[28, 44, 34, 62, 48, 72, 58].map((height, index) => (
+              <span
+                key={index}
+                className="w-full rounded-t-sm bg-slate-300"
+                style={{ height: `${height}%`, opacity: 0.35 + index * 0.06 }}
+              />
+            ))}
+          </div>
+          <div className="absolute right-4 top-4 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
+            awaiting data
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -276,103 +376,121 @@ export default function TrendsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Benchmark Signal</p>
-            <h1 className="mt-2 text-2xl font-bold text-gray-950">업종별 트렌드</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-              Meta 벤치마크를 목표, 업종, 지표별로 비교해 플래닝 기준선을 점검합니다.
+    <div className="space-y-5 text-slate-950">
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-[#f8f6f0] shadow-sm">
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 p-5 sm:p-6 lg:p-7">
+            <p className="inline-flex rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase text-teal-800">
+              Media planning cockpit
             </p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[420px]">
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-              <p className="text-[11px] font-medium text-gray-500">목표</p>
-              <p className="mt-1 truncate text-sm font-semibold text-gray-900">{objectiveContext}</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-              <p className="text-[11px] font-medium text-gray-500">지표</p>
-              <p className="mt-1 truncate text-sm font-semibold text-gray-900">{metricConfig.label}</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-              <p className="text-[11px] font-medium text-gray-500">추이</p>
-              <p className="mt-1 truncate text-sm font-semibold text-gray-900">{trendIndustryContext}</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-              <p className="text-[11px] font-medium text-gray-500">상태</p>
-              <p className="mt-1 truncate text-sm font-semibold text-gray-900">
-                {activeFilterCount > 0 ? `${activeFilterCount}개 필터` : '전체 기준'}
-              </p>
+            <h1 className="mt-4 max-w-3xl text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">
+              업종별 벤치마크 관제
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+              Meta 성과 신호를 목표, 업종, 지표별로 재조합해 플래너가 다음 예산 판단에 쓸 기준선을 확인합니다.
+            </p>
+            <div className="mt-5 grid gap-2 sm:grid-cols-3">
+              <SignalPill label="Objective" value={objectiveContext} tone={objectives.length > 0 ? 'ready' : 'idle'} />
+              <SignalPill label="Metric" value={metricConfig.label} tone="ready" />
+              <SignalPill label="Scope" value={activeFilterCount > 0 ? `${activeFilterCount} filters` : 'All benchmark'} tone="watch" />
             </div>
           </div>
+          <aside className="border-t border-slate-200 bg-slate-950 p-5 text-white sm:p-6 lg:border-l lg:border-t-0">
+            <p className="text-[11px] font-semibold uppercase text-teal-200">Readiness stack</p>
+            <h2 className="mt-3 text-xl font-semibold leading-snug">예측 화면 IA와 입력 데이터 기준 정리</h2>
+            <div className="mt-6 space-y-4 text-sm">
+              <div className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full bg-teal-300" />
+                <p className="text-slate-200">데이터가 없는 구간은 빈 화면이 아니라 적재 대기 상태로 표시합니다.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full bg-amber-300" />
+                <p className="text-slate-200">CPM/CPC는 낮은 값, CTR/도달은 높은 값을 기준으로 효율을 읽습니다.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full bg-sky-300" />
+                <p className="text-slate-200">성별/연령/월별 기준선은 동일한 필터 문맥 안에서 비교합니다.</p>
+              </div>
+            </div>
+          </aside>
         </div>
-      </div>
+      </section>
 
-      {/* 전역 필터: 캠페인 목표 + 지표 */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-        {filtersError && (
-          <StatePanel
-            variant="error"
-            title="필터 정보를 불러오지 못했습니다"
-            description="기본 범위로 화면을 표시합니다. 잠시 후 새로고침하거나 운영 담당자에게 문의해 주세요."
-            className="mb-5 min-h-32"
-          />
-        )}
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-
-          {/* 캠페인 목표 */}
-          <div className="min-w-0 flex-1 space-y-1">
-            <label className="text-sm font-semibold text-gray-800">캠페인 목표</label>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {availableObjectives.map((obj) => {
-                const active = objectives.includes(obj);
-                return (
-                  <button key={obj} type="button" onClick={() => selectObjective(obj)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                      active ? 'bg-indigo-600 text-white border-indigo-600'
-                             : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                    }`}>
-                    {OBJECTIVE_LABELS[obj] ?? obj}
+      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
+          <p className="text-[11px] font-semibold uppercase text-slate-500">Control surface</p>
+        </div>
+        <div className="space-y-5 p-4 sm:p-5">
+          {filtersError && (
+            <StatePanel
+              variant="error"
+              title="필터 정보를 불러오지 못했습니다"
+              description="기본 범위로 화면을 표시합니다. 잠시 후 새로고침하거나 운영 담당자에게 문의해 주세요."
+              className="min-h-32"
+            />
+          )}
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]">
+            <div className="min-w-0 space-y-2">
+              <label className="text-sm font-semibold text-slate-900">캠페인 목표</label>
+              <div className="flex flex-wrap gap-2">
+                {availableObjectives.map((obj) => {
+                  const active = objectives.includes(obj);
+                  return (
+                    <button
+                      key={obj}
+                      type="button"
+                      onClick={() => selectObjective(obj)}
+                      className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                        active
+                          ? 'border-teal-700 bg-teal-700 text-white'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-300 hover:bg-teal-50'
+                      }`}
+                    >
+                      {OBJECTIVE_LABELS[obj] ?? obj}
+                    </button>
+                  );
+                })}
+                {availableObjectives.length === 0 && (
+                  <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                    목표 목록 대기
+                  </span>
+                )}
+                {objectives.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setObjectives([])}
+                    className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:text-slate-800"
+                  >
+                    초기화
                   </button>
-                );
-              })}
-              {availableObjectives.length === 0 && (
-                <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm text-gray-500">
-                  목표 목록 대기
-                </span>
-              )}
-              {objectives.length > 0 && (
-                <button type="button" onClick={() => setObjectives([])}
-                  className="px-3 py-1.5 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
-                  초기화
-                </button>
-              )}
+                )}
+              </div>
+              {objectives.length === 0 && <p className="text-xs text-slate-400">선택 없음 = 전체 기준선</p>}
             </div>
-            {objectives.length === 0 && <p className="text-xs text-gray-400 pt-0.5">선택 없음 = 전체</p>}
-          </div>
 
-          {/* 지표 */}
-          <div className="min-w-0 space-y-1 lg:max-w-[420px]">
-            <label className="text-sm font-semibold text-gray-800">지표</label>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {METRIC_OPTIONS.map((m) => (
-                <button key={m.key} type="button" onClick={() => setMetric(m.key)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-                    metric === m.key
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                  }`}>
-                  {m.label}
-                </button>
-              ))}
+            <div className="min-w-0 space-y-2">
+              <label className="text-sm font-semibold text-slate-900">판단 지표</label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
+                {METRIC_OPTIONS.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setMetric(m.key)}
+                    className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
+                      metric === m.key
+                        ? 'border-slate-950 bg-slate-950 text-white'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-
         </div>
-      </div>
+      </section>
 
-      {/* ── 업종별 효율 순위 Top 3 ── */}
       {efficiencyError && (
         <StatePanel
           variant="error"
@@ -380,51 +498,52 @@ export default function TrendsPage() {
           description="업종별 순위 영역만 일시적으로 표시할 수 없습니다. 다른 차트는 가능한 범위에서 계속 표시됩니다."
         />
       )}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">업종별 효율 순위 Top 3</h2>
-            <p className="text-xs text-gray-500">
-              {objectiveContext} · {metricConfig.label} ·{' '}
-              {metric === 'avgCTR' || metric === 'totalReach' ? '높을수록 효율적' : '낮을수록 효율적'}
-            </p>
-          </div>
-        </div>
+      <SectionShell
+        title="업종별 효율 랭킹"
+        caption={`${objectiveContext} / ${metricConfig.label} / ${
+          metric === 'avgCTR' || metric === 'totalReach' ? '높을수록 효율적' : '낮을수록 효율적'
+        }`}
+      >
         {top3.length > 0 ? (
-          <div className="flex gap-4 flex-wrap">
+          <div className="grid gap-3 md:grid-cols-3">
             {top3.map((r, i) => (
-              <div key={r.industry} className="min-w-[160px] flex-1 rounded-xl border border-gray-200 bg-gray-50 p-4 text-center">
-                <div className="text-2xl mb-1">{RANK_BADGE[i]}</div>
-                <div className="mb-2 truncate text-sm font-semibold text-gray-800">{r.industry}</div>
-                <div className="text-lg font-bold text-blue-700">
+              <div key={r.industry} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-800">
+                    {RANK_BADGE[i]}
+                  </span>
+                  <span className="text-[11px] font-semibold uppercase text-slate-400">signal</span>
+                </div>
+                <div className="mt-5 truncate text-sm font-semibold text-slate-800">{r.industry}</div>
+                <div className="mt-2 text-2xl font-bold text-teal-800">
                   {metricConfig.format((r as unknown as Record<string, number>)[metric])}
+                </div>
+                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                  <div className="h-full w-2/3 rounded-full bg-teal-700" />
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <StatePanel
-            variant="empty"
-            title="순위 산정 가능한 업종이 없습니다"
+          <ForecastEmptyPanel
+            title="순위 기준선 대기"
             description="목표 필터를 해제하거나 벤치마크 적재 후 다시 확인해 주세요. CPM/CPC는 낮은 값, CTR/도달은 높은 값을 기준으로 정렬합니다."
-            className="min-h-40"
+            eyebrow="Ranking model"
           />
         )}
-      </div>
+      </SectionShell>
 
-      {/* ── 월별 지표 추이 ── */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-gray-900">월별 {metricConfig.label} 추이</h2>
-            <p className="mt-1 text-xs text-gray-500">{objectiveContext} · {trendIndustryContext}</p>
-          </div>
+      <SectionShell
+        title={`월별 ${metricConfig.label} 추이`}
+        caption={`${objectiveContext} / ${trendIndustryContext}`}
+        action={
           <ChartIndustryFilter
             availableIndustries={availableIndustries}
             selected={trendIndustries}
             onChange={setTrendIndustries}
           />
-        </div>
+        }
+      >
         {loading ? (
           <StatePanel
             variant="loading"
@@ -440,18 +559,17 @@ export default function TrendsPage() {
             className="h-64"
           />
         ) : trendChartData.length === 0 ? (
-          <StatePanel
-            variant="empty"
-            title="월별 추이를 표시할 데이터가 아직 없습니다"
+          <ForecastEmptyPanel
+            title="월별 기준선 대기"
             description={chartEmptyDescription('월별 추이', trendIndustries)}
-            className="h-64"
+            eyebrow="Time series"
           />
         ) : (
           <div className="overflow-x-auto">
             <div className="h-[280px] min-w-[640px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(v)} width={80} />
                   <Tooltip formatter={(v) => metricConfig.format(Number(v))} />
@@ -465,24 +583,23 @@ export default function TrendsPage() {
             </div>
           </div>
         )}
-      </div>
+      </SectionShell>
 
-      {/* ── 업종별 최신 비교 (월별 추이와 동일 업종 필터 공유) ── */}
       {summaryRows.length > 0 && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-6">
-            <h2 className="text-base font-semibold text-gray-900">업종별 최신 {metricConfig.label} 비교</h2>
-            <p className="mt-1 text-xs text-gray-500">{trendIndustryContext} · 월별 추이와 동일한 업종 기준</p>
-          </div>
+        <SectionShell
+          title={`업종별 최신 ${metricConfig.label} 비교`}
+          caption={`${trendIndustryContext} / 월별 추이와 동일한 업종 기준`}
+          className="bg-[#fbfaf7]"
+        >
           <div className="overflow-x-auto">
             <div className="h-[220px] min-w-[560px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={summaryRows} barSize={40}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(v)} width={80} />
                   <Tooltip formatter={(v) => metricConfig.format(Number(v))} />
-                  <Bar dataKey={metric} radius={[4, 4, 0, 0]}>
+                  <Bar dataKey={metric} radius={[3, 3, 0, 0]}>
                     {summaryRows.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
@@ -491,106 +608,125 @@ export default function TrendsPage() {
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
+        </SectionShell>
       )}
 
-      {/* ── 성별 분포 ── */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-gray-900">성별 {metricConfig.label} 분포</h2>
-            <p className="mt-1 text-xs text-gray-500">{objectiveContext} · {genderIndustryContext}</p>
-          </div>
-          <ChartIndustryFilter
-            availableIndustries={availableIndustries}
-            selected={genderIndustries}
-            onChange={setGenderIndustries}
-          />
-        </div>
-        {genderChartData.length === 0 ? (
-          <StatePanel
-            variant={genderError ? 'error' : 'empty'}
-            title={genderError ? '성별 분포를 불러오지 못했습니다' : '성별 분포를 표시할 데이터가 아직 없습니다'}
-            description={genderError
-              ? '일시적으로 성별 비교 데이터를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.'
-              : chartEmptyDescription('성별 분포', genderIndustries)}
-            className="h-48 mt-4"
-          />
-        ) : (
-          <div className="mt-6 overflow-x-auto">
-            <div className="h-[240px] min-w-[560px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={genderChartData} barGap={6} barCategoryGap="30%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(Number(v))} width={80} />
-                  <Tooltip formatter={(v) => [metricConfig.format(Number(v)), '']} />
-                  <Legend formatter={(v) => GENDER_LABELS[v] ?? v} />
-                  {genderGroups.map((g) => (
-                    <Bar key={g} dataKey={g} name={GENDER_LABELS[g] ?? g} fill={GENDER_COLORS[g] ?? '#6366f1'} radius={[4, 4, 0, 0]} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 연령대 분포 ── */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-gray-900">연령대별 {metricConfig.label} 분포</h2>
-            <p className="mt-1 text-xs text-gray-500">{objectiveContext} · {ageIndustryContext}</p>
-          </div>
-          <ChartIndustryFilter
-            availableIndustries={availableIndustries}
-            selected={ageIndustries}
-            onChange={setAgeIndustries}
-          />
-        </div>
-        {ageChartData.length === 0 ? (
-          <StatePanel
-            variant={ageError ? 'error' : 'empty'}
-            title={ageError ? '연령대별 분포를 불러오지 못했습니다' : '연령대별 분포를 표시할 데이터가 아직 없습니다'}
-            description={ageError
-              ? '일시적으로 연령대 비교 데이터를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.'
-              : chartEmptyDescription('연령대 분포', ageIndustries)}
-            className="h-48 mt-4"
-          />
-        ) : (
-          <div className="mt-6 overflow-x-auto">
-            <div className="h-[260px] min-w-[640px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ageChartData} barGap={4} barCategoryGap="25%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(Number(v))} width={80} />
-                  <Tooltip formatter={(v) => [metricConfig.format(Number(v)), '']} />
-                  <Legend />
-                  {ageGroups.map((a, i) => (
-                    <Bar key={a} dataKey={a} fill={AGE_COLORS[i % AGE_COLORS.length]} radius={[4, 4, 0, 0]} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 경쟁사 모니터링 바로가기 ── */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900">소재 맥락이 필요하다면</p>
-          <p className="text-xs text-gray-500 mt-0.5">벤치마크 해석 전 Meta 광고 라이브러리 소재 흐름을 함께 확인하세요.</p>
-        </div>
-        <a
-          href="/competitor"
-          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto sm:shrink-0"
+      <div className="grid gap-5 xl:grid-cols-2">
+        <SectionShell
+          title={`성별 ${metricConfig.label} 분포`}
+          caption={`${objectiveContext} / ${genderIndustryContext}`}
+          action={
+            <ChartIndustryFilter
+              availableIndustries={availableIndustries}
+              selected={genderIndustries}
+              onChange={setGenderIndustries}
+            />
+          }
         >
-          경쟁사 모니터링 →
-        </a>
+          {genderChartData.length === 0 ? (
+            genderError ? (
+              <StatePanel
+                variant="error"
+                title="성별 분포를 불러오지 못했습니다"
+                description="일시적으로 성별 비교 데이터를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
+                className="h-64"
+              />
+            ) : (
+              <ForecastEmptyPanel
+                title="성별 기준선 대기"
+                description={chartEmptyDescription('성별 분포', genderIndustries)}
+                eyebrow="Audience split"
+              />
+            )
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="h-[260px] min-w-[560px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={genderChartData} barGap={6} barCategoryGap="30%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(Number(v))} width={80} />
+                    <Tooltip formatter={(v) => [metricConfig.format(Number(v)), '']} />
+                    <Legend formatter={(v) => GENDER_LABELS[v] ?? v} />
+                    {genderGroups.map((g) => (
+                      <Bar key={g} dataKey={g} name={GENDER_LABELS[g] ?? g} fill={GENDER_COLORS[g] ?? '#475569'} radius={[3, 3, 0, 0]} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </SectionShell>
+
+        <SectionShell
+          title={`연령대별 ${metricConfig.label} 분포`}
+          caption={`${objectiveContext} / ${ageIndustryContext}`}
+          action={
+            <ChartIndustryFilter
+              availableIndustries={availableIndustries}
+              selected={ageIndustries}
+              onChange={setAgeIndustries}
+            />
+          }
+        >
+          {ageChartData.length === 0 ? (
+            ageError ? (
+              <StatePanel
+                variant="error"
+                title="연령대별 분포를 불러오지 못했습니다"
+                description="일시적으로 연령대 비교 데이터를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
+                className="h-64"
+              />
+            ) : (
+              <ForecastEmptyPanel
+                title="연령대 기준선 대기"
+                description={chartEmptyDescription('연령대 분포', ageIndustries)}
+                eyebrow="Audience cohort"
+              />
+            )
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="h-[260px] min-w-[640px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={ageChartData} barGap={4} barCategoryGap="25%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(Number(v))} width={80} />
+                    <Tooltip formatter={(v) => [metricConfig.format(Number(v)), '']} />
+                    <Legend />
+                    {ageGroups.map((a, i) => (
+                      <Bar key={a} dataKey={a} fill={AGE_COLORS[i % AGE_COLORS.length]} radius={[3, 3, 0, 0]} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+        </SectionShell>
       </div>
+
+      <section className="overflow-hidden rounded-lg border border-teal-200 bg-teal-50 shadow-sm">
+        <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="p-5 sm:p-6">
+            <p className="text-[11px] font-semibold uppercase text-teal-800">Creative context</p>
+            <h2 className="mt-2 text-lg font-bold text-slate-950">벤치마크 수치와 소재 맥락을 함께 확인하세요</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              업종 기준선이 비어 있거나 변동 폭이 큰 경우, 경쟁사 소재 보드에서 같은 시장의 메시지와 크리에이티브 흐름을 먼저 확인합니다.
+            </p>
+          </div>
+          <div className="border-t border-teal-200 bg-white/70 p-5 md:border-l md:border-t-0">
+            <a
+              href="/competitor"
+              className="inline-flex w-full items-center justify-center rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+            >
+              경쟁사 소재 보드 열기
+            </a>
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              Meta 라이브러리 기반 소재 관찰 화면으로 이동합니다.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
