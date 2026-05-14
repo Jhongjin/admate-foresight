@@ -118,17 +118,24 @@ type PlanningEmptySignal = {
   detail: string;
 };
 
+type PlanningEmptyStage = {
+  label: string;
+  status: string;
+};
+
 function PlanningEmptyCockpit({
   eyebrow,
   title,
   description,
   signals,
+  stages,
   className = '',
 }: {
   eyebrow: string;
   title: string;
   description: string;
   signals: PlanningEmptySignal[];
+  stages?: PlanningEmptyStage[];
   className?: string;
 }) {
   return (
@@ -150,6 +157,23 @@ function PlanningEmptyCockpit({
           </div>
         ))}
       </div>
+      {stages && stages.length > 0 && (
+        <div className="border-t border-stone-200 bg-stone-50/80 px-4 py-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            {stages.map((stage, index) => (
+              <div key={stage.label} className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-stone-200 bg-white px-3 py-2">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-950 text-[11px] font-bold text-white">
+                  {index + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-500">{stage.label}</p>
+                  <p className="truncate text-xs font-bold text-slate-950">{stage.status}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -637,6 +661,12 @@ export default function SimulatorPage() {
       detail: '계산 전에는 KPI, 도달 곡선, 비교표를 임의로 채우지 않습니다.',
     },
   ];
+  const forecastEmptyStages = [
+    { label: 'Input lock', status: selectedTargetCount > 0 ? `${selectedTargetCount} filters set` : 'Open targeting' },
+    { label: 'Benchmark pull', status: 'Recent 6M baseline' },
+    { label: 'Forecast gate', status: 'KPI + range together' },
+    { label: 'Planner output', status: 'Review / revise / expand' },
+  ];
   const rangeEmptySignals = [
     {
       label: 'Range status',
@@ -654,6 +684,12 @@ export default function SimulatorPage() {
       detail: isCalculated ? '필터를 넓히거나 다시 실행해 범위를 확인하세요.' : '좌측 조건 확인 후 예측을 실행하세요.',
     },
   ];
+  const rangeEmptyStages = [
+    { label: 'Budget sweep', status: 'Range rows required' },
+    { label: 'Reach curve', status: 'Diminishing return check' },
+    { label: 'Efficiency read', status: 'Marginal signal' },
+    { label: 'Plan action', status: isCalculated ? 'Re-run inputs' : 'Start forecast' },
+  ];
   const comparisonEmptySignals = [
     {
       label: 'Table policy',
@@ -670,6 +706,12 @@ export default function SimulatorPage() {
       value: chartData.length > 0 ? 'Rows available' : 'Range pending',
       detail: '곡선이 생성되면 동일한 데이터로 비교표가 채워집니다.',
     },
+  ];
+  const comparisonEmptyStages = [
+    { label: 'Source row', status: 'Shared range data' },
+    { label: 'Selected budget', status: `₩${budget.toLocaleString()}` },
+    { label: 'Output columns', status: 'Reach / impressions / clicks' },
+    { label: 'Decision use', status: 'Choose planning lane' },
   ];
 
   const exportToExcel = useCallback(async () => {
@@ -1163,6 +1205,7 @@ export default function SimulatorPage() {
           title="벤치마크 플랜을 계산하기 전입니다"
           description="조건을 확인하고 시뮬레이션을 실행하면 최근 6개월 기준, 필터, 신뢰도, 예산 구간이 같은 기준선으로 열립니다."
           signals={forecastEmptySignals}
+          stages={forecastEmptyStages}
         />
       )}
 
@@ -1498,6 +1541,7 @@ export default function SimulatorPage() {
             title="예산 곡선은 계산된 구간만 표시합니다"
             description="현재 화면은 빈 차트가 아니라, 예산별 도달 범위를 아직 신뢰할 수 있게 계산하지 못한 상태입니다."
             signals={rangeEmptySignals}
+            stages={rangeEmptyStages}
             className="min-h-64"
           />
         )}
@@ -1560,6 +1604,7 @@ export default function SimulatorPage() {
             title="비교표는 실제 계산 행이 있을 때만 열립니다"
             description="예산별 도달, 노출, 클릭은 같은 range 결과에서 파생되므로 곡선과 표가 서로 다른 근거를 갖지 않습니다."
             signals={comparisonEmptySignals}
+            stages={comparisonEmptyStages}
           />
         )}
       </div>

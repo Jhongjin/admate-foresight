@@ -7,6 +7,7 @@ interface StatePanelProps {
   title: string;
   description?: string;
   className?: string;
+  eyebrow?: string;
 }
 
 export default function StatePanel({
@@ -14,6 +15,7 @@ export default function StatePanel({
   title,
   description,
   className = '',
+  eyebrow,
 }: StatePanelProps) {
   const isLoading = variant === 'loading';
   const isError = variant === 'error';
@@ -23,11 +25,22 @@ export default function StatePanel({
       role={isError ? 'alert' : isLoading ? 'status' : 'region'}
       aria-live={isError ? 'assertive' : isLoading ? 'polite' : undefined}
       aria-label={title}
-      className={`flex min-h-48 items-center justify-center rounded-lg border border-dashed px-6 py-8 text-center ${
-        isError ? 'border-red-200 bg-red-50/70' : 'border-gray-200 bg-gray-50/70'
+      className={`relative flex min-h-48 items-center justify-center overflow-hidden rounded-xl border border-dashed px-6 py-8 text-center ${
+        isError ? 'border-red-200 bg-red-50/70' : 'border-slate-200 bg-slate-50/80'
       } ${className}`}
     >
-      <div className="flex max-w-sm flex-col items-center gap-3">
+      {!isError && !isLoading ? (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, rgba(148,163,184,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.12) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }}
+        />
+      ) : null}
+      <div className="relative flex max-w-sm flex-col items-center gap-3">
         {isLoading ? (
           <div className="h-8 w-8 rounded-full border-4 border-indigo-100 border-t-indigo-500 animate-spin" />
         ) : isError ? (
@@ -44,9 +57,12 @@ export default function StatePanel({
           </div>
         )}
         <div className="space-y-1">
-          <p className={`text-sm font-semibold ${isError ? 'text-red-700' : 'text-gray-700'}`}>{title}</p>
+          {eyebrow && (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{eyebrow}</p>
+          )}
+          <p className={`text-sm font-semibold ${isError ? 'text-red-700' : 'text-slate-800'}`}>{title}</p>
           {description && (
-            <p className={`text-xs leading-relaxed ${isError ? 'text-red-500' : 'text-gray-400'}`}>{description}</p>
+            <p className={`text-xs leading-relaxed ${isError ? 'text-red-500' : 'text-slate-500'}`}>{description}</p>
           )}
         </div>
       </div>
