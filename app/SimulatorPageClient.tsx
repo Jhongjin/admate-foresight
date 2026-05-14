@@ -112,6 +112,48 @@ function formatBudget(v: number) {
   return `${v / 10_000}만`;
 }
 
+type PlanningEmptySignal = {
+  label: string;
+  value: string;
+  detail: string;
+};
+
+function PlanningEmptyCockpit({
+  eyebrow,
+  title,
+  description,
+  signals,
+  className = '',
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  signals: PlanningEmptySignal[];
+  className?: string;
+}) {
+  return (
+    <section
+      aria-label={title}
+      className={`overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#fbfaf6] ${className}`}
+    >
+      <div className="border-b border-stone-200 bg-white/70 px-4 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500">{eyebrow}</p>
+        <h2 className="mt-1 text-sm font-bold text-slate-950">{title}</h2>
+        <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">{description}</p>
+      </div>
+      <div className="grid gap-0 sm:grid-cols-3">
+        {signals.map((signal) => (
+          <div key={signal.label} className="border-t border-stone-200 bg-white/45 px-4 py-3 sm:border-r sm:border-t-0 last:border-r-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-500">{signal.label}</p>
+            <p className="mt-1 text-sm font-bold text-slate-950">{signal.value}</p>
+            <p className="mt-1 text-[11px] leading-snug text-slate-500">{signal.detail}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function SimulatorPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
@@ -576,6 +618,57 @@ export default function SimulatorPage() {
       status: chartData.length > 0 ? `${chartData.length} budget rows` : rangeLoading ? 'Calculating' : 'No range yet',
       detail: chartData.length > 0 ? '곡선/표 동시 검토 가능' : '예산 구간 대기',
       tone: chartData.length > 0 ? 'ok' : rangeLoading ? 'watch' : 'idle',
+    },
+  ];
+  const forecastEmptySignals = [
+    {
+      label: 'Benchmark basis',
+      value: 'Recent 6M · KRW Net',
+      detail: '시뮬레이션 후 업종/목표 필터와 표본 매칭을 공개합니다.',
+    },
+    {
+      label: 'Planner input',
+      value: selectedTargetCount > 0 ? `${selectedTargetCount}개 조건 선택` : '전체 기준 대기',
+      detail: `${durationLabel} · 총 예산 ₩${budget.toLocaleString()}`,
+    },
+    {
+      label: 'Forecast output',
+      value: 'No synthetic result',
+      detail: '계산 전에는 KPI, 도달 곡선, 비교표를 임의로 채우지 않습니다.',
+    },
+  ];
+  const rangeEmptySignals = [
+    {
+      label: 'Range status',
+      value: isCalculated ? 'No curve rows' : 'Run required',
+      detail: '계산된 예산 구간이 있을 때만 곡선을 표시합니다.',
+    },
+    {
+      label: 'Current budget',
+      value: `₩${budget.toLocaleString()}`,
+      detail: `월 환산 ₩${monthlyBudget.toLocaleString()} · ${durationLabel}`,
+    },
+    {
+      label: 'Planner action',
+      value: isCalculated ? '조건 재검토' : '시뮬레이션 시작',
+      detail: isCalculated ? '필터를 넓히거나 다시 실행해 범위를 확인하세요.' : '좌측 조건 확인 후 예측을 실행하세요.',
+    },
+  ];
+  const comparisonEmptySignals = [
+    {
+      label: 'Table policy',
+      value: 'Calculated rows only',
+      detail: '도달, 노출, 클릭은 예산 구간 계산 결과가 있을 때만 노출합니다.',
+    },
+    {
+      label: 'Benchmark safety',
+      value: 'No fake fill',
+      detail: '빈 소스를 벤치마크처럼 표시하지 않습니다.',
+    },
+    {
+      label: 'Next check',
+      value: chartData.length > 0 ? 'Rows available' : 'Range pending',
+      detail: '곡선이 생성되면 동일한 데이터로 비교표가 채워집니다.',
     },
   ];
 
@@ -1065,10 +1158,11 @@ export default function SimulatorPage() {
       </section>
 
       {!isCalculated && !loading && (
-        <StatePanel
-          variant="empty"
-          title="아직 예측 결과가 없습니다"
-          description="좌측 조건을 확인한 뒤 시뮬레이션을 시작하면 KPI, 벤치마크, 예산 곡선이 표시됩니다."
+        <PlanningEmptyCockpit
+          eyebrow="Forecast Cockpit Standby"
+          title="벤치마크 플랜을 계산하기 전입니다"
+          description="조건을 확인하고 시뮬레이션을 실행하면 최근 6개월 기준, 필터, 신뢰도, 예산 구간이 같은 기준선으로 열립니다."
+          signals={forecastEmptySignals}
         />
       )}
 
@@ -1399,11 +1493,12 @@ export default function SimulatorPage() {
             className="h-64"
           />
         ) : (
-          <StatePanel
-            variant="empty"
-            title="표시할 예산 구간이 아직 준비되지 않았습니다"
-            description="조건을 조금 넓히거나 시뮬레이션을 다시 실행하면 도달 곡선이 표시됩니다."
-            className="h-64"
+          <PlanningEmptyCockpit
+            eyebrow="Range Planner"
+            title="예산 곡선은 계산된 구간만 표시합니다"
+            description="현재 화면은 빈 차트가 아니라, 예산별 도달 범위를 아직 신뢰할 수 있게 계산하지 못한 상태입니다."
+            signals={rangeEmptySignals}
+            className="min-h-64"
           />
         )}
       </div>
@@ -1460,11 +1555,11 @@ export default function SimulatorPage() {
             className="h-44"
           />
         ) : (
-          <StatePanel
-            variant="empty"
-            title="비교 가능한 예산 구간이 아직 없습니다"
-            description="시뮬레이션을 실행하거나 조건을 넓히면 실제 계산된 구간만 표에 표시됩니다."
-            className="h-44"
+          <PlanningEmptyCockpit
+            eyebrow="Benchmark Table Guard"
+            title="비교표는 실제 계산 행이 있을 때만 열립니다"
+            description="예산별 도달, 노출, 클릭은 같은 range 결과에서 파생되므로 곡선과 표가 서로 다른 근거를 갖지 않습니다."
+            signals={comparisonEmptySignals}
           />
         )}
       </div>
