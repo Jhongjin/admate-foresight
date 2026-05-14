@@ -512,6 +512,42 @@ export default function SimulatorPage() {
     clicks: p.cpc > 0 ? Math.round(p.budget / p.cpc) : 0,
     reachEfficiency: p.reach > 0 ? Math.round(p.reach / (p.budget / 10_000)) : 0,
   }));
+  const rangeTrendBrief = chartData.length > 0
+    ? (() => {
+        const first = chartData[0];
+        const last = chartData[chartData.length - 1];
+        const selected = chartData.find((row) => row.budget === budget)
+          ?? chartData.reduce((closest, row) => (
+            Math.abs(row.budget - budget) < Math.abs(closest.budget - budget) ? row : closest
+          ), first);
+        const reachLiftPct = first.reach > 0
+          ? Math.round(((last.reach - first.reach) / first.reach) * 100)
+          : null;
+        const efficiencySignal = last.reachEfficiency < first.reachEfficiency
+          ? '효율 체감'
+          : last.reachEfficiency > first.reachEfficiency
+            ? '효율 개선'
+            : '효율 유지';
+
+        return [
+          {
+            label: 'Range span',
+            value: `${first.label} → ${last.label}`,
+            detail: reachLiftPct == null ? '도달 증분 계산 대기' : `도달 +${reachLiftPct.toLocaleString()}%`,
+          },
+          {
+            label: 'Selected budget',
+            value: `₩${selected.budget.toLocaleString()}`,
+            detail: `만원당 ${selected.reachEfficiency.toLocaleString()}명 도달`,
+          },
+          {
+            label: 'Marginal signal',
+            value: efficiencySignal,
+            detail: `구간 끝 CPM ₩${last.cpm.toLocaleString()}`,
+          },
+        ];
+      })()
+    : [];
 
   const exportToExcel = useCallback(async () => {
     if (!result) return;
@@ -1230,12 +1266,33 @@ export default function SimulatorPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-base font-semibold text-gray-800">예산별 도달 곡선</h2>
-            <p className="text-xs text-gray-400 mt-0.5">예산 규모에 따른 예상 도달 변화</p>
+            <p className="text-xs text-gray-400 mt-0.5">예산 규모에 따른 예상 도달 변화와 한계 효율 신호</p>
           </div>
           {rangeLoading && (
             <div className="w-5 h-5 border-2 border-teal-200 border-t-teal-700 rounded-full animate-spin" />
           )}
         </div>
+        {rangeTrendBrief.length > 0 && (
+          <div className="mb-4 rounded-md border border-stone-200 bg-stone-50/70 p-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-600">
+                Planning Trend Brief
+              </p>
+              <span className="rounded-md border border-stone-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-stone-500">
+                derived from range rows
+              </span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {rangeTrendBrief.map((item) => (
+                <div key={item.label} className="rounded-md border border-stone-200 bg-white px-3 py-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
+                  <p className="mt-1 text-sm font-bold text-slate-950">{item.value}</p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -1280,44 +1337,62 @@ export default function SimulatorPage() {
       {/* Budget Comparison Table */}
       <div className="bg-white rounded-md shadow-sm border border-slate-200 p-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4">예산 구간별 성과 비교</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left py-2.5 pr-4 text-gray-500 font-medium">예산</th>
-                <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">예상 도달</th>
-                <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">예상 노출</th>
-                <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">예상 클릭</th>
-                <th className="text-right py-2.5 text-gray-500 font-medium">만원당 도달</th>
-              </tr>
-            </thead>
-            <tbody>
-              {chartData.map((row) => {
-                const isSelected = row.budget === budget;
-                return (
-                  <tr key={row.budget} onClick={() => setBudget(row.budget)}
-                    className={`border-b border-gray-50 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-teal-50 font-semibold' : 'hover:bg-slate-50'
-                    }`}>
-                    <td className={`py-2.5 pr-4 ${isSelected ? 'text-teal-800' : 'text-slate-800'}`}>
-                      {isSelected && <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-700 mr-2 mb-0.5" />}
-                      ₩{row.budget.toLocaleString()}
-                    </td>
-                    <td className={`py-2.5 pr-4 text-right ${isSelected ? 'text-teal-800' : 'text-slate-700'}`}>
-                      {row.reach.toLocaleString()}명
-                    </td>
-                    <td className="py-2.5 pr-4 text-right text-gray-700">{row.impressions.toLocaleString()}회</td>
-                    <td className="py-2.5 pr-4 text-right text-gray-700">{row.clicks.toLocaleString()}회</td>
-                    <td className={`py-2.5 text-right font-mono ${isSelected ? 'text-teal-800' : 'text-slate-700'}`}>
-                      {row.reachEfficiency.toLocaleString()}명
-                    </td>
+        {chartData.length > 0 ? (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left py-2.5 pr-4 text-gray-500 font-medium">예산</th>
+                    <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">예상 도달</th>
+                    <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">예상 노출</th>
+                    <th className="text-right py-2.5 pr-4 text-gray-500 font-medium">예상 클릭</th>
+                    <th className="text-right py-2.5 text-gray-500 font-medium">만원당 도달</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xs text-gray-400 mt-3">* 행을 클릭하면 해당 예산이 적용됩니다.</p>
+                </thead>
+                <tbody>
+                  {chartData.map((row) => {
+                    const isSelected = row.budget === budget;
+                    return (
+                      <tr key={row.budget} onClick={() => setBudget(row.budget)}
+                        className={`border-b border-gray-50 cursor-pointer transition-colors ${
+                          isSelected ? 'bg-teal-50 font-semibold' : 'hover:bg-slate-50'
+                        }`}>
+                        <td className={`py-2.5 pr-4 ${isSelected ? 'text-teal-800' : 'text-slate-800'}`}>
+                          {isSelected && <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-700 mr-2 mb-0.5" />}
+                          ₩{row.budget.toLocaleString()}
+                        </td>
+                        <td className={`py-2.5 pr-4 text-right ${isSelected ? 'text-teal-800' : 'text-slate-700'}`}>
+                          {row.reach.toLocaleString()}명
+                        </td>
+                        <td className="py-2.5 pr-4 text-right text-gray-700">{row.impressions.toLocaleString()}회</td>
+                        <td className="py-2.5 pr-4 text-right text-gray-700">{row.clicks.toLocaleString()}회</td>
+                        <td className={`py-2.5 text-right font-mono ${isSelected ? 'text-teal-800' : 'text-slate-700'}`}>
+                          {row.reachEfficiency.toLocaleString()}명
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray-400 mt-3">* 행을 클릭하면 해당 예산이 적용됩니다.</p>
+          </>
+        ) : rangeLoading ? (
+          <StatePanel
+            variant="loading"
+            title="예산 구간별 비교표를 준비하고 있습니다"
+            description="도달 곡선 계산이 끝나면 구간별 도달, 노출, 클릭 추정값이 표시됩니다."
+            className="h-44"
+          />
+        ) : (
+          <StatePanel
+            variant="empty"
+            title="비교 가능한 예산 구간이 아직 없습니다"
+            description="시뮬레이션을 실행하거나 조건을 넓히면 실제 계산된 구간만 표에 표시됩니다."
+            className="h-44"
+          />
+        )}
       </div>
 
       {/* Info Note */}
