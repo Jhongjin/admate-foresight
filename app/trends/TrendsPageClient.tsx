@@ -49,10 +49,10 @@ const OBJECTIVE_LABELS: Record<string, string> = {
   OUTCOME_SALES: '전환/판매',
 };
 
-const COLORS = ['#0f766e', '#b45309', '#2563eb', '#be123c', '#475569', '#0891b2'];
-const GENDER_COLORS: Record<string, string> = { male: '#2563eb', female: '#b45309', unknown: '#0f766e' };
+const COLORS = ['#0f766e', '#b45309', '#475569', '#be123c', '#0891b2', '#78716c'];
+const GENDER_COLORS: Record<string, string> = { male: '#0e7490', female: '#b45309', unknown: '#0f766e' };
 const GENDER_LABELS: Record<string, string> = { male: '남성', female: '여성', unknown: '전체' };
-const AGE_COLORS = ['#0f766e', '#0891b2', '#2563eb', '#64748b', '#b45309', '#be123c'];
+const AGE_COLORS = ['#0f766e', '#0891b2', '#64748b', '#78716c', '#b45309', '#be123c'];
 const RANK_BADGE = ['01', '02', '03'];
 
 const METRIC_OPTIONS = [
@@ -111,9 +111,9 @@ function labelIndustries(industries: string[]) {
 
 function chartEmptyDescription(scope: string, selectedIndustries: string[]) {
   const industryHint = selectedIndustries.length > 0
-    ? '업종 선택을 줄이거나 전체 업종으로 되돌려 보세요.'
-    : '목표 필터를 해제하거나 벤치마크 적재 상태를 확인해 주세요.';
-  return `${scope} 기준 데이터가 없습니다. ${industryHint}`;
+    ? '선택 업종을 줄이거나 전체 업종 기준으로 되돌려 검토 범위를 넓혀 보세요.'
+    : '목표 필터를 해제하거나 최근 6개월 벤치마크 적재 상태를 확인해 주세요.';
+  return `${scope} 검토 행이 아직 없습니다. ${industryHint}`;
 }
 
 // 차트 내 업종 필터 컴포넌트
@@ -127,7 +127,7 @@ function ChartIndustryFilter({
   onChange: (v: string[]) => void;
 }) {
   return (
-    <div className="w-56">
+    <div className="w-full sm:w-64 lg:w-56">
       <MultiSelectDropdown
         label=""
         options={availableIndustries}
@@ -147,9 +147,9 @@ function SignalPill({ label, value, tone }: { label: string; value: string; tone
   }[tone];
 
   return (
-    <div className={`rounded-lg border px-3 py-2 ${toneClass}`}>
-      <p className="text-[11px] font-semibold uppercase opacity-70">{label}</p>
-      <p className="mt-1 text-sm font-semibold">{value}</p>
+    <div className={`min-w-0 rounded-md border px-2.5 py-2 sm:px-3 ${toneClass}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.06em] opacity-70">{label}</p>
+      <p className="mt-1 truncate text-sm font-semibold">{value}</p>
     </div>
   );
 }
@@ -168,14 +168,14 @@ function SectionShell({
   className?: string;
 }) {
   return (
-    <section className={`rounded-lg border border-slate-200 bg-white shadow-sm ${className}`}>
+    <section className={`rounded-md border border-slate-200 bg-white shadow-sm ${className}`}>
       <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase text-slate-400">Benchmark deck</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Benchmark deck</p>
           <h2 className="mt-1 text-base font-semibold text-slate-950">{title}</h2>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">{caption}</p>
         </div>
-        {action}
+        {action && <div className="w-full shrink-0 sm:w-auto">{action}</div>}
       </div>
       <div className="p-4 sm:p-5">{children}</div>
     </section>
@@ -195,43 +195,43 @@ function ForecastEmptyPanel({
     <div
       role="region"
       aria-label={title}
-      className="relative flex min-h-64 overflow-hidden rounded-lg border border-dashed border-slate-300 bg-[#f7f5ef] px-5 py-6"
+      className="relative flex min-h-[15rem] overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#f7f5ef] px-4 py-5 sm:min-h-64 sm:px-5 sm:py-6"
     >
       <div
         aria-hidden="true"
-        className="absolute inset-0 opacity-70"
+        className="absolute inset-0 opacity-60"
         style={{
           backgroundImage:
-            'linear-gradient(to right, rgba(15,23,42,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.08) 1px, transparent 1px)',
+            'linear-gradient(to right, rgba(120,113,108,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(120,113,108,0.12) 1px, transparent 1px)',
           backgroundSize: '32px 32px',
         }}
       />
-      <div className="relative grid w-full gap-5 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+      <div className="relative grid w-full gap-4 md:grid-cols-[1.1fr_0.9fr] md:items-center">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase text-slate-500">{eyebrow}</p>
-          <h3 className="mt-2 text-lg font-semibold text-slate-950">{title}</h3>
-          <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">{description}</p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {['sample size', 'objective map', 'industry baseline'].map((item) => (
-              <span key={item} className="rounded-full border border-slate-300 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase text-slate-600">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-stone-500">{eyebrow}</p>
+          <h3 className="mt-2 text-base font-semibold text-slate-950 sm:text-lg">{title}</h3>
+          <p className="mt-2 max-w-md text-xs leading-5 text-slate-600 sm:text-sm sm:leading-6">{description}</p>
+          <div className="mt-4 flex flex-wrap gap-1.5 sm:mt-5 sm:gap-2">
+            {['recent 6M', 'filter review', 'planner note'].map((item) => (
+              <span key={item} className="rounded-md border border-stone-300 bg-white/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-600 sm:text-[11px]">
                 {item}
               </span>
             ))}
           </div>
         </div>
-        <div className="relative h-36 rounded-lg border border-slate-300 bg-white/70 p-4">
-          <div className="absolute left-4 right-4 top-1/2 border-t border-slate-300" />
-          <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-2">
+        <div className="relative h-28 rounded-md border border-stone-300 bg-white/70 p-3 sm:h-36 sm:p-4">
+          <div className="absolute left-3 right-3 top-1/2 border-t border-stone-300 sm:left-4 sm:right-4" />
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-1.5 sm:bottom-4 sm:left-4 sm:right-4 sm:gap-2">
             {[28, 44, 34, 62, 48, 72, 58].map((height, index) => (
               <span
                 key={index}
-                className="w-full rounded-t-sm bg-slate-300"
+                className="w-full rounded-t-sm bg-stone-300"
                 style={{ height: `${height}%`, opacity: 0.35 + index * 0.06 }}
               />
             ))}
           </div>
-          <div className="absolute right-4 top-4 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
-            awaiting data
+          <div className="absolute right-3 top-3 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800 sm:right-4 sm:top-4 sm:text-[11px]">
+            waiting for rows
           </div>
         </div>
       </div>
@@ -376,14 +376,14 @@ export default function TrendsPage() {
   });
 
   return (
-    <div className="space-y-5 text-slate-950">
-      <section className="overflow-hidden rounded-lg border border-slate-200 bg-[#f8f6f0] shadow-sm">
+    <div className="space-y-4 text-slate-950 sm:space-y-5">
+      <section className="overflow-hidden rounded-md border border-slate-200 bg-[#f8f6f0] shadow-sm">
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="min-w-0 p-5 sm:p-6 lg:p-7">
-            <p className="inline-flex rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase text-teal-800">
+          <div className="min-w-0 p-4 sm:p-6 lg:p-7">
+            <p className="inline-flex rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-800">
               Media planning cockpit
             </p>
-            <h1 className="mt-4 max-w-3xl text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">
+            <h1 className="mt-4 max-w-3xl text-2xl font-bold leading-tight text-slate-950 sm:text-4xl">
               업종별 벤치마크 관제
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
@@ -395,10 +395,10 @@ export default function TrendsPage() {
               <SignalPill label="Scope" value={activeFilterCount > 0 ? `${activeFilterCount} filters` : 'All benchmark'} tone="watch" />
             </div>
           </div>
-          <aside className="border-t border-slate-200 bg-slate-950 p-5 text-white sm:p-6 lg:border-l lg:border-t-0">
-            <p className="text-[11px] font-semibold uppercase text-teal-200">Readiness stack</p>
-            <h2 className="mt-3 text-xl font-semibold leading-snug">예측 화면 IA와 입력 데이터 기준 정리</h2>
-            <div className="mt-6 space-y-4 text-sm">
+          <aside className="border-t border-slate-200 bg-slate-950 p-4 text-white sm:p-6 lg:border-l lg:border-t-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-200">Readiness stack</p>
+            <h2 className="mt-2 text-lg font-semibold leading-snug sm:mt-3 sm:text-xl">입력 데이터 기준 정리</h2>
+            <div className="mt-4 grid gap-3 text-sm sm:mt-6">
               <div className="flex items-start gap-3">
                 <span className="mt-1 h-2 w-2 rounded-full bg-teal-300" />
                 <p className="text-slate-200">데이터가 없는 구간은 빈 화면이 아니라 적재 대기 상태로 표시합니다.</p>
@@ -408,7 +408,7 @@ export default function TrendsPage() {
                 <p className="text-slate-200">CPM/CPC는 낮은 값, CTR/도달은 높은 값을 기준으로 효율을 읽습니다.</p>
               </div>
               <div className="flex items-start gap-3">
-                <span className="mt-1 h-2 w-2 rounded-full bg-sky-300" />
+                <span className="mt-1 h-2 w-2 rounded-full bg-stone-300" />
                 <p className="text-slate-200">성별/연령/월별 기준선은 동일한 필터 문맥 안에서 비교합니다.</p>
               </div>
             </div>
@@ -416,11 +416,11 @@ export default function TrendsPage() {
         </div>
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <section className="rounded-md border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
-          <p className="text-[11px] font-semibold uppercase text-slate-500">Control surface</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Control surface</p>
         </div>
-        <div className="space-y-5 p-4 sm:p-5">
+        <div className="space-y-4 p-4 sm:space-y-5 sm:p-5">
           {filtersError && (
             <StatePanel
               variant="error"
@@ -432,7 +432,7 @@ export default function TrendsPage() {
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]">
             <div className="min-w-0 space-y-2">
               <label className="text-sm font-semibold text-slate-900">캠페인 목표</label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {availableObjectives.map((obj) => {
                   const active = objectives.includes(obj);
                   return (
@@ -440,7 +440,7 @@ export default function TrendsPage() {
                       key={obj}
                       type="button"
                       onClick={() => selectObjective(obj)}
-                      className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                      className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors sm:px-3 sm:py-2 sm:text-sm ${
                         active
                           ? 'border-teal-700 bg-teal-700 text-white'
                           : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-teal-300 hover:bg-teal-50'
@@ -459,7 +459,7 @@ export default function TrendsPage() {
                   <button
                     type="button"
                     onClick={() => setObjectives([])}
-                    className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:text-slate-800"
+                    className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-800 sm:px-3 sm:py-2"
                   >
                     초기화
                   </button>
@@ -476,7 +476,7 @@ export default function TrendsPage() {
                     key={m.key}
                     type="button"
                     onClick={() => setMetric(m.key)}
-                    className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
+                    className={`rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors sm:px-3 sm:py-2 sm:text-sm ${
                       metric === m.key
                         ? 'border-slate-950 bg-slate-950 text-white'
                         : 'border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50'
@@ -507,7 +507,7 @@ export default function TrendsPage() {
         {top3.length > 0 ? (
           <div className="grid gap-3 md:grid-cols-3">
             {top3.map((r, i) => (
-              <div key={r.industry} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div key={r.industry} className="rounded-md border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-800">
                     {RANK_BADGE[i]}
@@ -566,7 +566,7 @@ export default function TrendsPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <div className="h-[280px] min-w-[640px]">
+            <div className="h-[240px] min-w-[540px] sm:h-[280px] sm:min-w-[640px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trendChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -592,7 +592,7 @@ export default function TrendsPage() {
           className="bg-[#fbfaf7]"
         >
           <div className="overflow-x-auto">
-            <div className="h-[220px] min-w-[560px]">
+            <div className="h-[210px] min-w-[520px] sm:h-[220px] sm:min-w-[560px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={summaryRows} barSize={40}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -640,7 +640,7 @@ export default function TrendsPage() {
             )
           ) : (
             <div className="overflow-x-auto">
-              <div className="h-[260px] min-w-[560px]">
+              <div className="h-[230px] min-w-[520px] sm:h-[260px] sm:min-w-[560px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={genderChartData} barGap={6} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -686,7 +686,7 @@ export default function TrendsPage() {
             )
           ) : (
             <div className="overflow-x-auto">
-              <div className="h-[260px] min-w-[640px]">
+              <div className="h-[230px] min-w-[540px] sm:h-[260px] sm:min-w-[640px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={ageChartData} barGap={4} barCategoryGap="25%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -705,7 +705,7 @@ export default function TrendsPage() {
         </SectionShell>
       </div>
 
-      <section className="overflow-hidden rounded-lg border border-teal-200 bg-teal-50 shadow-sm">
+      <section className="overflow-hidden rounded-md border border-teal-200 bg-teal-50 shadow-sm">
         <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_260px]">
           <div className="p-5 sm:p-6">
             <p className="text-[11px] font-semibold uppercase text-teal-800">Creative context</p>
