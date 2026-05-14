@@ -540,21 +540,21 @@ export default function SimulatorPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 bg-gray-950 px-5 py-4 text-white sm:px-6">
+      <section className="overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm">
+        <div className="border-b border-slate-800 bg-[#13201e] px-5 py-4 text-white sm:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${readinessTone}`}>
                   {readinessLabel}
                 </span>
-                <span className="inline-flex rounded-md border border-white/15 bg-white/10 px-2.5 py-1 text-xs font-semibold text-gray-200">
-                  Media planning cockpit
+                <span className="inline-flex rounded-md border border-teal-300/25 bg-teal-300/10 px-2.5 py-1 text-xs font-semibold text-teal-100">
+                  Benchmark forecast desk
                 </span>
               </div>
-              <h1 className="text-2xl font-bold text-white sm:text-3xl">Foresight Forecast Cockpit</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-300">
-                플랜 브리프, 예측 프리뷰, 신뢰도, 다음 액션을 한 화면에서 확인합니다.
+              <h1 className="text-2xl font-bold text-white sm:text-3xl">Foresight Media Plan Desk</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+                예산, 기간, 타겟 조건을 벤치마크 표본과 맞춰 보며 집행 전 예상 성과를 검토합니다.
               </p>
             </div>
             <div className="grid min-w-0 grid-cols-3 gap-1 rounded-md border border-white/10 bg-white/5 p-1">
@@ -562,7 +562,7 @@ export default function SimulatorPage() {
                 <div
                   key={step.label}
                   className={`rounded px-3 py-2 text-center text-[11px] font-semibold ${
-                    step.active ? 'bg-white text-gray-950' : 'text-gray-400'
+                    step.active ? 'bg-teal-100 text-slate-950' : 'text-slate-400'
                   }`}
                 >
                   {step.label}
@@ -577,39 +577,39 @@ export default function SimulatorPage() {
             <div>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-900">Plan Brief</h2>
-                  <p className="mt-1 text-xs text-gray-500">매체 집행 조건을 고정하고 예측 입력값을 정리합니다.</p>
+                  <h2 className="text-sm font-semibold text-slate-950">Plan Brief</h2>
+                  <p className="mt-1 text-xs text-slate-500">매체 집행 조건을 고정하고 예측 입력값을 정리합니다.</p>
                 </div>
-                <span className="shrink-0 rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                <span className="shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
                   조건 {selectedTargetCount}개
                 </span>
               </div>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 {planBrief.map((item) => (
-                  <div key={item.label} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
-                    <p className="text-[11px] font-semibold text-gray-500">{item.label}</p>
-                    <p className="mt-1 truncate text-sm font-bold text-gray-950">{item.value}</p>
-                    <p className="mt-1 truncate text-[11px] text-gray-500">{item.detail}</p>
+                  <div key={item.label} className="rounded-md border border-slate-200 bg-[#f7faf8] px-3 py-3">
+                    <p className="text-[11px] font-semibold text-slate-500">{item.label}</p>
+                    <p className="mt-1 truncate text-sm font-bold text-slate-950">{item.value}</p>
+                    <p className="mt-1 truncate text-[11px] text-slate-500">{item.detail}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Campaign Settings */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="rounded-md border border-slate-200 bg-white p-4">
               <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-900">계획 설정</h2>
-                  <p className="text-xs text-gray-500">예산, 기간, 타겟 조건을 조정합니다.</p>
+                  <h2 className="text-sm font-semibold text-slate-950">계획 설정</h2>
+                  <p className="text-xs text-slate-500">예산, 기간, 타겟 조건을 조정합니다.</p>
                 </div>
               </div>
               <div className="space-y-4">
 
           {/* 1. 캠페인 예산 */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <label className="text-sm font-medium text-gray-700 sm:w-24 sm:shrink-0">총 캠페인 예산</label>
-            <div className="flex w-full min-w-0 items-center border border-gray-200 rounded-lg px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500 bg-white sm:max-w-xs sm:flex-1">
-              <span className="text-sm text-gray-400 mr-1">₩</span>
+            <label className="text-sm font-medium text-slate-700 sm:w-24 sm:shrink-0">총 캠페인 예산</label>
+            <div className="flex w-full min-w-0 items-center border border-slate-200 rounded-md px-3 py-1.5 focus-within:ring-2 focus-within:ring-teal-700 bg-white sm:max-w-xs sm:flex-1">
+              <span className="text-sm text-slate-400 mr-1">₩</span>
               <input
                 type="number"
                 value={budgetInput}
@@ -628,10 +628,10 @@ export default function SimulatorPage() {
                   }
                 }}
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-                className="flex-1 text-sm text-gray-800 font-medium focus:outline-none min-w-0"
+                className="flex-1 text-sm text-slate-800 font-medium focus:outline-none min-w-0"
               />
             </div>
-            <span className="text-sm font-bold text-indigo-600 sm:shrink-0">
+            <span className="text-sm font-bold text-teal-700 sm:shrink-0">
               {budget >= 100_000_000 ? `${budget / 100_000_000}억` : budget >= 10_000 ? `${(budget / 10_000).toLocaleString()}만원` : `${budget.toLocaleString()}원`}
             </span>
           </div>
@@ -641,8 +641,8 @@ export default function SimulatorPage() {
           {/* 2. 캠페인 기간 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700">캠페인 기간</label>
-              <span className="text-sm font-bold text-indigo-600">{campaignDays}일</span>
+              <label className="text-sm font-medium text-slate-700">캠페인 기간</label>
+              <span className="text-sm font-bold text-teal-700">{campaignDays}일</span>
             </div>
 
             {/* 프리셋 버튼 */}
@@ -665,8 +665,8 @@ export default function SimulatorPage() {
                     onClick={() => days !== null && setCampaignDays(days)}
                     className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                       active
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                        ? 'bg-teal-700 text-white border-teal-700'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'
                     } ${days === null ? 'cursor-default' : ''}`}
                   >
                     {label}
@@ -680,7 +680,7 @@ export default function SimulatorPage() {
               <div className="relative pt-7">
                 {/* 떠다니는 일수 배지 */}
                 <div
-                  className="absolute top-0 text-[11px] font-semibold text-white bg-indigo-600 rounded-md px-1.5 py-0.5 pointer-events-none select-none whitespace-nowrap shadow-sm"
+                  className="absolute top-0 text-[11px] font-semibold text-white bg-teal-700 rounded-md px-1.5 py-0.5 pointer-events-none select-none whitespace-nowrap shadow-sm"
                   style={(() => {
                     const pct = ((campaignDays - 1) / 364) * 100;
                     return {
@@ -697,7 +697,7 @@ export default function SimulatorPage() {
                   max={365}
                   value={campaignDays}
                   onChange={(e) => setCampaignDays(Number(e.target.value))}
-                  className="w-full accent-indigo-600 h-1.5 rounded-full cursor-pointer"
+                  className="w-full accent-teal-700 h-1.5 rounded-full cursor-pointer"
                 />
               </div>
               {/* 눈금 레이블 — thumb 공식과 동일한 위치에 절대 배치 */}
@@ -712,7 +712,7 @@ export default function SimulatorPage() {
                   return (
                     <span
                       key={label}
-                      className="absolute text-[11px] text-gray-400 -translate-x-1/2"
+                      className="absolute text-[11px] text-slate-400 -translate-x-1/2"
                       style={{ left: `calc(${pct}% + ${(8 - pct * 0.16).toFixed(1)}px)` }}
                     >
                       {label}
@@ -734,10 +734,10 @@ export default function SimulatorPage() {
               >
                 <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${applySeasonBoost ? 'translate-x-4' : ''}`} />
               </div>
-              <span className="text-sm font-medium text-gray-700">성수기/시즌 할증 적용</span>
+              <span className="text-sm font-medium text-slate-700">성수기/시즌 할증 적용</span>
             </label>
             <div className="group relative">
-              <span className="w-4 h-4 rounded-full bg-gray-100 text-gray-400 text-[11px] flex items-center justify-center cursor-help border border-gray-200">?</span>
+              <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-400 text-[11px] flex items-center justify-center cursor-help border border-slate-200">?</span>
               <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-gray-800 text-white text-[11px] rounded-lg px-3 py-2 leading-relaxed opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-10 shadow-lg">
                 연말(11–12월), 명절, 대규모 세일 기간 등 광고 경쟁이 치열한 시기라면 체크하세요.
                 <br />CPM에 약 1.3배 할증이 반영됩니다.
@@ -760,7 +760,7 @@ export default function SimulatorPage() {
 
           {/* 4. 캠페인 목표 */}
           <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">캠페인 목표</label>
+            <label className="text-sm font-medium text-slate-700">캠페인 목표</label>
             <div className="flex flex-wrap gap-1.5 pt-1">
               {[
                 ...FIXED_OBJECTIVES,
@@ -770,7 +770,7 @@ export default function SimulatorPage() {
                 return (
                   <button key={obj} type="button" onClick={() => toggleObjective(obj)}
                     className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                      active ? 'bg-teal-700 text-white border-teal-700' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'
                     }`}>
                     {OBJECTIVE_LABELS[obj] ?? obj}
                   </button>
@@ -778,7 +778,7 @@ export default function SimulatorPage() {
               })}
               {objectives.length > 0 && (
                 <button type="button" onClick={() => setObjectives([])}
-                  className="px-3 py-1 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                  className="px-3 py-1 rounded-full text-xs text-slate-400 border border-slate-200 hover:text-slate-600 transition-colors">
                   초기화
                 </button>
               )}
@@ -789,18 +789,18 @@ export default function SimulatorPage() {
 
           {/* 5. 타겟팅 (성별 + 연령대 묶음) */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700">타겟팅</label>
+            <label className="text-sm font-medium text-slate-700">타겟팅</label>
 
             {/* 성별 */}
             <div className="flex items-center gap-2">
-              <p className="text-xs text-gray-400 font-medium w-8 shrink-0">성별</p>
+              <p className="text-xs text-slate-400 font-medium w-8 shrink-0">성별</p>
               <div className="flex gap-1.5">
                 {ALL_GENDERS.map(({ value, label }) => {
                   const active = genders.includes(value);
                   return (
                     <button key={value} type="button" onClick={() => toggleGender(value)}
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                        active ? 'bg-teal-700 text-white border-teal-700' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'
                       }`}>
                       {label}
                     </button>
@@ -808,7 +808,7 @@ export default function SimulatorPage() {
                 })}
                 {genders.length > 0 && (
                   <button type="button" onClick={() => setGenders([])}
-                    className="px-2 py-1 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                    className="px-2 py-1 rounded-full text-xs text-slate-400 border border-slate-200 hover:text-slate-600 transition-colors">
                     초기화
                   </button>
                 )}
@@ -817,14 +817,14 @@ export default function SimulatorPage() {
 
             {/* 연령대 */}
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-xs text-gray-400 font-medium w-8 shrink-0">연령</p>
+              <p className="text-xs text-slate-400 font-medium w-8 shrink-0">연령</p>
               <div className="flex flex-wrap gap-1.5">
                 {ALL_AGE_RANGES.map((age) => {
                   const active = ageRanges.includes(age);
                   return (
                     <button key={age} type="button" onClick={() => toggleAgeRange(age)}
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                        active ? 'bg-teal-700 text-white border-teal-700' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'
                       }`}>
                       {age}
                     </button>
@@ -832,7 +832,7 @@ export default function SimulatorPage() {
                 })}
                 {ageRanges.length > 0 && (
                   <button type="button" onClick={() => setAgeRanges([])}
-                    className="px-2 py-1 rounded-full text-xs text-gray-400 border border-gray-200 hover:text-gray-600 transition-colors">
+                    className="px-2 py-1 rounded-full text-xs text-slate-400 border border-slate-200 hover:text-slate-600 transition-colors">
                     초기화
                   </button>
                 )}
@@ -844,62 +844,62 @@ export default function SimulatorPage() {
               </div>
             </div>
 
-          <aside className="border-t border-gray-200 bg-gray-50 p-5 sm:p-6 xl:border-l xl:border-t-0">
+          <aside className="border-t border-slate-200 bg-[#f7faf8] p-5 sm:p-6 xl:border-l xl:border-t-0">
             <div className="space-y-4">
-              <section className="rounded-lg border border-gray-200 bg-white p-4">
+              <section className="rounded-md border border-slate-200 bg-white p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-sm font-semibold text-gray-900">Forecast Preview</h2>
-                    <p className="mt-1 text-xs text-gray-500">실행 전후 핵심 수치를 같은 자리에서 비교합니다.</p>
+                    <h2 className="text-sm font-semibold text-slate-950">Forecast Preview</h2>
+                    <p className="mt-1 text-xs text-slate-500">실행 전후 핵심 수치를 같은 자리에서 비교합니다.</p>
                   </div>
                   {loading && <div className="h-4 w-4 rounded-full border-2 border-sky-100 border-t-sky-600 animate-spin" />}
                 </div>
                 <div className="mt-4 grid gap-2">
                   {forecastPreview.map((item) => (
-                    <div key={item.label} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3">
-                      <p className="text-[11px] font-semibold text-gray-500">{item.label}</p>
-                      <p className="mt-1 text-xl font-bold text-gray-950 num">{item.value}</p>
-                      <p className="mt-1 text-[11px] text-gray-500">{item.detail}</p>
+                    <div key={item.label} className="rounded-md border border-slate-200 bg-[#f7faf8] px-3 py-3">
+                      <p className="text-[11px] font-semibold text-slate-500">{item.label}</p>
+                      <p className="mt-1 text-xl font-bold text-slate-950 num">{item.value}</p>
+                      <p className="mt-1 text-[11px] text-slate-500">{item.detail}</p>
                     </div>
                   ))}
                 </div>
               </section>
 
-              <section className="rounded-lg border border-gray-200 bg-white p-4">
+              <section className="rounded-md border border-slate-200 bg-white p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-gray-900">Readiness</h2>
-                    <p className="mt-1 text-xs leading-5 text-gray-500">{benchmarkDetail}</p>
+                    <h2 className="text-sm font-semibold text-slate-950">Readiness</h2>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">{benchmarkDetail}</p>
                   </div>
                   <div className="text-right">
                     <p className={`text-2xl font-bold num ${confidenceTone}`}>
                       {confidenceScore == null ? '-' : confidenceScore}
                     </p>
-                    <p className="text-[11px] font-semibold text-gray-500">confidence</p>
+                    <p className="text-[11px] font-semibold text-slate-500">confidence</p>
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
                   {readinessChecks.map((check) => (
-                    <div key={check.label} className="flex items-center justify-between gap-3 rounded-md bg-gray-50 px-3 py-2">
-                      <span className="text-xs font-medium text-gray-500">{check.label}</span>
-                      <span className="truncate text-right text-xs font-semibold text-gray-900">{check.value}</span>
+                    <div key={check.label} className="flex items-center justify-between gap-3 rounded-md bg-[#f7faf8] px-3 py-2">
+                      <span className="text-xs font-medium text-slate-500">{check.label}</span>
+                      <span className="truncate text-right text-xs font-semibold text-slate-950">{check.value}</span>
                     </div>
                   ))}
                 </div>
               </section>
 
-              <section className="rounded-lg border border-gray-900 bg-gray-950 p-4 text-white">
-                <p className="text-[11px] font-semibold uppercase text-sky-200">Next Action</p>
+              <section className="rounded-md border border-slate-800 bg-[#13201e] p-4 text-white">
+                <p className="text-[11px] font-semibold uppercase text-teal-100">Next Action</p>
                 <h2 className="mt-1 text-lg font-bold">{nextActionTitle}</h2>
                 <p className="mt-2 text-xs leading-5 text-gray-300">{actionHint}</p>
                 <button
                   onClick={handleStartSimulation}
                   disabled={loading}
-                  className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-5 py-3 text-sm font-bold text-gray-950 transition-colors hover:bg-emerald-400 active:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-teal-300 px-5 py-3 text-sm font-bold text-slate-950 transition-colors hover:bg-teal-200 active:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? (
                     <>
-                      <div className="h-4 w-4 rounded-full border-2 border-gray-900/30 border-t-gray-950 animate-spin" />
+                      <div className="h-4 w-4 rounded-full border-2 border-slate-900/30 border-t-slate-950 animate-spin" />
                       예측 계산 중
                     </>
                   ) : (
@@ -962,7 +962,7 @@ export default function SimulatorPage() {
             <button
               onClick={exportToExcel}
               disabled={!result || loading || exporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-teal-700 rounded-md hover:bg-teal-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {exporting ? (
                 <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -976,7 +976,7 @@ export default function SimulatorPage() {
           </div>
         </div>
         {result && (
-          <div className="mb-4 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-700">
+          <div className="mb-4 px-4 py-3 bg-teal-50 border border-teal-100 rounded-md text-sm text-teal-800">
             선택하신 기간은 총 <strong>{campaignDays}일</strong>이며,
             일 평균 <strong>₩{dailyBudget.toLocaleString()}</strong>의 예산이 투입될 예정입니다.
           </div>
@@ -1036,7 +1036,7 @@ export default function SimulatorPage() {
 
       {/* ── ML 예측 패널 (Python FastAPI) ──────────────────── */}
       {isCalculated && (mlLoading || mlResult || mlError) && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
+        <div className="bg-white rounded-md shadow-sm border border-slate-200 p-5 space-y-4">
           {/* 헤더 */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
@@ -1045,8 +1045,8 @@ export default function SimulatorPage() {
               {mlResult && (
                 <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
                   mlResult.model_type === 'random_forest'
-                    ? 'bg-violet-50 text-violet-600'
-                    : 'bg-blue-50 text-blue-600'
+                    ? 'bg-teal-50 text-teal-700'
+                    : 'bg-sky-50 text-sky-700'
                 }`}>
                   {mlResult.model_type === 'random_forest' ? 'Random Forest' : 'Ridge Regression'}
                 </span>
@@ -1062,8 +1062,8 @@ export default function SimulatorPage() {
           {/* 로딩 */}
           {mlLoading && (
             <div className="flex items-center gap-2 py-2">
-              <div className="w-3.5 h-3.5 border-2 border-violet-200 border-t-violet-500 rounded-full animate-spin" />
-              <span className="text-xs text-violet-500">Python ML 모델 예측 중...</span>
+              <div className="w-3.5 h-3.5 border-2 border-teal-200 border-t-teal-700 rounded-full animate-spin" />
+              <span className="text-xs text-teal-700">Python ML 모델 예측 중...</span>
             </div>
           )}
 
@@ -1081,7 +1081,7 @@ export default function SimulatorPage() {
                 { label: 'CPC', value: `₩${mlResult.cpc.toLocaleString()}`, r2: null, lowerBetter: true },
                 { label: '예상 도달', value: `${mlResult.reach.toLocaleString()}명`, r2: null, lowerBetter: false },
               ].map(({ label, value, r2 }) => (
-                <div key={label} className="bg-gray-50 rounded-xl p-3 space-y-1">
+                <div key={label} className="bg-slate-50 rounded-md p-3 space-y-1">
                   <p className="text-[11px] font-medium text-gray-500">{label}</p>
                   <p className="text-base font-bold text-gray-900 num">{value}</p>
                   {r2 != null && (
@@ -1114,20 +1114,20 @@ export default function SimulatorPage() {
         const hasGuide = hasExpansion || scenarioLoading || scenarios.length > 0;
         if (!hasGuide) return null;
         return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-md shadow-sm border border-slate-200 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-1">캠페인 최적화 가이드</h2>
           <p className="text-xs text-gray-400 mb-5">지금 더 투자해도 좋은지, 현재 설정을 유지할지 확인하세요</p>
           <div className="space-y-4">
 
             {/* B. 성장 기회 안내 */}
             {expansionPotential?.canExpand && (
-              <div className="rounded-xl p-4 border-l-4 border-emerald-400 bg-emerald-50">
+              <div className="rounded-md p-4 border-l-4 border-emerald-400 bg-emerald-50">
                 <p className="text-sm font-semibold text-gray-800 mb-2">🚀 추가 확보 가능 성과</p>
                 <p className="text-sm text-gray-600 leading-relaxed mb-3">
                   현재 설정한 타겟 시장에 광고가 아직 충분히 노출되지 않아,
                   {' '}<strong className="text-emerald-700">성과를 더 키울 수 있는 여유가 있습니다.</strong>
                 </p>
-                <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2.5 border border-emerald-200">
+                <div className="flex items-center gap-2 bg-white rounded-md px-3 py-2.5 border border-emerald-200">
                   <span className="text-lg">✅</span>
                   <p className="text-sm text-gray-700">
                     예산을 <strong>20% 늘리면</strong> 약{' '}
@@ -1140,23 +1140,23 @@ export default function SimulatorPage() {
 
             {/* C. 타겟 확장 시나리오 */}
             {(scenarioLoading || scenarios.length > 0) && (
-              <div className="rounded-xl p-4 border border-gray-100 bg-gray-50">
+              <div className="rounded-md p-4 border border-slate-200 bg-slate-50">
                 <p className="text-sm font-semibold text-gray-800 mb-1">🎯 타겟 범위 확장 시 효율 변화</p>
                 <p className="text-xs text-gray-400 mb-3">성별 또는 연령 타겟을 전체로 넓혔을 때 예상 성과를 비교합니다</p>
                 {scenarioLoading ? (
                   <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-indigo-500 rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-teal-700 rounded-full animate-spin" />
                     시나리오 계산 중...
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {/* 현재 타겟 기준 */}
-                    <div className="flex items-center justify-between rounded-lg px-3 py-2.5 bg-indigo-50 border border-indigo-100">
+                    <div className="flex items-center justify-between rounded-md px-3 py-2.5 bg-teal-50 border border-teal-100">
                       <div>
-                        <p className="text-xs font-semibold text-indigo-700">현재 타겟 기준</p>
-                        <p className="text-[11px] text-indigo-400 mt-0.5">CPM ₩{result.cpm.toLocaleString()} · 도달 {totalReach.toLocaleString()}명</p>
+                        <p className="text-xs font-semibold text-teal-800">현재 타겟 기준</p>
+                        <p className="text-[11px] text-teal-600 mt-0.5">CPM ₩{result.cpm.toLocaleString()} · 도달 {totalReach.toLocaleString()}명</p>
                       </div>
-                      <span className="text-xs font-bold text-indigo-600 bg-white px-2 py-1 rounded border border-indigo-200">기준값</span>
+                      <span className="text-xs font-bold text-teal-700 bg-white px-2 py-1 rounded border border-teal-200">기준값</span>
                     </div>
                     {scenarios.map((s) => {
                       const cpmBetter = s.cpm > 0 && s.cpm < result.cpm;
@@ -1193,14 +1193,14 @@ export default function SimulatorPage() {
 
 
       {/* Budget Range Chart */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-md shadow-sm border border-slate-200 p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-base font-semibold text-gray-800">예산별 도달 곡선</h2>
             <p className="text-xs text-gray-400 mt-0.5">예산 규모에 따른 예상 도달 변화</p>
           </div>
           {rangeLoading && (
-            <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-teal-200 border-t-teal-700 rounded-full animate-spin" />
           )}
         </div>
         {chartData.length > 0 ? (
@@ -1219,12 +1219,12 @@ export default function SimulatorPage() {
               />
               <ReferenceLine
                 x={formatBudget(budget)}
-                stroke="#6366f1"
+                stroke="#0f766e"
                 strokeDasharray="4 4"
-                label={{ value: '현재', position: 'top', fontSize: 11, fill: '#6366f1' }}
+                label={{ value: '현재', position: 'top', fontSize: 11, fill: '#0f766e' }}
               />
-              <Line type="monotone" dataKey="reach" stroke="#6366f1" strokeWidth={2.5}
-                dot={{ r: 4, fill: '#6366f1' }} activeDot={{ r: 6 }} name="예상 도달" />
+              <Line type="monotone" dataKey="reach" stroke="#0f766e" strokeWidth={2.5}
+                dot={{ r: 4, fill: '#0f766e' }} activeDot={{ r: 6 }} name="예상 도달" />
             </LineChart>
           </ResponsiveContainer>
         ) : rangeLoading ? (
@@ -1245,7 +1245,7 @@ export default function SimulatorPage() {
       </div>
 
       {/* Budget Comparison Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-md shadow-sm border border-slate-200 p-6">
         <h2 className="text-base font-semibold text-gray-800 mb-4">예산 구간별 성과 비교</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -1264,18 +1264,18 @@ export default function SimulatorPage() {
                 return (
                   <tr key={row.budget} onClick={() => setBudget(row.budget)}
                     className={`border-b border-gray-50 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-indigo-50 font-semibold' : 'hover:bg-gray-50'
+                      isSelected ? 'bg-teal-50 font-semibold' : 'hover:bg-slate-50'
                     }`}>
-                    <td className={`py-2.5 pr-4 ${isSelected ? 'text-indigo-700' : 'text-gray-800'}`}>
-                      {isSelected && <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2 mb-0.5" />}
+                    <td className={`py-2.5 pr-4 ${isSelected ? 'text-teal-800' : 'text-slate-800'}`}>
+                      {isSelected && <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-700 mr-2 mb-0.5" />}
                       ₩{row.budget.toLocaleString()}
                     </td>
-                    <td className={`py-2.5 pr-4 text-right ${isSelected ? 'text-indigo-700' : 'text-gray-700'}`}>
+                    <td className={`py-2.5 pr-4 text-right ${isSelected ? 'text-teal-800' : 'text-slate-700'}`}>
                       {row.reach.toLocaleString()}명
                     </td>
                     <td className="py-2.5 pr-4 text-right text-gray-700">{row.impressions.toLocaleString()}회</td>
                     <td className="py-2.5 pr-4 text-right text-gray-700">{row.clicks.toLocaleString()}회</td>
-                    <td className={`py-2.5 text-right font-mono ${isSelected ? 'text-indigo-700' : 'text-gray-700'}`}>
+                    <td className={`py-2.5 text-right font-mono ${isSelected ? 'text-teal-800' : 'text-slate-700'}`}>
                       {row.reachEfficiency.toLocaleString()}명
                     </td>
                   </tr>
@@ -1288,7 +1288,7 @@ export default function SimulatorPage() {
       </div>
 
       {/* Info Note */}
-      <div className="bg-indigo-50 rounded-xl p-4 text-sm text-indigo-700">
+      <div className="bg-teal-50 rounded-md p-4 text-sm text-teal-800">
         <strong>예측 방식:</strong> Meta 공식 기반 (예산÷CPM×1000÷빈도) + Diminishing Returns 보정 (β=0.82).
         캠페인 목표별 CPM·빈도를 실제 데이터에서 적용하며, 예산이 클수록 단위당 도달 효율이 감소합니다.
       </div>
