@@ -52,12 +52,12 @@ function toJsonOrThrow(response: Response) {
 
 /* ── 변화율 뱃지 ── */
 function ChangeBadge({ value, inverse = false }: { value: number | null; inverse?: boolean }) {
-  if (value === null) return <span className="text-xs text-gray-300">-</span>;
+  if (value === null) return <span className="text-xs text-slate-300">-</span>;
   const color = value > 0
-    ? (inverse ? 'text-red-500 bg-red-50' : 'text-emerald-600 bg-emerald-50')
-    : (inverse ? 'text-emerald-600 bg-emerald-50' : 'text-red-500 bg-red-50');
+    ? (inverse ? 'border-red-100 bg-red-50 text-red-600' : 'border-emerald-100 bg-emerald-50 text-emerald-700')
+    : (inverse ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-red-100 bg-red-50 text-red-600');
   return (
-    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-semibold ${color}`}>
+    <span className={`inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-xs font-semibold ${color}`}>
       {value > 0 ? '▲' : '▼'} {Math.abs(value).toFixed(1)}%
     </span>
   );
@@ -66,9 +66,9 @@ function ChangeBadge({ value, inverse = false }: { value: number | null; inverse
 /* ── 시즈널리티 카드 ── */
 function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
   const periods = [
-    { key: 'before', label: '2주 전', data: event.before, bg: 'bg-gray-50', border: 'border-gray-200' },
-    { key: 'during', label: '시즌 중', data: event.during, bg: 'bg-orange-50', border: 'border-orange-300' },
-    { key: 'after',  label: '2주 후',  data: event.after,  bg: 'bg-blue-50',  border: 'border-blue-200' },
+    { key: 'before', label: '2주 전', data: event.before, bg: 'bg-stone-50', border: 'border-stone-200' },
+    { key: 'during', label: '시즌 중', data: event.during, bg: 'bg-amber-50', border: 'border-amber-300' },
+    { key: 'after',  label: '2주 후',  data: event.after,  bg: 'bg-teal-50',  border: 'border-teal-200' },
   ];
 
   const metrics = [
@@ -90,56 +90,57 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
   ];
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
       {/* 헤더 */}
-      <div className="flex flex-col gap-3 border-b border-gray-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-slate-100 bg-[#fbfaf6] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="text-2xl">{event.emoji}</span>
-          <div>
-            <h3 className="text-base font-semibold text-gray-900">{event.name}</h3>
-            <p className="text-xs text-gray-400">{event.description} · {event.eventStart}{event.eventStart !== event.eventEnd ? ` ~ ${event.eventEnd}` : ''}</p>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-stone-200 bg-white text-lg">{event.emoji}</span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Seasonality window</p>
+            <h3 className="mt-1 truncate text-base font-semibold text-slate-950">{event.name}</h3>
+            <p className="mt-1 text-xs leading-5 text-slate-500">{event.description} · {event.eventStart}{event.eventStart !== event.eventEnd ? ` ~ ${event.eventEnd}` : ''}</p>
           </div>
         </div>
         {event.during.count === 0 && (
-          <span className="w-fit text-xs text-orange-400 bg-orange-50 px-2 py-1 rounded-lg">시즌 중 데이터 없음</span>
+          <span className="w-fit rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">시즌 중 데이터 없음</span>
         )}
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="space-y-5 p-4 sm:p-5">
         {/* 3구간 비교 카드 */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {periods.map(({ key, label, data, bg, border }) => (
-            <div key={key} className={`rounded-xl border ${border} ${bg} p-4`}>
-              <p className="text-xs font-semibold text-gray-500 mb-1">{label}</p>
-              <p className="text-xs text-gray-400 mb-3">{data.dateRange}</p>
+            <div key={key} className={`rounded-md border ${border} ${bg} p-3 sm:p-4`}>
+              <p className="mb-1 text-xs font-semibold text-slate-600">{label}</p>
+              <p className="mb-3 text-xs text-slate-400">{data.dateRange}</p>
               <div className="space-y-2">
                 <div>
-                  <p className="text-xs text-gray-400">CPM</p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-xs text-slate-400">CPM</p>
+                  <p className="text-sm font-bold text-slate-900">
                     {data.avgCPM > 0 ? `₩${data.avgCPM.toLocaleString()}` : '-'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">CPC</p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-xs text-slate-400">CPC</p>
+                  <p className="text-sm font-bold text-slate-900">
                     {data.avgCPC > 0 ? `₩${data.avgCPC.toLocaleString()}` : '-'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">CTR</p>
-                  <p className="text-sm font-bold text-gray-800">
+                  <p className="text-xs text-slate-400">CTR</p>
+                  <p className="text-sm font-bold text-slate-900">
                     {data.avgCTR > 0 ? `${data.avgCTR.toFixed(3)}%` : '-'}
                   </p>
                 </div>
                 {data.avgVTR > 0 && (
                   <div>
-                    <p className="text-xs text-gray-400">VTR</p>
-                    <p className="text-sm font-bold text-gray-800">{data.avgVTR.toFixed(3)}%</p>
+                    <p className="text-xs text-slate-400">VTR</p>
+                    <p className="text-sm font-bold text-slate-900">{data.avgVTR.toFixed(3)}%</p>
                   </div>
                 )}
-                <div className="pt-1 border-t border-gray-200">
-                  <p className="text-xs text-gray-400">데이터</p>
-                  <p className="text-xs text-gray-600">{data.count.toLocaleString()}건</p>
+                <div className="border-t border-slate-200 pt-1">
+                  <p className="text-xs text-slate-400">벤치마크 행</p>
+                  <p className="text-xs text-slate-600">{data.count.toLocaleString()}건</p>
                 </div>
               </div>
             </div>
@@ -148,20 +149,20 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
 
         {/* 전 대비 변화율 요약 */}
         <div>
-          <p className="text-xs font-semibold text-gray-500 mb-2">2주 전 대비 시즌 중 변화</p>
+          <p className="mb-2 text-xs font-semibold text-slate-600">2주 전 대비 시즌 압력</p>
           <div className="flex flex-wrap gap-3">
             {metrics.map((m) => (
-              <div key={m.label} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-1.5">
-                <span className="text-xs text-gray-500">{m.label}</span>
+              <div key={m.label} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5">
+                <span className="text-xs font-semibold text-slate-500">{m.label}</span>
                 <ChangeBadge value={m.change} inverse={m.inverse} />
               </div>
             ))}
           </div>
           {event.cpmChange !== null && (
-            <p className="text-xs text-gray-400 mt-2">
+            <p className="mt-2 text-xs leading-5 text-slate-500">
               {event.cpmChange > 0
-                ? `⚠️ 시즌 중 CPM이 ${event.cpmChange}% 상승 → 동일 예산 대비 도달 감소 예상`
-                : `✅ 시즌 중 CPM이 ${Math.abs(event.cpmChange ?? 0)}% 하락 → 효율 개선 가능성`}
+                ? `시즌 중 CPM이 ${event.cpmChange}% 상승했습니다. 동일 예산 대비 도달 압력을 보수적으로 검토하세요.`
+                : `시즌 중 CPM이 ${Math.abs(event.cpmChange ?? 0)}% 하락했습니다. 효율 개선 구간인지 추가 확인하세요.`}
             </p>
           )}
         </div>
@@ -169,7 +170,7 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
         {/* CPM/CPC 막대 차트 */}
         {event.during.count > 0 && (
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-3">구간별 CPM / CPC 비교</p>
+            <p className="mb-3 text-xs font-semibold text-slate-600">구간별 CPM / CPC 비교</p>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -177,8 +178,8 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₩${(v/1000).toFixed(0)}K`} width={52} />
                 <Tooltip formatter={(v) => [`₩${Number(v).toLocaleString()}`, '']} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="CPM" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="CPC" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="CPM" fill="#0f766e" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="CPC" fill="#b45309" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -246,11 +247,16 @@ export default function InsightsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">시즌 인사이트</h1>
-        <p className="text-sm text-gray-500 mt-1">시즌 이벤트 전·중·후 성과 변화와 월별 추이를 분석합니다.</p>
-      </div>
+    <div className="space-y-6">
+      <section className="rounded-md border border-slate-200 bg-[#f8f6f0] p-5 shadow-sm sm:p-6">
+        <p className="inline-flex rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-800">
+          Seasonality desk
+        </p>
+        <h1 className="mt-4 text-2xl font-bold text-slate-950 sm:text-3xl">시즌 압력 플래너</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          이벤트 전·중·후 CPM, CPC, CTR, VTR 변화를 같은 기간 창으로 묶어 예산 압력과 집행 타이밍을 점검합니다.
+        </p>
+      </section>
 
       {/* ══ 시즈널리티 분석 ══ */}
       <div>
@@ -262,22 +268,22 @@ export default function InsightsPage() {
             className="mb-5 min-h-32"
           />
         )}
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-gray-800">시즌 이벤트 전·중·후 분석</h2>
-            <p className="text-xs text-gray-400 mt-0.5">이벤트 기준 ±2주 데이터를 비교합니다</p>
+            <h2 className="text-base font-semibold text-slate-900">시즌 이벤트 전·중·후 분석</h2>
+            <p className="mt-0.5 text-xs text-slate-500">이벤트 기준 ±2주 데이터를 비교합니다</p>
           </div>
 
           {/* 업종 필터 */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-gray-500">업종 필터:</span>
+          <div className="flex max-w-full flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">업종 필터</span>
             <button
               type="button"
               onClick={() => setSelectedIndustries([])}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+              className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
                 selectedIndustries.length === 0
-                  ? 'bg-gray-800 text-white border-gray-800'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                  ? 'border-slate-950 bg-slate-950 text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'
               }`}
             >
               전체
@@ -287,10 +293,10 @@ export default function InsightsPage() {
                 key={ind}
                 type="button"
                 onClick={() => toggleIndustry(ind)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
                   selectedIndustries.includes(ind)
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                    ? 'border-teal-700 bg-teal-700 text-white'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'
                 }`}
               >
                 {ind}
@@ -314,8 +320,9 @@ export default function InsightsPage() {
         ) : seasonality.length === 0 ? (
           <StatePanel
             variant="empty"
-            title="표시할 시즌 이벤트가 아직 준비되지 않았습니다"
-            description="업종 필터를 줄이거나 전체 업종으로 변경해 분석 대상을 확인해 보세요."
+            title="시즌 압력 기준선이 아직 열리지 않았습니다"
+            description="업종 필터를 줄이거나 전체 업종으로 변경해 이벤트 전후의 검토 가능한 벤치마크 행을 확인해 보세요."
+            eyebrow="Seasonality baseline"
           />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

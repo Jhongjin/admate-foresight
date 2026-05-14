@@ -29,39 +29,39 @@ const INDUSTRIES = [
 /* ─── Meta 카드 ─── */
 function MetaCard({ ad }: { ad: MetaAd }) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+    <div className="flex flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       {ad.image_url ? (
-        <div className="w-full h-44 bg-gray-100 overflow-hidden">
+        <div className="h-44 w-full overflow-hidden bg-stone-100">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={ad.image_url} alt="" className="w-full h-full object-cover" />
         </div>
       ) : (
-        <div className="w-full h-44 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <svg className="w-10 h-10 text-blue-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="flex h-44 w-full items-center justify-center bg-[#fbfaf6]">
+          <svg className="h-10 w-10 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3 3h18" />
           </svg>
         </div>
       )}
-      <div className="p-4 flex flex-col gap-2 flex-1">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <div className="flex min-w-0 items-center gap-2">
           {ad.profile_image
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={ad.profile_image} alt="" className="w-6 h-6 rounded-full object-cover shrink-0 border border-gray-100" />
-            : <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-blue-600 text-xs font-bold">{ad.page_name?.[0] || '?'}</div>
+            ? <img src={ad.profile_image} alt="" className="h-6 w-6 shrink-0 rounded-md border border-slate-100 object-cover" />
+            : <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-teal-50 text-xs font-bold text-teal-700">{ad.page_name?.[0] || '?'}</div>
           }
-          <p className="text-sm font-semibold text-gray-800 truncate">{ad.page_name || '알 수 없는 페이지'}</p>
+          <p className="truncate text-sm font-semibold text-slate-900">{ad.page_name || '알 수 없는 페이지'}</p>
         </div>
-        {ad.body && <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">{ad.body}</p>}
-        {ad.title && <p className="text-xs font-semibold text-gray-800 line-clamp-2 bg-gray-50 rounded-lg px-2.5 py-1.5">{ad.title}</p>}
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
+        {ad.body && <p className="line-clamp-3 text-xs leading-relaxed text-slate-600">{ad.body}</p>}
+        {ad.title && <p className="line-clamp-2 rounded-md border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-xs font-semibold text-slate-800">{ad.title}</p>}
+        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2">
           <div className="flex flex-col gap-0.5">
-            {ad.caption && <span className="text-xs text-gray-400">{ad.caption}</span>}
-            {ad.start_date && <span className="text-xs text-gray-400">📅 {ad.start_date}</span>}
+            {ad.caption && <span className="text-xs text-slate-400">{ad.caption}</span>}
+            {ad.start_date && <span className="text-xs text-slate-400">Live since {ad.start_date}</span>}
           </div>
-          {ad.cta && <span className="px-2 py-0.5 bg-indigo-600 text-white text-xs font-medium rounded-lg shrink-0">{ad.cta}</span>}
+          {ad.cta && <span className="shrink-0 rounded-md border border-teal-100 bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">{ad.cta}</span>}
         </div>
         <a href={ad.snapshot_url} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-blue-50 text-gray-600 hover:text-blue-600 text-xs font-medium rounded-xl transition-colors border border-gray-100 hover:border-blue-200">
+          className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
           </svg>
@@ -75,12 +75,12 @@ function MetaCard({ ad }: { ad: MetaAd }) {
 /* ─── 로딩 스켈레톤 ─── */
 function Skeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
-      <div className="h-44 bg-gray-100" />
+    <div className="animate-pulse overflow-hidden rounded-md border border-slate-200 bg-white">
+      <div className="h-44 bg-stone-100" />
       <div className="p-4 space-y-3">
-        <div className="h-4 bg-gray-100 rounded w-2/3" />
-        <div className="h-3 bg-gray-100 rounded w-full" />
-        <div className="h-3 bg-gray-100 rounded w-4/5" />
+        <div className="h-4 w-2/3 rounded bg-slate-100" />
+        <div className="h-3 w-full rounded bg-slate-100" />
+        <div className="h-3 w-4/5 rounded bg-slate-100" />
       </div>
     </div>
   );
@@ -143,17 +143,22 @@ export default function CompetitorPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">경쟁사 모니터링</h1>
-        <p className="text-sm text-gray-500 mt-1">Meta 광고 라이브러리에서 실제 집행 소재를 탐색합니다.</p>
-      </div>
+      <section className="rounded-md border border-slate-200 bg-[#f8f6f0] p-5 shadow-sm sm:p-6">
+        <p className="inline-flex rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-800">
+          Creative market watch
+        </p>
+        <h1 className="mt-4 text-2xl font-bold text-slate-950 sm:text-3xl">경쟁 소재 관제 보드</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          Meta 광고 라이브러리의 실제 집행 소재를 업종과 키워드 기준으로 확인해 벤치마크 수치 뒤의 메시지 흐름을 읽습니다.
+        </p>
+      </section>
 
       {/* 검색 패널 */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
+      <div className="space-y-5 rounded-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
 
         {/* 키워드 검색 */}
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-2">브랜드 · 키워드 직접 검색</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-800">브랜드 · 키워드 직접 검색</label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
               type="text"
@@ -161,22 +166,22 @@ export default function CompetitorPage() {
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleKeywordSearch()}
               placeholder="예: 올리브영, 설화수, 다이슨..."
-              className="min-w-0 flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-200"
+              className="min-w-0 flex-1 rounded-md border border-slate-200 px-4 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-200"
             />
             <button
               type="button"
               onClick={handleKeywordSearch}
               disabled={!keyword.trim() || loading}
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-40 sm:w-auto"
+              className="rounded-md bg-slate-950 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-40 sm:w-auto"
             >
-              검색
+              소재 검색
             </button>
           </div>
         </div>
 
         {/* 업종 빠른 선택 */}
         <div>
-          <label className="text-sm font-medium text-gray-700 block mb-2">업종별 빠른 탐색</label>
+          <label className="mb-2 block text-sm font-semibold text-slate-800">업종별 빠른 탐색</label>
           <div className="flex flex-wrap gap-2">
             {INDUSTRIES.map((ind) => {
               const isAll = ind === ALL_LABEL;
@@ -186,15 +191,15 @@ export default function CompetitorPage() {
                   key={ind}
                   type="button"
                   onClick={() => handleIndustryClick(ind)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                  className={`rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors ${
                     isActive
                       ? isAll
-                        ? 'bg-gray-800 text-white border-gray-800'
-                        : 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                        ? 'border-slate-950 bg-slate-950 text-white'
+                        : 'border-teal-700 bg-teal-700 text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300'
                   }`}
                 >
-                  {isAll ? '🌐 전체업종' : ind}
+                  {isAll ? '전체업종' : ind}
                 </button>
               );
             })}
@@ -205,10 +210,10 @@ export default function CompetitorPage() {
       {/* 로딩 */}
       {loading && (
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-3.5 h-3.5 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-            <span className="text-xs text-blue-500">
-              Meta 광고 소재 수집 중
+          <div className="mb-4 flex items-center gap-2">
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-teal-100 border-t-teal-700" />
+            <span className="text-xs font-semibold text-teal-700">
+              소재 보드 수집 중
               {searchLabel && searchLabel !== ALL_LABEL ? ` — ${searchLabel}` : ' (전체업종)'}
               ...
             </span>
@@ -224,20 +229,20 @@ export default function CompetitorPage() {
         <div>
           <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
             <div>
-              <h2 className="text-base font-semibold text-gray-800">
+              <h2 className="text-base font-semibold text-slate-800">
                 {searchLabel === ALL_LABEL
-                  ? <span className="text-gray-700">전체업종</span>
-                  : <span className="text-indigo-600">{searchLabel}</span>
+                  ? <span className="text-slate-700">전체업종</span>
+                  : <span className="text-teal-700">{searchLabel}</span>
                 }
                 {' '}광고 소재
-                <span className="ml-2 text-sm font-normal text-gray-400">{ads.length}개</span>
+                <span className="ml-2 text-sm font-normal text-slate-400">{ads.length}개</span>
               </h2>
             </div>
             {searchTerm && (
               <a
                 href={`https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(searchTerm)}`}
                 target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-md border border-teal-200 px-3 py-1.5 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-50"
               >
                 Meta 라이브러리에서 전체 보기 →
               </a>
@@ -254,20 +259,21 @@ export default function CompetitorPage() {
       {!loading && !error && ads.length === 0 && searchLabel && (
         <StatePanel
           variant="empty"
-          title={`"${searchLabel}" 관련 광고 소재를 찾지 못했습니다`}
-          description="다른 키워드로 검색하거나 업종을 변경해 보세요."
+          title={`"${searchLabel}" 소재 기준선이 비어 있습니다`}
+          description="다른 키워드로 검색하거나 업종을 변경해 현재 시장에서 관찰 가능한 소재 흐름을 다시 확인해 보세요."
+          eyebrow="Creative capture"
           className="min-h-64"
         />
       )}
 
       {/* 에러 */}
       {!loading && error && (
-        <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl space-y-2">
-          <p className="text-sm font-semibold text-amber-700">광고 소재 연결 상태를 확인하고 있습니다.</p>
+        <div className="space-y-2 rounded-md border border-amber-100 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-800">소재 수집 연결 상태를 확인하고 있습니다.</p>
           <p className="text-xs text-amber-600">
             {PRODUCT_SAFE_ERROR}
           </p>
-          <p className="text-xs text-gray-600 bg-white border border-amber-100 rounded-lg p-3 leading-relaxed">
+          <p className="rounded-md border border-amber-100 bg-white p-3 text-xs leading-relaxed text-slate-600">
             잠시 후 다시 시도해 주세요. 같은 문제가 반복되면 운영 담당자에게 연결 상태 확인을 요청하세요.
           </p>
         </div>
