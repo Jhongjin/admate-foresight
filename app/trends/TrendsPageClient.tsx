@@ -239,6 +239,33 @@ function ForecastEmptyPanel({
   );
 }
 
+function PlanningLedgerCard({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone: 'teal' | 'amber' | 'stone' | 'slate';
+}) {
+  const toneClass = {
+    teal: 'border-teal-200 bg-teal-50 text-teal-800',
+    amber: 'border-amber-200 bg-amber-50 text-amber-800',
+    stone: 'border-stone-200 bg-stone-50 text-stone-700',
+    slate: 'border-slate-200 bg-slate-50 text-slate-700',
+  }[tone];
+
+  return (
+    <div className={`min-w-0 rounded-md border p-3 sm:p-4 ${toneClass}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-70">{label}</p>
+      <p className="mt-2 truncate text-sm font-bold text-slate-950 sm:text-base">{value}</p>
+      <p className="mt-2 text-xs leading-5 opacity-80">{detail}</p>
+    </div>
+  );
+}
+
 export default function TrendsPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
@@ -352,6 +379,21 @@ export default function TrendsPage() {
   const trendChartData = mergeByMonth(trendData, metric);
   const trendIndustryKeys = trendData.map((d) => d.industry);
   const summaryRows = trendData.map((d) => ({ industry: d.industry, ...(d.trends[d.trends.length - 1] ?? {}) }));
+  const segmentReadiness = availableIndustries.length > 0 || availableObjectives.length > 0
+    ? `업종 ${availableIndustries.length.toLocaleString()}개 / 목표 ${availableObjectives.length.toLocaleString()}개`
+    : '필터 목록 대기';
+  const missingInputLedger = filtersError
+    ? '필터 연결 확인'
+    : activeFilterCount > 0
+      ? `${activeFilterCount}개 선택 입력`
+      : '선택 입력 없음';
+  const nextPlanningAction = trendError || efficiencyError || genderError || ageError
+    ? '연결 상태 재확인'
+    : !loading && trendChartData.length === 0
+      ? '필터 완화 후 재검토'
+      : top3.length > 0
+        ? '효율 랭킹 비교'
+        : '기준선 적재 대기';
 
   const genderGroups = [...new Set(genderBreakdown.map((r) => r.group))];
   const genderIndustryKeys = [...new Set(genderBreakdown.map((r) => r.industry))];
@@ -487,6 +529,44 @@ export default function TrendsPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-md border border-slate-200 bg-white shadow-sm">
+        <div className="grid gap-0 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="border-b border-slate-100 bg-[#fbfaf7] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Planning ledger</p>
+            <h2 className="mt-2 text-base font-bold text-slate-950">벤치마크 입력 준비도</h2>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              현재 화면의 필터, 지표, 빈 구간을 다음 계획 액션으로 정리합니다.
+            </p>
+          </div>
+          <div className="grid gap-2 p-3 sm:grid-cols-2 sm:gap-3 sm:p-4 xl:grid-cols-4">
+            <PlanningLedgerCard
+              label="Benchmark window"
+              value="최근 6개월"
+              detail={`${metricConfig.label} 기준으로 월별 기준선을 확인합니다.`}
+              tone="teal"
+            />
+            <PlanningLedgerCard
+              label="Segment readiness"
+              value={segmentReadiness}
+              detail={filtersError ? '필터 목록을 불러온 뒤 세그먼트를 조정할 수 있습니다.' : '업종과 목표 필터로 계획 범위를 좁힙니다.'}
+              tone={filtersError ? 'amber' : 'stone'}
+            />
+            <PlanningLedgerCard
+              label="Missing input ledger"
+              value={missingInputLedger}
+              detail={activeFilterCount > 0 ? '선택 입력을 기준으로 각 차트를 다시 집계합니다.' : '전체 기준선에서 시작해 비교 대상을 좁혀 보세요.'}
+              tone={filtersError ? 'amber' : activeFilterCount > 0 ? 'teal' : 'slate'}
+            />
+            <PlanningLedgerCard
+              label="Next planning action"
+              value={nextPlanningAction}
+              detail="빈 차트는 실패가 아니라 입력 범위나 적재 상태를 점검할 신호입니다."
+              tone={nextPlanningAction.includes('재확인') || nextPlanningAction.includes('완화') ? 'amber' : 'slate'}
+            />
           </div>
         </div>
       </section>
