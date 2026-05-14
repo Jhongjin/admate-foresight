@@ -78,19 +78,21 @@ export default function KPICard({
   );
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
       {/* 상단: 아이콘 + diff 배지 */}
-      <div className="flex items-center justify-between">
-        <span className="text-xl leading-none">{icon}</span>
+      <div className="flex items-start justify-between gap-3">
+        <span className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-md border border-stone-200 bg-stone-50 px-2 text-[11px] font-bold uppercase tracking-[0.06em] text-slate-700 leading-none">
+          {icon}
+        </span>
         {hasDiff && (
           <span
             aria-label={diffBadgeLabel}
-            className={`max-w-[70%] whitespace-normal break-words text-xs font-semibold tracking-tight px-2 py-0.5 rounded-full ${
+            className={`max-w-[70%] whitespace-normal break-words rounded-md border px-2 py-0.5 text-xs font-semibold tracking-tight ${
               isNeutral
-                ? 'bg-gray-100 text-gray-500'
+                ? 'border-gray-200 bg-gray-50 text-gray-500'
                 : isGood
-                ? 'bg-emerald-50 text-emerald-600'
-                : 'bg-red-50 text-red-500'
+                ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+                : 'border-red-100 bg-red-50 text-red-600'
             }`}
           >
             {isNeutral ? '평균 수준' : `${diffDirectionLabel} ${Math.abs(diff!).toFixed(1)}%`}
@@ -99,11 +101,14 @@ export default function KPICard({
       </div>
 
       {/* 타이틀 */}
-      <p className="text-xs font-medium text-[#6B7280] -mb-1">{title}</p>
+      <div className="-mb-1 min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-stone-500">Planner KPI</p>
+        <p className="mt-1 text-xs font-semibold text-[#4B5563]">{title}</p>
+      </div>
 
       {/* 내 예측 수치 */}
       {loading ? (
-        <div className="h-8 w-28 bg-gray-100 rounded-lg animate-pulse" />
+        <div className="h-8 w-28 animate-pulse rounded-md bg-gray-100" />
       ) : (
         <p className="leading-none">
           {prefix && (
@@ -118,8 +123,8 @@ export default function KPICard({
 
       {/* 업종 평균 */}
       {marketLabel !== undefined && !loading && (
-        <p className="text-xs text-[#6B7280] border-t border-gray-50 pt-2 mt-auto">
-          업종 평균{' '}
+        <p className="mt-auto border-t border-slate-100 pt-2 text-xs text-[#6B7280]">
+          Benchmark line{' '}
           <span className={`font-semibold num ${marketLabel === '-' ? 'text-gray-400' : 'text-[#374151]'}`}>
             {marketLabel}
           </span>
@@ -129,8 +134,9 @@ export default function KPICard({
       {hasBenchmarkDisplay && (
         <section
           aria-label={`${title} 벤치마크 신뢰도 세부 정보`}
-          className="min-w-0 border-t border-gray-100 pt-3 space-y-2"
+          className="min-w-0 space-y-2 border-t border-slate-100 pt-3"
         >
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-stone-500">Planning ledger</p>
           <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
             {benchmarkStatusLabel && (
               <p
@@ -143,7 +149,7 @@ export default function KPICard({
               </p>
             )}
             {benchmarkSyntheticContextLabel && (
-              <span className="max-w-full whitespace-normal break-words text-[10px] font-medium text-[#4F46E5] bg-indigo-50 px-1.5 py-0.5 rounded-md">
+              <span className="max-w-full whitespace-normal break-words rounded-md border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] font-semibold text-stone-600">
                 <span className="sr-only">벤치마크 기준: </span>
                 {benchmarkSyntheticContextLabel}
               </span>
@@ -176,7 +182,7 @@ export default function KPICard({
                 const { term, description } = splitBenchmarkBasisLine(line);
 
                 return (
-                  <div key={line} className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-1 text-[11px] text-[#6B7280] leading-snug">
+                  <div key={line} className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-1.5 text-[11px] leading-snug text-[#6B7280]">
                     <dt className="font-medium text-[#4B5563]">{term}</dt>
                     <dd className="min-w-0 break-words">{description}</dd>
                   </div>
@@ -186,8 +192,8 @@ export default function KPICard({
           )}
 
           {benchmarkBlockedOutputs.length > 0 && (
-            <div className="text-[11px] text-[#991B1B] leading-snug">
-              <p className="font-medium">제한된 출력</p>
+            <div className="rounded-md border border-red-100 bg-red-50 px-2 py-1.5 text-[11px] leading-snug text-[#991B1B]">
+              <p className="font-semibold">제한된 출력 · Blocked planner output</p>
               <ul
                 aria-label={`${title} 제한된 벤치마크 출력`}
                 className="mt-1 list-disc space-y-1 pl-4"

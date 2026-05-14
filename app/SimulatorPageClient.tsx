@@ -1279,36 +1279,57 @@ export default function SimulatorPage() {
             if (n <= 0) return '—';
             return fmt ? fmt(n) : `₩${n.toLocaleString()}`;
           };
+          const kpiLedgerProps = {
+            benchmarkStatusLabel: hasMarket ? '업종 매칭 벤치마크' : '전체 기준 벤치마크',
+            benchmarkConfidenceLabel: confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}`,
+            benchmarkSyntheticContextLabel: '최근 6개월 · KRW Net',
+            benchmarkVisibleCopy: [
+              chartData.length > 0 ? 'Range gate: 예산 곡선과 같은 실행 결과' : 'Range gate: 예산 구간 대기',
+            ],
+          };
+          const kpiBasisLines = [
+            `표본: ${hasMarket ? `${marketSampleCount.toLocaleString()}건 / 매칭 ${matchedSampleCount.toLocaleString()}건` : `매칭 ${matchedSampleCount.toLocaleString()}건`}`,
+            `필터: ${objectiveLabel} · ${genderLabel} · ${ageLabel}`,
+            `용도: 확정 성과가 아닌 매체 플랜 검토`,
+          ];
           return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <KPICard title={`예상 도달 (${campaignDays}일)`} value={result ? fmtR(totalReach) : '—'}
                 icon="Reach" loading={loading} marketLabel={result ? mktLabel(mktReach, fmtR) : undefined}
-                diff={hasMarket ? reachDiff : null} lowerBetter={false} />
+                diff={hasMarket ? reachDiff : null} lowerBetter={false}
+                {...kpiLedgerProps}
+                benchmarkBasisLines={kpiBasisLines}
+                benchmarkBlockedOutputs={hasMarket ? [] : ['업종 특화 평균처럼 표시하지 않음']} />
               <KPICard title="예상 CPM"
                 value={result ? `₩${(applySeasonBoost ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
                 icon="CPM" loading={loading} marketLabel={result ? mktLabel(mktCpm) : undefined}
-                diff={hasMarket ? (result?.marketAvg?.cpmDiff ?? null) : null} lowerBetter={true} />
+                diff={hasMarket ? (result?.marketAvg?.cpmDiff ?? null) : null} lowerBetter={true}
+                {...kpiLedgerProps} />
               <KPICard title="CPC(전체)"
                 value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
                 icon="CPC" loading={loading} marketLabel={result ? mktLabel(mktCpc) : undefined}
-                diff={hasMarket ? (result?.marketAvg?.cpcDiff ?? null) : null} lowerBetter={true} />
+                diff={hasMarket ? (result?.marketAvg?.cpcDiff ?? null) : null} lowerBetter={true}
+                {...kpiLedgerProps} />
               <KPICard title="CPC(링크)"
                 value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
                 icon="Link" loading={loading}
                 marketLabel={result ? mktLabel(mktCpcLink) : undefined}
                 diff={hasMarket ? (result?.marketAvg?.cpcLinkDiff ?? null) : null}
-                lowerBetter={true} />
+                lowerBetter={true}
+                {...kpiLedgerProps} />
               <KPICard title="동영상 3초 조회당 비용"
                 value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
                 icon="View" loading={loading}
                 marketLabel={result ? (hasMarket ? (mktCpv > 0 ? `₩${mktCpv.toLocaleString()}` : '—') : '-') : undefined}
                 diff={hasMarket ? (result?.marketAvg?.cpvDiff ?? null) : null}
-                lowerBetter={true} />
+                lowerBetter={true}
+                {...kpiLedgerProps} />
               <KPICard title="VTR(3s)"
                 value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
                 icon="VTR" loading={loading}
                 marketLabel={result ? (hasMarket ? (mktVtr > 0 ? `${mktVtr.toFixed(2)}%` : '—') : '-') : undefined}
-                diff={hasMarket ? (result?.marketAvg?.vtrDiff ?? null) : null} lowerBetter={false} />
+                diff={hasMarket ? (result?.marketAvg?.vtrDiff ?? null) : null} lowerBetter={false}
+                {...kpiLedgerProps} />
             </div>
           );
         })()}
@@ -1610,9 +1631,26 @@ export default function SimulatorPage() {
       </div>
 
       {/* Info Note */}
-      <div className="bg-teal-50 rounded-md p-4 text-sm text-teal-800">
-        <strong>예측 방식:</strong> Meta 공식 기반 (예산÷CPM×1000÷빈도) + Diminishing Returns 보정 (β=0.82).
-        캠페인 목표별 CPM·빈도를 실제 데이터에서 적용하며, 예산이 클수록 단위당 도달 효율이 감소합니다.
+      <div className="rounded-md border border-teal-100 bg-teal-50 p-4 text-sm text-teal-900">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-700">Forecast Method Ledger</p>
+        <p className="mt-1 leading-6">
+          <strong>예측 방식:</strong> Meta 공식 기반 (예산÷CPM×1000÷빈도) + Diminishing Returns 보정 (β=0.82).
+          캠페인 목표별 CPM·빈도를 실제 데이터에서 적용하며, 예산이 클수록 단위당 도달 효율이 감소합니다.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-md border border-teal-100 bg-white/70 px-3 py-2">
+            <p className="text-[11px] font-semibold text-teal-700">Input readiness</p>
+            <p className="mt-0.5 text-xs text-teal-900">{selectedTargetCount > 0 ? `${selectedTargetCount}개 조건 적용` : '전체 기준 입력'}</p>
+          </div>
+          <div className="rounded-md border border-teal-100 bg-white/70 px-3 py-2">
+            <p className="text-[11px] font-semibold text-teal-700">Benchmark confidence</p>
+            <p className="mt-0.5 text-xs text-teal-900">{confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}`}</p>
+          </div>
+          <div className="rounded-md border border-teal-100 bg-white/70 px-3 py-2">
+            <p className="text-[11px] font-semibold text-teal-700">Range gate</p>
+            <p className="mt-0.5 text-xs text-teal-900">{chartData.length > 0 ? `${chartData.length}개 예산 구간 검토 가능` : '계산된 구간만 표시'}</p>
+          </div>
+        </div>
       </div>
 
       </div>
