@@ -94,9 +94,9 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
       {/* 헤더 */}
       <div className="flex flex-col gap-3 border-b border-slate-100 bg-[#fbfaf6] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-stone-200 bg-white text-lg">{event.emoji}</span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-stone-200 bg-white text-[11px] font-bold uppercase tracking-[0.08em] text-stone-600">SE</span>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Seasonality window</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">시즌 압력 창</p>
             <h3 className="mt-1 truncate text-base font-semibold text-slate-950">{event.name}</h3>
             <p className="mt-1 text-xs leading-5 text-slate-500">{event.description} · {event.eventStart}{event.eventStart !== event.eventEnd ? ` ~ ${event.eventEnd}` : ''}</p>
           </div>
@@ -189,6 +189,62 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
   );
 }
 
+function SeasonEmptyPanel({ selectedCount }: { selectedCount: number }) {
+  const ledger = [
+    {
+      label: '범위 상태',
+      value: selectedCount > 0 ? `${selectedCount}개 업종 선택` : '전체 업종',
+      detail: selectedCount > 0 ? '필터가 좁아진 상태' : '검토 범위 넓게 유지',
+    },
+    { label: '비교 창', value: '전 2주 / 시즌 중 / 후 2주', detail: '동일 이벤트 기간 기준' },
+    { label: '다음 액션', value: selectedCount > 0 ? '필터 완화' : '적재 상태 확인', detail: '검토 가능한 행 확보 후 압력 판단' },
+  ];
+
+  return (
+    <section
+      aria-label="시즌 압력 기준선 대기"
+      className="relative overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#f7f5ef] p-5 sm:p-6"
+    >
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-60"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(120,113,108,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(120,113,108,0.12) 1px, transparent 1px)',
+          backgroundSize: '32px 32px',
+        }}
+      />
+      <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-stone-500">시즌 기준선 대기</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-950">집행 압력 판단을 보류한 상태입니다</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            이벤트 전후 비교 행이 충분히 열리면 CPM/CPC 압력과 CTR/VTR 반응을 같은 창에서 판독합니다.
+          </p>
+          <p className="mt-4 border-t border-stone-200 pt-3 text-xs leading-5 text-stone-500">
+            빈 화면을 임의 수치로 채우지 않고, 필터 범위와 적재 상태를 먼저 확인합니다.
+          </p>
+        </div>
+        <div className="rounded-md border border-stone-300 bg-white/80 p-3">
+          <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">판독 장부</p>
+            <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800">행 대기</span>
+          </div>
+          <div className="mt-3 grid gap-2">
+            {ledger.map((item) => (
+              <div key={item.label} className="rounded-md border border-stone-200 bg-[#fbfaf7] px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
+                <p className="mt-1 text-xs font-bold text-slate-950">{item.value}</p>
+                <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function InsightsPage() {
   const [seasonality, setSeasonality] = useState<SeasonalityEvent[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -235,6 +291,25 @@ export default function InsightsPage() {
     );
   }
 
+  const selectedScope = selectedIndustries.length > 0 ? `${selectedIndustries.length}개 업종 선택` : '전체 업종';
+  const seasonReadiness = [
+    {
+      label: '검토 범위',
+      value: selectedScope,
+      detail: selectedIndustries.length > 0 ? selectedIndustries.slice(0, 2).join(', ') : '시장 전체 압력 기준',
+    },
+    {
+      label: '이벤트 창',
+      value: seasonLoading ? '집계 중' : seasonality.length > 0 ? `${seasonality.length}개 이벤트` : '행 대기',
+      detail: '전 2주 / 시즌 중 / 후 2주 비교',
+    },
+    {
+      label: '다음 판단',
+      value: seasonError ? '연결 확인' : seasonality.length > 0 ? '압력 구간 검토' : '필터 범위 점검',
+      detail: seasonality.length > 0 ? '예산 압력과 반응 지표를 함께 확인' : '검토 가능한 기준선 확보',
+    },
+  ];
+
   if (loading) {
     return (
       <StatePanel
@@ -250,12 +325,33 @@ export default function InsightsPage() {
     <div className="space-y-6">
       <section className="rounded-md border border-slate-200 bg-[#f8f6f0] p-5 shadow-sm sm:p-6">
         <p className="inline-flex rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-800">
-          Seasonality desk
+          시즌 압력 관제
         </p>
         <h1 className="mt-4 text-2xl font-bold text-slate-950 sm:text-3xl">시즌 압력 플래너</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
           이벤트 전·중·후 CPM, CPC, CTR, VTR 변화를 같은 기간 창으로 묶어 예산 압력과 집행 타이밍을 점검합니다.
         </p>
+      </section>
+
+      <section className="overflow-hidden rounded-md border border-stone-200 bg-white shadow-sm">
+        <div className="grid gap-0 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="border-b border-stone-200 bg-[#fbfaf7] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">계획 준비도</p>
+            <h2 className="mt-2 text-base font-bold text-slate-950">시즌 집행 압력 장부</h2>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              필터, 이벤트 창, 다음 판단을 먼저 고정한 뒤 지표를 읽습니다.
+            </p>
+          </div>
+          <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            {seasonReadiness.map((item) => (
+              <div key={item.label} className="min-w-0 px-4 py-3 sm:px-5 sm:py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
+                <p className="mt-1 truncate text-sm font-bold text-slate-950">{item.value}</p>
+                <p className="mt-1 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ══ 시즈널리티 분석 ══ */}
@@ -318,12 +414,7 @@ export default function InsightsPage() {
             description="일시적으로 시즌 분석 데이터를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요."
           />
         ) : seasonality.length === 0 ? (
-          <StatePanel
-            variant="empty"
-            title="시즌 압력 기준선이 아직 열리지 않았습니다"
-            description="업종 필터를 줄이거나 전체 업종으로 변경해 이벤트 전후의 검토 가능한 벤치마크 행을 확인해 보세요."
-            eyebrow="Seasonality baseline"
-          />
+          <SeasonEmptyPanel selectedCount={selectedIndustries.length} />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {seasonality.map((event) => (
