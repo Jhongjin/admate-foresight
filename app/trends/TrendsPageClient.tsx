@@ -404,6 +404,13 @@ export default function TrendsPage() {
   const trendChartData = mergeByMonth(trendData, metric);
   const trendIndustryKeys = trendData.map((d) => d.industry);
   const summaryRows = trendData.map((d) => ({ industry: d.industry, ...(d.trends[d.trends.length - 1] ?? {}) }));
+  const latestTrendMonth = trendChartData.length > 0 ? String(trendChartData[trendChartData.length - 1].month) : '월 기준 대기';
+  const metricPlanningRule = metric === 'avgCTR' || metric === 'totalReach' ? '높은 구간을 증액 후보로 검토' : '낮은 구간을 효율 기준선으로 검토';
+  const trendEvidenceLedger = [
+    { label: '최신 기준월', value: latestTrendMonth, detail: '월별 추이의 마지막 집계 지점' },
+    { label: '비교 세그먼트', value: `${trendIndustryKeys.length.toLocaleString()}개 업종`, detail: trendIndustryContext },
+    { label: '판단 규칙', value: metricConfig.label, detail: metricPlanningRule },
+  ];
   const segmentReadiness = availableIndustries.length > 0 || availableObjectives.length > 0
     ? `업종 ${availableIndustries.length.toLocaleString()}개 / 목표 ${availableObjectives.length.toLocaleString()}개`
     : '필터 목록 대기';
@@ -685,21 +692,37 @@ export default function TrendsPage() {
             ledger={chartEmptyLedger('월별 추이', trendIndustries)}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <div className="h-[240px] min-w-[540px] sm:h-[280px] sm:min-w-[640px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(v)} width={80} />
-                  <Tooltip formatter={(v) => metricConfig.format(Number(v))} />
-                  <Legend />
-                  {trendIndustryKeys.map((ind, i) => (
-                    <Line key={ind} type="monotone" dataKey={ind} stroke={COLORS[i % COLORS.length]}
-                      strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-md border border-stone-200 bg-[#fbfaf7]">
+              <div className="border-b border-stone-200 px-3 py-2 sm:px-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">월별 예측 판독</p>
+              </div>
+              <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                {trendEvidenceLedger.map((item) => (
+                  <div key={item.label} className="min-w-0 px-3 py-3 sm:px-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
+                    <p className="mt-1 truncate text-sm font-bold text-slate-950">{item.value}</p>
+                    <p className="mt-1 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <div className="h-[240px] min-w-[540px] sm:h-[280px] sm:min-w-[640px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => metricConfig.format(v)} width={80} />
+                    <Tooltip formatter={(v) => metricConfig.format(Number(v))} />
+                    <Legend />
+                    {trendIndustryKeys.map((ind, i) => (
+                      <Line key={ind} type="monotone" dataKey={ind} stroke={COLORS[i % COLORS.length]}
+                        strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
