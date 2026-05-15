@@ -226,43 +226,75 @@ function ForecastEmptyPanel({
       detail: '업종, 성별, 연령을 같은 필터 문맥으로 맞춥니다.',
     },
   ];
+  const quickChecks = ['최근 6개월', '필터 검토', '예산 기준선', '오디언스 분해'];
 
   return (
     <div
       role="region"
       aria-label={title}
-      className="relative flex min-h-[16rem] overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#f7f5ef] px-4 py-5 sm:min-h-72 sm:px-5 sm:py-6"
+      className="relative overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#f7f5ef] px-4 py-5 sm:px-5 sm:py-6"
     >
       <div
         aria-hidden="true"
-        className="absolute inset-0 opacity-60"
+        className="absolute inset-0 opacity-45"
         style={{
           backgroundImage:
             'linear-gradient(to right, rgba(120,113,108,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(120,113,108,0.12) 1px, transparent 1px)',
-          backgroundSize: '32px 32px',
+            backgroundSize: '32px 32px',
         }}
       />
-      <div className="relative grid w-full gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] lg:items-stretch">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-stone-500">{eyebrow}</p>
-          <h3 className="mt-2 text-base font-semibold text-slate-950 sm:text-lg">{title}</h3>
-          <p className="mt-2 max-w-md text-xs leading-5 text-slate-600 sm:text-sm sm:leading-6">{description}</p>
-          <div className="mt-4 overflow-hidden rounded-md border border-stone-300 bg-white/75">
-            <div className="border-b border-stone-200 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">Media planning protocol</p>
+      <div className="relative grid w-full gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-stretch">
+        <div className="min-w-0 rounded-md border border-stone-300 bg-white/70 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-stone-500">{eyebrow}</p>
+              <h3 className="mt-2 text-base font-semibold text-slate-950 sm:text-lg">{title}</h3>
             </div>
-            <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-              {planningProtocol.map((item) => (
-                <div key={item.code} className="min-w-0 px-3 py-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-teal-800">{item.code}</p>
-                  <p className="mt-1 text-xs font-bold text-slate-950">{item.label}</p>
-                  <p className="mt-1 text-[11px] leading-4 text-slate-500">{item.detail}</p>
-                </div>
-              ))}
+            <span className="w-fit shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-800">
+              no chart rows
+            </span>
+          </div>
+          <p className="mt-2 max-w-md text-xs leading-5 text-slate-600 sm:text-sm sm:leading-6">{description}</p>
+          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+            <div className="overflow-hidden rounded-md border border-stone-300 bg-[#fbfaf7]">
+              <div className="border-b border-stone-200 px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">판독 순서</p>
+              </div>
+              <div className="divide-y divide-stone-200">
+                {planningProtocol.map((item, index) => (
+                  <div key={item.code} className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-3 px-3 py-2.5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-md border border-teal-200 bg-teal-50 text-[10px] font-bold text-teal-800">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-teal-800">{item.code}</p>
+                        <p className="text-xs font-bold text-slate-950">{item.label}</p>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-4 text-slate-500">{item.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-md border border-stone-300 bg-white/80 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">차트 자리</p>
+              <div className="mt-3 flex h-28 items-end gap-2 border-b border-l border-stone-200 px-2 pb-2" aria-hidden="true">
+                {[42, 68, 54, 76, 48].map((height, index) => (
+                  <span
+                    key={`${height}-${index}`}
+                    className="flex-1 rounded-t-sm bg-stone-200"
+                    style={{ height: `${height}%` }}
+                  />
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] leading-5 text-stone-500">
+                수치 대신 준비 상태만 표시합니다.
+              </p>
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
-            {['최근 6개월', '필터 검토', '예산 기준선', '오디언스 분해'].map((item) => (
+            {quickChecks.map((item) => (
               <span key={item} className="rounded-md border border-stone-300 bg-white/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-600 sm:text-[11px]">
                 {item}
               </span>
@@ -281,10 +313,10 @@ function ForecastEmptyPanel({
           </div>
           <div className="mt-3 grid gap-2">
             {ledger.map((item) => (
-              <div key={item.label} className="grid gap-1 rounded-md border border-stone-200 bg-[#fbfaf7] px-3 py-2 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3">
+              <div key={item.label} className="grid gap-1 rounded-md border border-stone-200 bg-[#fbfaf7] px-3 py-2">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-bold text-slate-950">{item.value}</p>
+                  <p className="break-words text-xs font-bold text-slate-950">{item.value}</p>
                   <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{item.detail}</p>
                 </div>
               </div>
