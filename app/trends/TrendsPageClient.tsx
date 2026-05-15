@@ -209,11 +209,29 @@ function ForecastEmptyPanel({
   eyebrow?: string;
   ledger?: Array<{ label: string; value: string; detail: string }>;
 }) {
+  const planningProtocol = [
+    {
+      code: 'CPM/CPC',
+      label: '비용 압력',
+      detail: '낮은 구간을 예산 방어선으로 먼저 읽습니다.',
+    },
+    {
+      code: 'CTR/REACH',
+      label: '반응 확장',
+      detail: '높은 구간을 증액 후보와 도달 계획에 연결합니다.',
+    },
+    {
+      code: 'SEGMENT',
+      label: '세그먼트 판독',
+      detail: '업종, 성별, 연령을 같은 필터 문맥으로 맞춥니다.',
+    },
+  ];
+
   return (
     <div
       role="region"
       aria-label={title}
-      className="relative flex min-h-[15rem] overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#f7f5ef] px-4 py-5 sm:min-h-64 sm:px-5 sm:py-6"
+      className="relative flex min-h-[16rem] overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#f7f5ef] px-4 py-5 sm:min-h-72 sm:px-5 sm:py-6"
     >
       <div
         aria-hidden="true"
@@ -224,23 +242,37 @@ function ForecastEmptyPanel({
           backgroundSize: '32px 32px',
         }}
       />
-      <div className="relative grid w-full gap-4 md:grid-cols-[1.1fr_0.9fr] md:items-center">
+      <div className="relative grid w-full gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,0.95fr)] lg:items-stretch">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-stone-500">{eyebrow}</p>
           <h3 className="mt-2 text-base font-semibold text-slate-950 sm:text-lg">{title}</h3>
           <p className="mt-2 max-w-md text-xs leading-5 text-slate-600 sm:text-sm sm:leading-6">{description}</p>
-          <div className="mt-4 flex flex-wrap gap-1.5 sm:mt-5 sm:gap-2">
-            {['최근 6개월', '필터 검토', '기획 메모'].map((item) => (
+          <div className="mt-4 overflow-hidden rounded-md border border-stone-300 bg-white/75">
+            <div className="border-b border-stone-200 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">Media planning protocol</p>
+            </div>
+            <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              {planningProtocol.map((item) => (
+                <div key={item.code} className="min-w-0 px-3 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-teal-800">{item.code}</p>
+                  <p className="mt-1 text-xs font-bold text-slate-950">{item.label}</p>
+                  <p className="mt-1 text-[11px] leading-4 text-slate-500">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
+            {['최근 6개월', '필터 검토', '예산 기준선', '오디언스 분해'].map((item) => (
               <span key={item} className="rounded-md border border-stone-300 bg-white/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-600 sm:text-[11px]">
                 {item}
               </span>
             ))}
           </div>
           <p className="mt-3 border-t border-stone-200 pt-2 text-[11px] leading-5 text-stone-500">
-            빈 차트는 실패가 아니라 기준선 판단을 보류한 상태입니다.
+            빈 차트는 실패가 아니라 플래닝 기준선 판독을 보류한 상태입니다.
           </p>
         </div>
-        <div className="rounded-md border border-stone-300 bg-white/75 p-3 sm:p-4">
+        <div className="grid min-w-0 content-start rounded-md border border-stone-300 bg-white/75 p-3 sm:p-4">
           <div className="flex items-center justify-between gap-3 border-b border-stone-200 pb-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">준비 상태</p>
             <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800">
@@ -257,6 +289,12 @@ function ForecastEmptyPanel({
                 </div>
               </div>
             ))}
+          </div>
+          <div className="mt-3 rounded-md border border-teal-100 bg-teal-50 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-teal-800">Planner note</p>
+            <p className="mt-1 text-[11px] leading-5 text-teal-900">
+              기준선이 열리면 비용 압력, 반응 확장, 세그먼트 편차 순서로 미디어 플랜을 정렬합니다.
+            </p>
           </div>
         </div>
       </div>

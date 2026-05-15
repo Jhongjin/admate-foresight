@@ -235,6 +235,23 @@ function SeasonEmptyPanel({ selectedCount }: { selectedCount: number }) {
     { label: '비교 창', value: '전 2주 / 시즌 중 / 후 2주', detail: '동일 이벤트 기간 기준' },
     { label: '다음 액션', value: selectedCount > 0 ? '필터 완화' : '적재 상태 확인', detail: '검토 가능한 행 확보 후 압력 판단' },
   ];
+  const pressureProtocol = [
+    {
+      lane: 'BUDGET',
+      title: '예산 압력',
+      detail: 'CPM/CPC 상승 구간은 보수적으로 flight를 잠급니다.',
+    },
+    {
+      lane: 'RESPONSE',
+      title: '반응 신호',
+      detail: 'CTR/VTR 반응은 증액보다 메시지 검증에 먼저 연결합니다.',
+    },
+    {
+      lane: 'WINDOW',
+      title: '집행 창',
+      detail: '전, 중, 후 기간이 모두 열릴 때 시즌 압력을 확정합니다.',
+    },
+  ];
 
   return (
     <section
@@ -257,6 +274,20 @@ function SeasonEmptyPanel({ selectedCount }: { selectedCount: number }) {
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
             이벤트 전후 비교 행이 충분히 열리면 CPM/CPC 압력과 CTR/VTR 반응을 같은 창에서 판독합니다.
           </p>
+          <div className="mt-4 overflow-hidden rounded-md border border-stone-300 bg-white/75">
+            <div className="border-b border-stone-200 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">Season planning protocol</p>
+            </div>
+            <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              {pressureProtocol.map((item) => (
+                <div key={item.lane} className="min-w-0 px-3 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-amber-800">{item.lane}</p>
+                  <p className="mt-1 text-xs font-bold text-slate-950">{item.title}</p>
+                  <p className="mt-1 text-[11px] leading-4 text-slate-500">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
           <p className="mt-4 border-t border-stone-200 pt-3 text-xs leading-5 text-stone-500">
             빈 화면을 임의 수치로 채우지 않고, 필터 범위와 적재 상태를 먼저 확인합니다.
           </p>
@@ -274,6 +305,12 @@ function SeasonEmptyPanel({ selectedCount }: { selectedCount: number }) {
                 <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{item.detail}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-3 rounded-md border border-amber-100 bg-amber-50 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-800">Planner note</p>
+            <p className="mt-1 text-[11px] leading-5 text-amber-900">
+              시즌 행이 확보되면 비용 압력, 반응 신호, 집행 창 순서로 예산 타이밍을 정리합니다.
+            </p>
           </div>
         </div>
       </div>
