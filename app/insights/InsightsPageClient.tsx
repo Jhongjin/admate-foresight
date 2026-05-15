@@ -382,6 +382,36 @@ export default function InsightsPage() {
       detail: seasonality.length > 0 ? '예산 압력과 반응 지표를 함께 확인' : '검토 가능한 기준선 확보',
     },
   ];
+  const seasonMethodSteps = [
+    {
+      step: '01',
+      title: 'Scope lock',
+      value: selectedScope,
+      detail: '시즌 분석은 업종 범위를 먼저 고정한 뒤 이벤트 창을 읽습니다.',
+      tone: 'border-teal-200 bg-teal-50 text-teal-900',
+    },
+    {
+      step: '02',
+      title: 'Window compare',
+      value: '전 2주 / 시즌 중 / 후 2주',
+      detail: '동일한 기간 폭을 유지해 CPM/CPC 압력 왜곡을 줄입니다.',
+      tone: 'border-amber-200 bg-amber-50 text-amber-900',
+    },
+    {
+      step: '03',
+      title: 'Reaction check',
+      value: seasonality.length > 0 ? `${seasonality.length}개 이벤트` : '행 대기',
+      detail: 'CTR/VTR 반응은 증액 판단보다 메시지 검증 신호로 먼저 봅니다.',
+      tone: 'border-stone-200 bg-stone-50 text-stone-800',
+    },
+    {
+      step: '04',
+      title: 'Flight memo',
+      value: seasonError ? '연결 확인' : seasonality.length > 0 ? '압력 구간 검토' : '필터 범위 점검',
+      detail: '빈 시즌 창은 예산 타이밍을 보류하고 범위 점검으로 넘깁니다.',
+      tone: 'border-slate-200 bg-slate-50 text-slate-800',
+    },
+  ];
 
   if (loading) {
     return (
@@ -404,6 +434,33 @@ export default function InsightsPage() {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
           이벤트 전·중·후 CPM, CPC, CTR, VTR 변화를 같은 기간 창으로 묶어 예산 압력과 집행 타이밍을 점검합니다.
         </p>
+      </section>
+
+      <section className="overflow-hidden rounded-md border border-stone-200 bg-white shadow-sm">
+        <div className="grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="border-b border-stone-200 bg-[#fbfaf7] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Season protocol</p>
+            <h2 className="mt-2 text-base font-bold text-slate-950">시즌 집행 판독법</h2>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              비용 압력과 반응 신호를 같은 이벤트 창 안에서 분리해 읽습니다.
+            </p>
+          </div>
+          <div className="grid divide-y divide-stone-200 md:grid-cols-2 md:divide-x md:divide-y-0 xl:grid-cols-4">
+            {seasonMethodSteps.map((item) => (
+              <div key={item.step} className={`min-w-0 px-4 py-4 ${item.tone}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-md border border-current/20 bg-white/70 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]">
+                    {item.step}
+                  </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-70">method</span>
+                </div>
+                <p className="mt-3 text-xs font-bold uppercase tracking-[0.06em]">{item.title}</p>
+                <p className="mt-1 truncate text-sm font-bold text-slate-950">{item.value}</p>
+                <p className="mt-2 text-[11px] leading-5 opacity-80">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-md border border-stone-200 bg-white shadow-sm">

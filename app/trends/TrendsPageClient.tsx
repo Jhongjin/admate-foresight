@@ -464,6 +464,36 @@ export default function TrendsPage() {
       : top3.length > 0
         ? '효율 랭킹 비교'
         : '기준선 적재 대기';
+  const forecastMethodSteps = [
+    {
+      step: '01',
+      title: 'Scope lock',
+      value: objectiveContext,
+      detail: '목표와 업종 범위를 먼저 고정해 비교 기준을 흔들리지 않게 둡니다.',
+      tone: 'border-teal-200 bg-teal-50 text-teal-900',
+    },
+    {
+      step: '02',
+      title: 'Pressure read',
+      value: metricConfig.label,
+      detail: metricPlanningRule,
+      tone: 'border-amber-200 bg-amber-50 text-amber-900',
+    },
+    {
+      step: '03',
+      title: 'Audience split',
+      value: `${genderIndustryContext} / ${ageIndustryContext}`,
+      detail: '성별과 연령 기준선을 분리해 증액 후보의 편차를 확인합니다.',
+      tone: 'border-stone-200 bg-stone-50 text-stone-800',
+    },
+    {
+      step: '04',
+      title: 'Planning memo',
+      value: nextPlanningAction,
+      detail: '빈 구간은 실패 카드가 아니라 다음 플래닝 액션으로 남깁니다.',
+      tone: 'border-slate-200 bg-slate-50 text-slate-800',
+    },
+  ];
 
   const genderGroups = [...new Set(genderBreakdown.map((r) => r.group))];
   const genderIndustryKeys = [...new Set(genderBreakdown.map((r) => r.industry))];
@@ -525,6 +555,33 @@ export default function TrendsPage() {
               </div>
             </div>
           </aside>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-md border border-stone-200 bg-white shadow-sm">
+        <div className="grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="border-b border-stone-200 bg-[#fbfaf7] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Predictive protocol</p>
+            <h2 className="mt-2 text-base font-bold text-slate-950">예측 기준선 판독법</h2>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              Foresight는 차트보다 먼저 범위, 압력, 오디언스, 다음 액션을 잠급니다.
+            </p>
+          </div>
+          <div className="grid divide-y divide-stone-200 md:grid-cols-2 md:divide-x md:divide-y-0 xl:grid-cols-4">
+            {forecastMethodSteps.map((item) => (
+              <div key={item.step} className={`min-w-0 px-4 py-4 ${item.tone}`}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-md border border-current/20 bg-white/70 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]">
+                    {item.step}
+                  </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-70">method</span>
+                </div>
+                <p className="mt-3 text-xs font-bold uppercase tracking-[0.06em]">{item.title}</p>
+                <p className="mt-1 truncate text-sm font-bold text-slate-950">{item.value}</p>
+                <p className="mt-2 text-[11px] leading-5 opacity-80">{item.detail}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
