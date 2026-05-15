@@ -56,7 +56,7 @@ function MetaCard({ ad }: { ad: MetaAd }) {
         <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2">
           <div className="flex flex-col gap-0.5">
             {ad.caption && <span className="text-xs text-slate-400">{ad.caption}</span>}
-            {ad.start_date && <span className="text-xs text-slate-400">Live since {ad.start_date}</span>}
+            {ad.start_date && <span className="text-xs text-slate-400">집행 시작 {ad.start_date}</span>}
           </div>
           {ad.cta && <span className="shrink-0 rounded-md border border-teal-100 bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">{ad.cta}</span>}
         </div>
@@ -140,12 +140,32 @@ export default function CompetitorPage() {
     fetchMeta('', kw);
   }
 
+  const activeScope = searchLabel || (industry === ALL_LABEL ? '전체업종' : industry || '캡처 범위 대기');
+  const captureMode = searchLabel && searchLabel !== ALL_LABEL && industry === '' ? '키워드 직접 캡처' : '업종 기준 캡처';
+  const captureLedger = [
+    {
+      label: '캡처 범위',
+      value: activeScope === ALL_LABEL ? '전체업종' : activeScope,
+      detail: loading ? '소재 흐름 수집 중' : error ? '연결 상태 확인 필요' : '현재 검토 기준',
+    },
+    {
+      label: '검토 모드',
+      value: captureMode,
+      detail: searchTerm ? `Meta 검색어 ${searchTerm}` : '업종/브랜드 신호 기준',
+    },
+    {
+      label: '판독 상태',
+      value: loading ? '수집 중' : ads.length > 0 ? `${ads.length}개 소재 확보` : error ? '보류' : '관찰 행 대기',
+      detail: ads.length > 0 ? '카피, CTA, 시작일 비교 가능' : '검색 범위를 조정해 증거를 확보',
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <section className="rounded-md border border-slate-200 bg-[#f8f6f0] p-5 shadow-sm sm:p-6">
         <p className="inline-flex rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-800">
-          Creative market watch
+          소재 시장 관제
         </p>
         <h1 className="mt-4 text-2xl font-bold text-slate-950 sm:text-3xl">경쟁 소재 관제 보드</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
@@ -207,6 +227,27 @@ export default function CompetitorPage() {
         </div>
       </div>
 
+      <section className="overflow-hidden rounded-md border border-stone-200 bg-[#fbfaf7]">
+        <div className="grid gap-0 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="border-b border-stone-200 bg-[#f6f4ee] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">소재 캡처 준비도</p>
+            <h2 className="mt-2 text-base font-bold text-slate-950">시장 증거 판독 장부</h2>
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              검색 조건이 어떤 소재 증거로 이어지는지 먼저 고정합니다.
+            </p>
+          </div>
+          <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            {captureLedger.map((item) => (
+              <div key={item.label} className="min-w-0 px-4 py-3 sm:px-5 sm:py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
+                <p className="mt-1 truncate text-sm font-bold text-slate-950">{item.value}</p>
+                <p className="mt-1 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* 로딩 */}
       {loading && (
         <div>
@@ -261,7 +302,7 @@ export default function CompetitorPage() {
           variant="empty"
           title={`"${searchLabel}" 소재 기준선이 비어 있습니다`}
           description="다른 키워드로 검색하거나 업종을 변경해 현재 시장에서 관찰 가능한 소재 흐름을 다시 확인해 보세요."
-          eyebrow="Creative capture"
+          eyebrow="소재 캡처 대기"
           className="min-h-64"
         />
       )}
