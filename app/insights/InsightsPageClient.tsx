@@ -88,11 +88,26 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
     { period: '시즌 중', CPM: event.during.avgCPM, CPC: event.during.avgCPC },
     { period: '2주 후', CPM: event.after.avgCPM, CPC: event.after.avgCPC },
   ];
+  const totalRows = event.before.count + event.during.count + event.after.count;
+  const pressureLabel = event.cpmChange == null
+    ? '압력 미산정'
+    : event.cpmChange > 12
+      ? '강한 비용 압력'
+      : event.cpmChange > 0
+        ? '비용 압력 관찰'
+        : '압력 완화 가능';
+  const pressureTone = event.cpmChange == null
+    ? 'border-stone-200 bg-stone-50 text-stone-600'
+    : event.cpmChange > 12
+      ? 'border-red-100 bg-red-50 text-red-700'
+      : event.cpmChange > 0
+        ? 'border-amber-200 bg-amber-50 text-amber-800'
+        : 'border-emerald-100 bg-emerald-50 text-emerald-700';
 
   return (
-    <div className="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-md border border-stone-200 bg-white shadow-sm">
       {/* 헤더 */}
-      <div className="flex flex-col gap-3 border-b border-slate-100 bg-[#fbfaf6] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="flex flex-col gap-4 border-b border-stone-200 bg-[#fbfaf6] px-4 py-4 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-stone-200 bg-white text-[11px] font-bold uppercase tracking-[0.08em] text-stone-600">SE</span>
           <div className="min-w-0">
@@ -101,55 +116,68 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
             <p className="mt-1 text-xs leading-5 text-slate-500">{event.description} · {event.eventStart}{event.eventStart !== event.eventEnd ? ` ~ ${event.eventEnd}` : ''}</p>
           </div>
         </div>
-        {event.during.count === 0 && (
-          <span className="w-fit rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">시즌 중 데이터 없음</span>
-        )}
+        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className="flex flex-wrap gap-2">
+            <span className={`w-fit rounded-md border px-2 py-1 text-xs font-semibold ${pressureTone}`}>{pressureLabel}</span>
+            <span className="w-fit rounded-md border border-stone-200 bg-white px-2 py-1 text-xs font-semibold text-stone-600">
+              표본 {totalRows.toLocaleString()}건
+            </span>
+            {event.during.count === 0 && (
+              <span className="w-fit rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">시즌 중 행 없음</span>
+            )}
+          </div>
+          <p className="text-[11px] font-medium text-stone-500 sm:text-right">전후 창을 같은 기준으로 잠근 상태</p>
+        </div>
       </div>
 
       <div className="space-y-5 p-4 sm:p-5">
-        {/* 3구간 비교 카드 */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* 3구간 비교 장부 */}
+        <div className="overflow-hidden rounded-md border border-stone-200 bg-[#fbfaf7]">
+          <div className="border-b border-stone-200 px-3 py-2 sm:px-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">기간별 벤치마크 장부</p>
+          </div>
+          <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {periods.map(({ key, label, data, bg, border }) => (
-            <div key={key} className={`rounded-md border ${border} ${bg} p-3 sm:p-4`}>
-              <p className="mb-1 text-xs font-semibold text-slate-600">{label}</p>
-              <p className="mb-3 text-xs text-slate-400">{data.dateRange}</p>
-              <div className="space-y-2">
-                <div>
-                  <p className="text-xs text-slate-400">CPM</p>
+            <div key={key} className={`${bg} px-3 py-3 sm:px-4`}>
+              <div className={`mb-3 border-b pb-2 ${border}`}>
+                <p className="text-xs font-semibold text-slate-700">{label}</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">{data.dateRange}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-400">CPM</p>
                   <p className="text-sm font-bold text-slate-900">
                     {data.avgCPM > 0 ? `₩${data.avgCPM.toLocaleString()}` : '-'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-400">CPC</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-400">CPC</p>
                   <p className="text-sm font-bold text-slate-900">
                     {data.avgCPC > 0 ? `₩${data.avgCPC.toLocaleString()}` : '-'}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-400">CTR</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-400">CTR</p>
                   <p className="text-sm font-bold text-slate-900">
                     {data.avgCTR > 0 ? `${data.avgCTR.toFixed(3)}%` : '-'}
                   </p>
                 </div>
-                {data.avgVTR > 0 && (
-                  <div>
-                    <p className="text-xs text-slate-400">VTR</p>
-                    <p className="text-sm font-bold text-slate-900">{data.avgVTR.toFixed(3)}%</p>
-                  </div>
-                )}
-                <div className="border-t border-slate-200 pt-1">
-                  <p className="text-xs text-slate-400">벤치마크 행</p>
-                  <p className="text-xs text-slate-600">{data.count.toLocaleString()}건</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-slate-400">행 수</p>
+                  <p className="text-sm font-bold text-slate-900">{data.count.toLocaleString()}건</p>
                 </div>
               </div>
             </div>
           ))}
+          </div>
         </div>
 
         {/* 전 대비 변화율 요약 */}
-        <div>
-          <p className="mb-2 text-xs font-semibold text-slate-600">2주 전 대비 시즌 압력</p>
+        <div className="rounded-md border border-stone-200 bg-white px-3 py-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-slate-700">2주 전 대비 시즌 압력</p>
+            <span className="text-[11px] font-medium text-stone-500">비용 지표는 낮을수록 안정</span>
+          </div>
           <div className="flex flex-wrap gap-3">
             {metrics.map((m) => (
               <div key={m.label} className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5">
@@ -168,9 +196,9 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
         </div>
 
         {/* CPM/CPC 막대 차트 */}
-        {event.during.count > 0 && (
-          <div>
-            <p className="mb-3 text-xs font-semibold text-slate-600">구간별 CPM / CPC 비교</p>
+        {event.during.count > 0 ? (
+          <div className="rounded-md border border-stone-200 bg-[#fbfaf7] p-3">
+            <p className="mb-3 text-xs font-semibold text-slate-700">구간별 CPM / CPC 비교</p>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={chartData} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -182,6 +210,14 @@ function SeasonalityCard({ event }: { event: SeasonalityEvent }) {
                 <Bar dataKey="CPC" fill="#b45309" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="rounded-md border border-dashed border-stone-300 bg-[#fbfaf7] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-stone-500">차트 보류</p>
+            <p className="mt-2 text-sm font-semibold text-slate-950">시즌 중 행이 없어 막대 비교를 잠시 닫았습니다</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              전후 기간 수치만으로 압력을 단정하지 않고, 시즌 중 벤치마크 행이 확보되면 CPM/CPC 차트를 엽니다.
+            </p>
           </div>
         )}
       </div>
