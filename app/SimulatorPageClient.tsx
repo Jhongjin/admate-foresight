@@ -141,14 +141,23 @@ function PlanningEmptyCockpit({
   return (
     <section
       aria-label={title}
-      className={`overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#fbfaf6] ${className}`}
+      className={`relative overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#fbfaf6] ${className}`}
     >
-      <div className="border-b border-stone-200 bg-white/70 px-4 py-3">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-60"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, rgba(120,113,108,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(120,113,108,0.10) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+        }}
+      />
+      <div className="relative border-b border-stone-200 bg-white/80 px-4 py-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500">{eyebrow}</p>
         <h2 className="mt-1 text-sm font-bold text-slate-950">{title}</h2>
         <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">{description}</p>
       </div>
-      <div className="grid gap-0 sm:grid-cols-3">
+      <div className="relative grid gap-0 sm:grid-cols-3">
         {signals.map((signal) => (
           <div key={signal.label} className="border-t border-stone-200 bg-white/45 px-4 py-3 sm:border-r sm:border-t-0 last:border-r-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-500">{signal.label}</p>
@@ -158,7 +167,7 @@ function PlanningEmptyCockpit({
         ))}
       </div>
       {stages && stages.length > 0 && (
-        <div className="border-t border-stone-200 bg-stone-50/80 px-4 py-3">
+        <div className="relative border-t border-stone-200 bg-stone-50/85 px-4 py-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
             {stages.map((stage, index) => (
               <div key={stage.label} className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-stone-200 bg-white px-3 py-2">
@@ -261,9 +270,9 @@ export default function SimulatorPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setMlError(data.error ?? 'ML 예측 실패'); setMlResult(null); return; }
+      if (!res.ok) { setMlError(data.error ?? '보조 예측 실패'); setMlResult(null); return; }
       setMlResult(data as MLResult);
-    } catch { setMlError('ML 서비스 연결 실패'); setMlResult(null); }
+    } catch { setMlError('보조 예측 연결 실패'); setMlResult(null); }
     finally { setMlLoading(false); }
   }, []);
 
@@ -527,21 +536,21 @@ export default function SimulatorPage() {
     { label: '신뢰도', value: confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}` },
   ];
   const planningBasis = [
-    { label: 'Benchmark window', value: '최근 6개월', detail: benchmarkLabel },
-    { label: 'Currency basis', value: 'KRW · Net', detail: 'VAT/수수료 제외 매체비 기준' },
-    { label: 'Adjustment rule', value: '보수적 보정', detail: '성수기·포화·CPC 압력은 별도 배지로 표시' },
+    { label: '기준 기간', value: '최근 6개월', detail: benchmarkLabel },
+    { label: '비용 기준', value: 'KRW · Net', detail: 'VAT/수수료 제외 매체비 기준' },
+    { label: '보정 규칙', value: '보수적 보정', detail: '성수기·포화·CPC 압력은 별도 배지로 표시' },
     {
-      label: 'Sample match',
+      label: '표본 매칭',
       value: marketSelected ? `${matchedSampleCount}/${marketSampleCount || '-'}` : `${marketSampleCount || '-'}건`,
       detail: marketSelected ? '선택 업종 매칭 표본' : '업종 전체 벤치마크',
     },
-    { label: 'Active filters', value: `${selectedTargetCount}개`, detail: `${objectiveLabel} · ${genderLabel} · ${ageLabel}` },
-    { label: 'Planning use', value: 'Scenario only', detail: '확정 성과가 아닌 조건별 예상 범위' },
+    { label: '적용 필터', value: `${selectedTargetCount}개`, detail: `${objectiveLabel} · ${genderLabel} · ${ageLabel}` },
+    { label: '활용 범위', value: '시나리오 검토', detail: '확정 성과가 아닌 조건별 예상 범위' },
   ];
   const cockpitTimeline = [
-    { label: 'Brief', active: true },
-    { label: 'Forecast', active: isCalculated || loading },
-    { label: 'Optimize', active: Boolean(result) },
+    { label: '입력 고정', active: true },
+    { label: '예측 검토', active: isCalculated || loading },
+    { label: '계획 판단', active: Boolean(result) },
   ];
 
   // ── 성과 확장 잠재력 ────────────────────────────────────────
@@ -607,7 +616,7 @@ export default function SimulatorPage() {
             detail: `만원당 ${selected.reachEfficiency.toLocaleString()}명 도달`,
           },
           {
-            label: 'Marginal signal',
+            label: '한계 효율 신호',
             value: efficiencySignal,
             detail: `구간 끝 CPM ₩${last.cpm.toLocaleString()}`,
           },
@@ -616,8 +625,8 @@ export default function SimulatorPage() {
     : [];
   const decisionGateRows = [
     {
-      label: 'Benchmark scope',
-      status: marketSelected ? 'Industry matched' : isCalculated ? 'General baseline' : 'Awaiting run',
+      label: '기준선 범위',
+      status: marketSelected ? '업종 매칭' : isCalculated ? '전체 기준선' : '실행 대기',
       detail: marketSelected
         ? `${marketSampleCount.toLocaleString()}건 표본`
         : isCalculated
@@ -626,92 +635,92 @@ export default function SimulatorPage() {
       tone: marketSelected ? 'ok' : isCalculated ? 'watch' : 'idle',
     },
     {
-      label: 'Forecast confidence',
-      status: confidenceScore == null ? 'Not scored' : confidenceScore >= 66 ? 'Reviewable' : 'Needs basis',
+      label: '예측 신뢰도',
+      status: confidenceScore == null ? '미산정' : confidenceScore >= 66 ? '검토 가능' : '근거 보강',
       detail: confidenceScore == null ? '계산 전' : `${confidenceScore}% · ${confidenceLabel}`,
       tone: confidenceScore == null ? 'idle' : confidenceScore >= 66 ? 'ok' : 'watch',
     },
     {
-      label: 'Delivery pressure',
-      status: result?.saturationWarning ? 'Saturation watch' : result ? 'In range' : 'Not measured',
+      label: '집행 압력',
+      status: result?.saturationWarning ? '포화 주의' : result ? '범위 내' : '미측정',
       detail: result ? `빈도 ${result.frequency > 0 ? result.frequency.toFixed(2) : '-'}` : '결과 대기',
       tone: result?.saturationWarning ? 'risk' : result ? 'ok' : 'idle',
     },
     {
-      label: 'Scenario range',
-      status: chartData.length > 0 ? `${chartData.length} budget rows` : rangeLoading ? 'Calculating' : 'No range yet',
+      label: '시나리오 구간',
+      status: chartData.length > 0 ? `예산 ${chartData.length}개 구간` : rangeLoading ? '계산 중' : '구간 대기',
       detail: chartData.length > 0 ? '곡선/표 동시 검토 가능' : '예산 구간 대기',
       tone: chartData.length > 0 ? 'ok' : rangeLoading ? 'watch' : 'idle',
     },
   ];
   const forecastEmptySignals = [
     {
-      label: 'Benchmark basis',
-      value: 'Recent 6M · KRW Net',
+      label: '기준선 근거',
+      value: '최근 6개월 · KRW Net',
       detail: '시뮬레이션 후 업종/목표 필터와 표본 매칭을 공개합니다.',
     },
     {
-      label: 'Planner input',
+      label: '플래너 입력',
       value: selectedTargetCount > 0 ? `${selectedTargetCount}개 조건 선택` : '전체 기준 대기',
       detail: `${durationLabel} · 총 예산 ₩${budget.toLocaleString()}`,
     },
     {
-      label: 'Forecast output',
-      value: 'No synthetic result',
+      label: '예측 출력',
+      value: '임의 결과 없음',
       detail: '계산 전에는 KPI, 도달 곡선, 비교표를 임의로 채우지 않습니다.',
     },
   ];
   const forecastEmptyStages = [
-    { label: 'Input lock', status: selectedTargetCount > 0 ? `${selectedTargetCount} filters set` : 'Open targeting' },
-    { label: 'Benchmark pull', status: 'Recent 6M baseline' },
-    { label: 'Forecast gate', status: 'KPI + range together' },
-    { label: 'Planner output', status: 'Review / revise / expand' },
+    { label: '입력 고정', status: selectedTargetCount > 0 ? `필터 ${selectedTargetCount}개 적용` : '타겟 열림' },
+    { label: '기준선 호출', status: '최근 6개월 기준선' },
+    { label: '예측 게이트', status: 'KPI와 구간 동시 확인' },
+    { label: '계획 출력', status: '검토 / 수정 / 확장' },
   ];
   const rangeEmptySignals = [
     {
-      label: 'Range status',
-      value: isCalculated ? 'No curve rows' : 'Run required',
+      label: '구간 상태',
+      value: isCalculated ? '곡선 행 없음' : '실행 필요',
       detail: '계산된 예산 구간이 있을 때만 곡선을 표시합니다.',
     },
     {
-      label: 'Current budget',
+      label: '현재 예산',
       value: `₩${budget.toLocaleString()}`,
       detail: `월 환산 ₩${monthlyBudget.toLocaleString()} · ${durationLabel}`,
     },
     {
-      label: 'Planner action',
+      label: '플래너 액션',
       value: isCalculated ? '조건 재검토' : '시뮬레이션 시작',
       detail: isCalculated ? '필터를 넓히거나 다시 실행해 범위를 확인하세요.' : '좌측 조건 확인 후 예측을 실행하세요.',
     },
   ];
   const rangeEmptyStages = [
-    { label: 'Budget sweep', status: 'Range rows required' },
-    { label: 'Reach curve', status: 'Diminishing return check' },
-    { label: 'Efficiency read', status: 'Marginal signal' },
-    { label: 'Plan action', status: isCalculated ? 'Re-run inputs' : 'Start forecast' },
+    { label: '예산 스윕', status: '구간 행 필요' },
+    { label: '도달 곡선', status: '체감 효율 확인' },
+    { label: '효율 판독', status: '한계 신호' },
+    { label: '계획 액션', status: isCalculated ? '입력 재실행' : '예측 시작' },
   ];
   const comparisonEmptySignals = [
     {
-      label: 'Table policy',
-      value: 'Calculated rows only',
+      label: '표 표시 원칙',
+      value: '계산 행만 표시',
       detail: '도달, 노출, 클릭은 예산 구간 계산 결과가 있을 때만 노출합니다.',
     },
     {
-      label: 'Benchmark safety',
-      value: 'No fake fill',
+      label: '기준선 안전장치',
+      value: '임의 채움 없음',
       detail: '빈 소스를 벤치마크처럼 표시하지 않습니다.',
     },
     {
-      label: 'Next check',
-      value: chartData.length > 0 ? 'Rows available' : 'Range pending',
+      label: '다음 확인',
+      value: chartData.length > 0 ? '행 준비됨' : '구간 대기',
       detail: '곡선이 생성되면 동일한 데이터로 비교표가 채워집니다.',
     },
   ];
   const comparisonEmptyStages = [
-    { label: 'Source row', status: 'Shared range data' },
-    { label: 'Selected budget', status: `₩${budget.toLocaleString()}` },
-    { label: 'Output columns', status: 'Reach / impressions / clicks' },
-    { label: 'Decision use', status: 'Choose planning lane' },
+    { label: '원천 행', status: '동일 구간 데이터' },
+    { label: '선택 예산', status: `₩${budget.toLocaleString()}` },
+    { label: '출력 열', status: '도달 / 노출 / 클릭' },
+    { label: '판단 용도', status: '계획안 선택' },
   ];
 
   const exportToExcel = useCallback(async () => {
@@ -762,10 +771,10 @@ export default function SimulatorPage() {
                   {readinessLabel}
                 </span>
                 <span className="inline-flex rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-800">
-                  Market benchmark desk
+                  매체 기준선 데스크
                 </span>
               </div>
-              <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">Foresight Forecast Desk</h1>
+              <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">Foresight 예측 데스크</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
                 최근 성과 표본을 기준선으로 삼아 예산, 기간, 타겟 조건의 집행 압력을 검토합니다.
               </p>
@@ -790,7 +799,7 @@ export default function SimulatorPage() {
             <div>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-950">Plan Brief</h2>
+                  <h2 className="text-sm font-semibold text-slate-950">계획 브리프</h2>
                   <p className="mt-1 text-xs text-slate-500">매체 집행 조건을 고정하고 예측 입력값을 정리합니다.</p>
                 </div>
                 <span className="shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
@@ -808,8 +817,8 @@ export default function SimulatorPage() {
               </div>
               <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-900">Benchmark Basis</h3>
-                  <span className="rounded-md border border-amber-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-800">planning evidence</span>
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-900">기준선 근거</h3>
+                  <span className="rounded-md border border-amber-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-800">계획 근거</span>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {planningBasis.map((item) => (
@@ -835,10 +844,11 @@ export default function SimulatorPage() {
 
           {/* 1. 캠페인 예산 */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <label className="text-sm font-medium text-slate-700 sm:w-24 sm:shrink-0">총 캠페인 예산</label>
+            <label htmlFor="foresight-campaign-budget" className="text-sm font-medium text-slate-700 sm:w-24 sm:shrink-0">총 캠페인 예산</label>
             <div className="flex w-full min-w-0 items-center border border-slate-200 rounded-md px-3 py-1.5 focus-within:ring-2 focus-within:ring-teal-700 bg-white sm:max-w-xs sm:flex-1">
               <span className="text-sm text-slate-400 mr-1">₩</span>
               <input
+                id="foresight-campaign-budget"
                 type="number"
                 value={budgetInput}
                 min={1_000_000}
@@ -921,6 +931,7 @@ export default function SimulatorPage() {
                 </div>
                 <input
                   type="range"
+                  aria-label="캠페인 기간"
                   min={1}
                   max={365}
                   value={campaignDays}
@@ -1078,38 +1089,52 @@ export default function SimulatorPage() {
               </div>
             </div>
 
-          <aside className="border-t border-slate-200 bg-[#f7faf8] p-5 sm:p-6 xl:border-l xl:border-t-0">
+          <aside className="border-t border-stone-200 bg-[#f8f7f1] p-5 sm:p-6 xl:border-l xl:border-t-0">
             <div className="space-y-4">
-              <section className="rounded-md border border-slate-200 bg-white p-4">
+              <section className="rounded-md border border-stone-200 bg-white p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-sm font-semibold text-slate-950">Forecast Preview</h2>
-                    <p className="mt-1 text-xs text-slate-500">실행 전후 핵심 수치를 같은 자리에서 비교합니다.</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">예측 곡선 프리뷰</p>
+                    <h2 className="mt-1 text-sm font-semibold text-slate-950">예산 집행면 판독</h2>
+                    <p className="mt-1 text-xs text-slate-500">예산, 도달, 빈도를 같은 기준선 위에서 비교합니다.</p>
                   </div>
                   {loading && <div className="h-4 w-4 rounded-full border-2 border-sky-100 border-t-sky-600 animate-spin" />}
                 </div>
                 <div className="mt-4 grid gap-2">
-                  {forecastPreview.map((item) => (
-                    <div key={item.label} className="rounded-md border border-slate-200 bg-[#f7faf8] px-3 py-3">
-                      <p className="text-[11px] font-semibold text-slate-500">{item.label}</p>
-                      <p className="mt-1 text-xl font-bold text-slate-950 num">{item.value}</p>
-                      <p className="mt-1 text-[11px] text-slate-500">{item.detail}</p>
+                  {forecastPreview.map((item, index) => (
+                    <div key={item.label} className="rounded-md border border-stone-200 bg-[#fbfaf7] px-3 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold text-stone-500">{item.label}</p>
+                          <p className="mt-1 truncate text-lg font-bold text-slate-950 num">{item.value}</p>
+                        </div>
+                        <span className="shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800">
+                          {index === 0 ? '예산' : index === 1 ? '도달' : '빈도'}
+                        </span>
+                      </div>
+                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-stone-200">
+                        <div
+                          className="h-full rounded-full bg-teal-700"
+                          style={{ width: `${index === 0 ? 78 : index === 1 ? 64 : 48}%` }}
+                        />
+                      </div>
+                      <p className="mt-2 text-[11px] leading-snug text-slate-500">{item.detail}</p>
                     </div>
                   ))}
                 </div>
               </section>
 
-              <section className="rounded-md border border-slate-200 bg-white p-4">
+              <section className="rounded-md border border-stone-200 bg-white p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h2 className="text-sm font-semibold text-slate-950">Readiness</h2>
+                    <h2 className="text-sm font-semibold text-slate-950">기준선 준비도</h2>
                     <p className="mt-1 text-xs leading-5 text-slate-500">{benchmarkDetail}</p>
                   </div>
                   <div className="text-right">
                     <p className={`text-2xl font-bold num ${confidenceTone}`}>
                       {confidenceScore == null ? '-' : confidenceScore}
                     </p>
-                    <p className="text-[11px] font-semibold text-slate-500">confidence</p>
+                    <p className="text-[11px] font-semibold text-slate-500">신뢰도</p>
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
@@ -1125,11 +1150,11 @@ export default function SimulatorPage() {
               <section className="rounded-md border border-stone-200 bg-[#fbfaf6] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Media Plan Gate</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">매체 플랜 게이트</p>
                     <h2 className="mt-1 text-sm font-semibold text-slate-950">집행 전 검토 신호</h2>
                   </div>
                   <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] font-semibold text-stone-500">
-                    planner control
+                    계획 통제
                   </span>
                 </div>
                 <div className="mt-4 grid gap-2">
@@ -1167,7 +1192,7 @@ export default function SimulatorPage() {
               </section>
 
               <section className="rounded-md border border-amber-300 bg-[#fff7e8] p-4 text-slate-950">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">Next Decision</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">다음 계획 판단</p>
                 <h2 className="mt-1 text-lg font-bold">{nextActionTitle}</h2>
                 <p className="mt-2 text-xs leading-5 text-slate-600">{actionHint}</p>
                 <button
@@ -1201,7 +1226,7 @@ export default function SimulatorPage() {
 
       {!isCalculated && !loading && (
         <PlanningEmptyCockpit
-          eyebrow="Forecast Cockpit Standby"
+          eyebrow="예측 데스크 대기"
           title="벤치마크 플랜을 계산하기 전입니다"
           description="조건을 확인하고 시뮬레이션을 실행하면 최근 6개월 기준, 필터, 신뢰도, 예산 구간이 같은 기준선으로 열립니다."
           signals={forecastEmptySignals}
@@ -1226,17 +1251,17 @@ export default function SimulatorPage() {
           <div className="flex items-center gap-2 flex-wrap justify-end">
             {result && applySeasonBoost && (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
-                Season boost
+                시즌 보정
               </span>
             )}
             {result?.saturationWarning && (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 font-medium">
-                Saturation watch
+                포화 주의
               </span>
             )}
             {result?.qualityPenaltyPct !== undefined && result.qualityPenaltyPct > 0 && (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200 font-medium">
-                CPC penalty +{result.qualityPenaltyPct}%
+                CPC 압력 +{result.qualityPenaltyPct}%
               </span>
             )}
             <button
@@ -1341,21 +1366,21 @@ export default function SimulatorPage() {
           {/* 헤더 */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-600">ML</span>
-              <h2 className="text-sm font-semibold text-gray-800">ML 모델 예측</h2>
+              <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-[11px] font-semibold text-stone-700">보조 기준</span>
+              <h2 className="text-sm font-semibold text-gray-800">보조 기준선 검토</h2>
               {mlResult && (
                 <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
                   mlResult.model_type === 'random_forest'
                     ? 'bg-teal-50 text-teal-700'
                     : 'bg-sky-50 text-sky-700'
                 }`}>
-                  {mlResult.model_type === 'random_forest' ? 'Random Forest' : 'Ridge Regression'}
+                  {mlResult.model_type === 'random_forest' ? '보수 기준선' : '추세 기준선'}
                 </span>
               )}
             </div>
             {mlResult && (
               <span className="text-[11px] text-gray-400 num">
-                학습 샘플 {mlResult.n_samples.toLocaleString()}건 · CV R²={mlResult.cv_r2.toFixed(3)}
+                기준 표본 {mlResult.n_samples.toLocaleString()}건 · 검증 신뢰도 {mlResult.cv_r2.toFixed(3)}
               </span>
             )}
           </div>
@@ -1364,7 +1389,7 @@ export default function SimulatorPage() {
           {mlLoading && (
             <div className="flex items-center gap-2 py-2">
               <div className="w-3.5 h-3.5 border-2 border-teal-200 border-t-teal-700 rounded-full animate-spin" />
-              <span className="text-xs text-teal-700">Python ML 모델 예측 중...</span>
+              <span className="text-xs text-teal-700">보조 기준선을 계산하고 있습니다...</span>
             </div>
           )}
 
@@ -1373,7 +1398,7 @@ export default function SimulatorPage() {
             <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">{mlError}</p>
           )}
 
-          {/* ML 결과 카드 */}
+          {/* 보조 기준선 결과 카드 */}
           {!mlLoading && mlResult && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
@@ -1387,7 +1412,7 @@ export default function SimulatorPage() {
                   <p className="text-base font-bold text-gray-900 num">{value}</p>
                   {r2 != null && (
                     <p className="text-[10px] text-gray-400 num">
-                      R²={r2.toFixed(3)}
+                      신뢰 {r2.toFixed(3)}
                       <span className={`ml-1.5 ${r2 >= 0.7 ? 'text-emerald-500' : r2 >= 0.5 ? 'text-amber-500' : 'text-red-400'}`}>
                         {r2 >= 0.7 ? '●' : r2 >= 0.5 ? '◐' : '○'}
                       </span>
@@ -1402,7 +1427,7 @@ export default function SimulatorPage() {
           {!mlLoading && (
             <div className="flex items-center justify-end pt-1 border-t border-gray-50">
               <p className="text-[11px] text-gray-400">
-                모델 기준 데이터는 운영 파이프라인에서 관리됩니다.
+                보조 예측 기준 데이터는 운영 파이프라인에서 관리됩니다.
               </p>
             </div>
           )}
@@ -1508,10 +1533,10 @@ export default function SimulatorPage() {
           <div className="mb-4 rounded-md border border-stone-200 bg-stone-50/70 p-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-600">
-                Planning Trend Brief
+                계획 추세 브리프
               </p>
               <span className="rounded-md border border-stone-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-stone-500">
-                derived from range rows
+                구간 행 기반
               </span>
             </div>
             <div className="grid gap-2 sm:grid-cols-3">
@@ -1558,7 +1583,7 @@ export default function SimulatorPage() {
           />
         ) : (
           <PlanningEmptyCockpit
-            eyebrow="Range Planner"
+            eyebrow="구간 계획"
             title="예산 곡선은 계산된 구간만 표시합니다"
             description="현재 화면은 빈 차트가 아니라, 예산별 도달 범위를 아직 신뢰할 수 있게 계산하지 못한 상태입니다."
             signals={rangeEmptySignals}
@@ -1621,7 +1646,7 @@ export default function SimulatorPage() {
           />
         ) : (
           <PlanningEmptyCockpit
-            eyebrow="Benchmark Table Guard"
+            eyebrow="비교표 가드"
             title="비교표는 실제 계산 행이 있을 때만 열립니다"
             description="예산별 도달, 노출, 클릭은 같은 range 결과에서 파생되므로 곡선과 표가 서로 다른 근거를 갖지 않습니다."
             signals={comparisonEmptySignals}
@@ -1632,18 +1657,18 @@ export default function SimulatorPage() {
 
       {/* Info Note */}
       <div className="rounded-md border border-teal-100 bg-teal-50 p-4 text-sm text-teal-900">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-700">Forecast Method Ledger</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-700">예측 방식 장부</p>
         <p className="mt-1 leading-6">
           <strong>예측 방식:</strong> Meta 공식 기반 (예산÷CPM×1000÷빈도) + Diminishing Returns 보정 (β=0.82).
           캠페인 목표별 CPM·빈도를 실제 데이터에서 적용하며, 예산이 클수록 단위당 도달 효율이 감소합니다.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <div className="rounded-md border border-teal-100 bg-white/70 px-3 py-2">
-            <p className="text-[11px] font-semibold text-teal-700">Input readiness</p>
+            <p className="text-[11px] font-semibold text-teal-700">입력 준비도</p>
             <p className="mt-0.5 text-xs text-teal-900">{selectedTargetCount > 0 ? `${selectedTargetCount}개 조건 적용` : '전체 기준 입력'}</p>
           </div>
           <div className="rounded-md border border-teal-100 bg-white/70 px-3 py-2">
-            <p className="text-[11px] font-semibold text-teal-700">Benchmark confidence</p>
+            <p className="text-[11px] font-semibold text-teal-700">기준선 신뢰도</p>
             <p className="mt-0.5 text-xs text-teal-900">{confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}`}</p>
           </div>
           <div className="rounded-md border border-teal-100 bg-white/70 px-3 py-2">
