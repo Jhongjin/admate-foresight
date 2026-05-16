@@ -113,7 +113,7 @@ function chartEmptyDescription(scope: string, selectedIndustries: string[]) {
   const industryHint = selectedIndustries.length > 0
     ? '선택 업종을 줄이거나 전체 업종 기준으로 되돌려 검토 범위를 넓혀 보세요.'
     : '목표 필터를 해제하거나 최근 6개월 벤치마크 적재 상태를 확인해 주세요.';
-  return `${scope} 검토 행이 아직 없습니다. ${industryHint}`;
+  return `${scope} 기준선이 아직 열리지 않았습니다. ${industryHint}`;
 }
 
 function chartEmptyLedger(scope: string, selectedIndustries: string[]) {
@@ -227,6 +227,8 @@ function ForecastEmptyPanel({
     },
   ];
   const quickChecks = ['최근 6개월', '필터 검토', '예산 기준선', '오디언스 분해'];
+  const baselineBars = [42, 68, 54, 76, 48];
+  const baselineMarkers = ['M-5', 'M-3', 'M-1'];
 
   return (
     <div
@@ -243,7 +245,12 @@ function ForecastEmptyPanel({
             backgroundSize: '32px 32px',
         }}
       />
-      <div className="relative grid w-full gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-stretch">
+      <div
+        className="relative grid w-full gap-4"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))',
+        }}
+      >
         <div className="min-w-0 rounded-md border border-stone-300 bg-white/70 p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
@@ -251,7 +258,7 @@ function ForecastEmptyPanel({
               <h3 className="mt-2 text-base font-semibold text-slate-950 sm:text-lg">{title}</h3>
             </div>
             <span className="w-fit shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-800">
-              no chart rows
+              계산 전
             </span>
           </div>
           <p className="mt-2 max-w-md text-xs leading-5 text-slate-600 sm:text-sm sm:leading-6">{description}</p>
@@ -278,18 +285,48 @@ function ForecastEmptyPanel({
               </div>
             </div>
             <div className="rounded-md border border-stone-300 bg-white/80 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">차트 자리</p>
-              <div className="mt-3 flex h-28 items-end gap-2 border-b border-l border-stone-200 px-2 pb-2" aria-hidden="true">
-                {[42, 68, 54, 76, 48].map((height, index) => (
-                  <span
-                    key={`${height}-${index}`}
-                    className="flex-1 rounded-t-sm bg-stone-200"
-                    style={{ height: `${height}%` }}
-                  />
-                ))}
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">기준선 프리뷰</p>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-teal-500" aria-hidden="true" />
+                  <span className="text-[10px] font-semibold text-stone-500">대기</span>
+                </div>
+              </div>
+              <div
+                className="mt-3 rounded-md border border-stone-200 bg-[#f7f5ef] p-2"
+                aria-label="기준선 대기 상태 예시"
+              >
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  <span className="rounded-sm border border-teal-100 bg-teal-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-teal-800">
+                    현재 범위
+                  </span>
+                  <span className="rounded-sm border border-stone-200 bg-white px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                    필요 행
+                  </span>
+                </div>
+                <div className="relative flex h-24 items-end gap-2 border-b border-l border-stone-200 px-2 pb-2" aria-hidden="true">
+                  <span className="absolute left-2 right-2 top-[34%] border-t border-dashed border-teal-300/80" />
+                  <span className="absolute left-2 right-2 top-[64%] border-t border-dashed border-stone-300/80" />
+                  {baselineBars.map((height, index) => (
+                    <span
+                      key={`${height}-${index}`}
+                      className="relative flex-1 rounded-t-sm bg-stone-200"
+                      style={{ height: `${height}%` }}
+                    >
+                      <span className="absolute inset-x-0 top-0 h-1 rounded-t-sm bg-teal-300/80" />
+                    </span>
+                  ))}
+                </div>
+                <div className="mt-1.5 grid grid-cols-3 text-[9px] font-semibold uppercase tracking-[0.06em] text-stone-400">
+                  {baselineMarkers.map((marker, index) => (
+                    <span key={marker} className={index === 1 ? 'text-center' : index === 2 ? 'text-right' : ''}>
+                      {marker}
+                    </span>
+                  ))}
+                </div>
               </div>
               <p className="mt-2 text-[11px] leading-5 text-stone-500">
-                수치 대신 준비 상태만 표시합니다.
+                수치 대신 판독 기준선만 먼저 고정합니다.
               </p>
             </div>
           </div>
@@ -308,7 +345,7 @@ function ForecastEmptyPanel({
           <div className="flex items-center justify-between gap-3 border-b border-stone-200 pb-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">준비 상태</p>
             <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800">
-              행 대기
+              기준선 대기
             </span>
           </div>
           <div className="mt-3 grid gap-2">
