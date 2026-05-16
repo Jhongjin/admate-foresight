@@ -72,13 +72,13 @@ export default function DurationSlider({ days, onChange }: DurationSliderProps) 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-gray-700">캠페인 기간</label>
-        <span className="text-sm font-bold text-indigo-600">{currentLabel}</span>
+        <label className="text-sm font-semibold text-slate-700">캠페인 기간</label>
+        <span className="rounded-full border border-teal-800/10 bg-teal-50 px-3 py-1 text-sm font-black text-teal-900">{currentLabel}</span>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
         {/* 숫자 입력 */}
-        <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-500 bg-white">
+        <div className="foresight-control flex items-center gap-1.5 rounded-xl px-3 py-2">
           <input
             type="number"
             value={inputVal}
@@ -87,13 +87,13 @@ export default function DurationSlider({ days, onChange }: DurationSliderProps) 
             onChange={handleInputChange}
             onBlur={handleInputBlur}
             onKeyDown={handleKeyDown}
-            className="w-14 text-sm text-gray-800 font-medium text-center focus:outline-none"
+            className="num w-14 bg-transparent text-center text-sm font-bold text-slate-800 focus:outline-none"
           />
-          <span className="text-sm text-gray-400">일</span>
+          <span className="text-sm font-medium text-stone-500">일</span>
         </div>
 
         {/* 구분선 */}
-        <div className="h-8 w-px bg-gray-200" />
+        <div className="h-8 w-px bg-stone-300" />
 
         {/* 퀵 프리셋 칩 */}
         <div className="flex gap-2 flex-wrap">
@@ -102,10 +102,10 @@ export default function DurationSlider({ days, onChange }: DurationSliderProps) 
               key={d}
               type="button"
               onClick={() => onChange(d)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+              className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
                 days === d
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  ? 'border-teal-900 bg-teal-900 text-white'
+                  : 'border-stone-200 bg-white/80 text-slate-600 hover:border-teal-700/30 hover:text-teal-900'
               }`}
             >
               {label}

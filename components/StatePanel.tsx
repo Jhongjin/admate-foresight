@@ -52,8 +52,8 @@ export default function StatePanel({
       role={isError ? 'alert' : isLoading ? 'status' : 'region'}
       aria-live={isError ? 'assertive' : isLoading ? 'polite' : undefined}
       aria-label={title}
-      className={`relative flex min-h-48 items-center justify-center overflow-hidden rounded-md border border-dashed px-4 py-6 sm:px-6 sm:py-8 ${
-        isError ? 'border-red-200 bg-red-50/70' : 'border-stone-300 bg-[#fbfaf6]'
+      className={`relative flex min-h-48 items-center justify-center overflow-hidden rounded-2xl border px-4 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:px-6 sm:py-8 ${
+        isError ? 'border-red-200 bg-red-50/75' : 'border-stone-300/80 bg-[#fbfaf6]'
       } ${className}`}
     >
       {!isError ? (
@@ -76,17 +76,17 @@ export default function StatePanel({
       >
         <div className={`flex min-w-0 ${isRich ? 'items-start gap-3 sm:gap-4' : 'flex-col items-center gap-3'}`}>
           {isLoading ? (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-teal-100 bg-white text-teal-700">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-teal-100 bg-white text-teal-700 shadow-sm">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-teal-100 border-t-teal-700" />
             </div>
           ) : isError ? (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-red-100 bg-white text-red-500">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-white text-red-500 shadow-sm">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 9v4m0 4h.01M10.3 4.5h3.4L21 18H3L10.3 4.5Z" />
               </svg>
             </div>
           ) : (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-stone-200 bg-white text-stone-500">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-white text-teal-800 shadow-sm">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 7h16M4 12h16M4 17h10" />
               </svg>
@@ -106,7 +106,7 @@ export default function StatePanel({
               {displayChecks.map((item) => (
                 <span
                   key={item}
-                  className={`rounded-md border bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${
+                  className={`rounded-full border bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${
                     isError ? 'border-red-100 text-red-500' : 'border-stone-200 text-stone-500'
                   }`}
                 >
@@ -118,7 +118,7 @@ export default function StatePanel({
         </div>
 
         {isRich && (
-          <div className={`min-w-0 rounded-md border p-3 ${isError ? 'border-red-100 bg-white/80' : 'border-stone-300 bg-white/75'}`}>
+          <div className={`min-w-0 rounded-xl border p-3 ${isError ? 'border-red-100 bg-white/85' : 'border-stone-300/80 bg-white/80'}`}>
             {ledger.length > 0 && (
               <div>
                 <div className={`flex items-center justify-between gap-3 border-b pb-2 ${isError ? 'border-red-100' : 'border-stone-200'}`}>
@@ -129,7 +129,7 @@ export default function StatePanel({
                 </div>
                 <div className="mt-3 grid gap-2">
                   {ledger.map((item) => (
-                    <div key={`${item.label}-${item.value}`} className={`min-w-0 rounded-md border px-3 py-2 ${ledgerTone(item.tone)}`}>
+                    <div key={`${item.label}-${item.value}`} className={`min-w-0 rounded-xl border px-3 py-2 ${ledgerTone(item.tone)}`}>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.06em] opacity-70">{item.label}</p>
                       <p className="mt-1 break-words text-xs font-bold text-slate-950">{item.value}</p>
                       {item.detail && <p className="mt-0.5 text-[11px] leading-snug opacity-75">{item.detail}</p>}

@@ -78,21 +78,21 @@ export default function KPICard({
   );
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="foresight-panel flex min-w-0 flex-col gap-3 rounded-2xl p-5">
       {/* 상단: 아이콘 + diff 배지 */}
       <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-md border border-stone-200 bg-stone-50 px-2 text-[11px] font-bold uppercase tracking-[0.06em] text-slate-700 leading-none">
+        <span className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-xl border border-stone-200 bg-[#fbfaf6] px-2 text-[11px] font-black uppercase leading-none tracking-[0.06em] text-teal-900">
           {icon}
         </span>
         {hasDiff && (
           <span
             aria-label={diffBadgeLabel}
-            className={`max-w-[70%] whitespace-normal break-words rounded-md border px-2 py-0.5 text-xs font-semibold tracking-tight ${
+            className={`max-w-[70%] whitespace-normal break-words rounded-full border px-2.5 py-1 text-xs font-semibold tracking-tight ${
               isNeutral
-                ? 'border-gray-200 bg-gray-50 text-gray-500'
+                ? 'border-stone-200 bg-stone-50 text-stone-600'
                 : isGood
-                ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
-                : 'border-red-100 bg-red-50 text-red-600'
+                ? 'border-teal-100 bg-teal-50 text-teal-800'
+                : 'border-red-100 bg-red-50 text-red-700'
             }`}
           >
             {isNeutral ? '평균 수준' : `${diffDirectionLabel} ${Math.abs(diff!).toFixed(1)}%`}
@@ -102,30 +102,30 @@ export default function KPICard({
 
       {/* 타이틀 */}
       <div className="-mb-1 min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-stone-500">Planner KPI</p>
-        <p className="mt-1 text-xs font-semibold text-[#4B5563]">{title}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">Forecast metric</p>
+        <p className="mt-1 text-xs font-semibold text-slate-600">{title}</p>
       </div>
 
       {/* 내 예측 수치 */}
       {loading ? (
-        <div className="h-8 w-28 animate-pulse rounded-md bg-gray-100" />
+        <div className="h-8 w-28 animate-pulse rounded-xl bg-stone-200/70" />
       ) : (
         <p className="leading-none">
           {prefix && (
-            <span className="text-lg font-bold text-[#6B7280] mr-0.5">{prefix}</span>
+            <span className="mr-0.5 text-lg font-bold text-stone-500">{prefix}</span>
           )}
-          <span className="text-[1.75rem] font-bold text-[#111827] num">{number}</span>
+          <span className="num text-[1.85rem] font-black text-slate-950">{number}</span>
           {suffix && (
-            <span className="text-sm font-semibold text-[#6B7280] ml-0.5">{suffix}</span>
+            <span className="ml-0.5 text-sm font-semibold text-stone-500">{suffix}</span>
           )}
         </p>
       )}
 
       {/* 업종 평균 */}
       {marketLabel !== undefined && !loading && (
-        <p className="mt-auto border-t border-slate-100 pt-2 text-xs text-[#6B7280]">
-          Benchmark line{' '}
-          <span className={`font-semibold num ${marketLabel === '-' ? 'text-gray-400' : 'text-[#374151]'}`}>
+        <p className="mt-auto border-t border-stone-200/80 pt-2 text-xs font-medium text-stone-500">
+          기준선{' '}
+          <span className={`num font-semibold ${marketLabel === '-' ? 'text-stone-400' : 'text-slate-700'}`}>
             {marketLabel}
           </span>
         </p>
@@ -134,22 +134,22 @@ export default function KPICard({
       {hasBenchmarkDisplay && (
         <section
           aria-label={`${title} 벤치마크 신뢰도 세부 정보`}
-          className="min-w-0 space-y-2 border-t border-slate-100 pt-3"
+          className="min-w-0 space-y-2 border-t border-stone-200/80 pt-3"
         >
-          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-stone-500">Planning ledger</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">Forecast ledger</p>
           <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
             {benchmarkStatusLabel && (
               <p
                 role="status"
                 aria-label={`벤치마크 상태: ${benchmarkStatusLabel}`}
-                className="min-w-0 flex-1 text-[11px] font-semibold text-[#111827] leading-snug break-words"
+                className="min-w-0 flex-1 break-words text-[11px] font-semibold leading-snug text-slate-950"
               >
                 <span className="sr-only">벤치마크 상태: </span>
                 {benchmarkStatusLabel}
               </p>
             )}
             {benchmarkSyntheticContextLabel && (
-              <span className="max-w-full whitespace-normal break-words rounded-md border border-stone-200 bg-stone-50 px-1.5 py-0.5 text-[10px] font-semibold text-stone-600">
+              <span className="max-w-full whitespace-normal break-words rounded-full border border-teal-800/10 bg-teal-50 px-2.5 py-1 text-[10px] font-bold text-teal-900">
                 <span className="sr-only">벤치마크 기준: </span>
                 {benchmarkSyntheticContextLabel}
               </span>
@@ -159,7 +159,7 @@ export default function KPICard({
           {benchmarkConfidenceLabel && (
             <p
               aria-label={`벤치마크 신뢰도: ${benchmarkConfidenceLabel}`}
-              className="text-[11px] text-[#4B5563] leading-snug break-words"
+              className="break-words text-[11px] leading-snug text-slate-600"
             >
               <span className="sr-only">벤치마크 신뢰도: </span>
               {benchmarkConfidenceLabel}
@@ -169,7 +169,7 @@ export default function KPICard({
           {benchmarkVisibleCopy.length > 0 && (
             <ul aria-label={`${title} 벤치마크 안내`} className="space-y-1">
               {benchmarkVisibleCopy.map((line) => (
-                <li key={line} className="text-[11px] text-[#4B5563] leading-snug break-words">
+                <li key={line} className="break-words text-[11px] leading-snug text-slate-600">
                   {line}
                 </li>
               ))}
@@ -182,8 +182,8 @@ export default function KPICard({
                 const { term, description } = splitBenchmarkBasisLine(line);
 
                 return (
-                  <div key={line} className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-1.5 text-[11px] leading-snug text-[#6B7280]">
-                    <dt className="font-medium text-[#4B5563]">{term}</dt>
+                  <div key={line} className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-1.5 text-[11px] leading-snug text-stone-500">
+                    <dt className="font-medium text-slate-600">{term}</dt>
                     <dd className="min-w-0 break-words">{description}</dd>
                   </div>
                 );
@@ -192,8 +192,8 @@ export default function KPICard({
           )}
 
           {benchmarkBlockedOutputs.length > 0 && (
-            <div className="rounded-md border border-red-100 bg-red-50 px-2 py-1.5 text-[11px] leading-snug text-[#991B1B]">
-              <p className="font-semibold">제한된 출력 · Blocked planner output</p>
+            <div className="rounded-xl border border-red-100 bg-red-50/80 px-3 py-2 text-[11px] leading-snug text-red-800">
+              <p className="font-bold">제한된 출력 · 예측 보호</p>
               <ul
                 aria-label={`${title} 제한된 벤치마크 출력`}
                 className="mt-1 list-disc space-y-1 pl-4"

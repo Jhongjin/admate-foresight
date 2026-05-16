@@ -9,32 +9,55 @@ export const metadata: Metadata = {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center py-10">
-      <section className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
-        <div className="mb-7">
-          <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gray-900 text-sm font-bold text-white">
-            AF
+    <div className="min-h-[calc(100dvh-9rem)] py-10">
+      <section className="mx-auto grid w-full max-w-4xl gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="foresight-panel rounded-2xl p-8 sm:p-10">
+          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-teal-800/10 bg-teal-50/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-900">
+            account recovery
           </div>
-          <h1 className="text-2xl font-bold text-gray-950">비밀번호 재설정</h1>
-          <p className="mt-3 text-sm leading-6 text-gray-600">
-            AdMate 계정의 비밀번호를 재설정한 뒤 AdMate Foresight로 돌아와 로그인하세요.
+          <h1 className="max-w-xl text-4xl font-black leading-[1.05] text-slate-950 sm:text-5xl">
+            비밀번호 재설정
+          </h1>
+          <p className="mt-5 max-w-lg text-sm leading-7 text-slate-600">
+            AdMate 계정의 비밀번호를 재설정한 뒤 Foresight 예측 데스크로 돌아와 접근 상태를 다시 확인하세요.
           </p>
+
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+            <a
+              href={FORESIGHT_RESET_PASSWORD_URL}
+              className="group inline-flex min-h-12 flex-1 items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
+            >
+              재설정 계속하기
+              <span className="ml-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/10 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
+                ↗
+              </span>
+            </a>
+            <Link
+              href="/login"
+              className="inline-flex min-h-12 flex-1 items-center justify-center rounded-full border border-stone-300 bg-white/70 px-5 py-3 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
+            >
+              로그인으로 돌아가기
+            </Link>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <a
-            href={FORESIGHT_RESET_PASSWORD_URL}
-            className="flex flex-1 items-center justify-center rounded-lg bg-gray-900 px-3 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-          >
-            재설정 계속하기
-          </a>
-          <Link
-            href="/login"
-            className="flex flex-1 items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-          >
-            로그인으로 돌아가기
-          </Link>
-        </div>
+        <aside className="rounded-2xl border border-stone-300/70 bg-[#101820] p-2 text-white shadow-[0_24px_70px_rgba(16,24,32,0.16)]">
+          <div className="h-full rounded-[0.85rem] border border-white/10 bg-white/[0.04] p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200">recovery ledger</p>
+            <div className="mt-6 grid gap-3">
+              {[
+                ['Step 01', 'AdMate 계정 인증'],
+                ['Step 02', '새 비밀번호 설정'],
+                ['Step 03', 'Foresight 접근 재확인'],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">{label}</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
       </section>
     </div>
   );

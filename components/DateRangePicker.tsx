@@ -80,8 +80,8 @@ export default function DateRangePicker({ startDate, endDate, onChange }: DateRa
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-gray-700">캠페인 기간</label>
-        <span className="text-sm font-bold text-indigo-600">총 {days}일</span>
+        <label className="text-sm font-semibold text-slate-700">캠페인 기간</label>
+        <span className="num rounded-full border border-teal-800/10 bg-teal-50 px-3 py-1 text-sm font-black text-teal-900">총 {days}일</span>
       </div>
 
       {/* 날짜 입력 */}
@@ -90,15 +90,15 @@ export default function DateRangePicker({ startDate, endDate, onChange }: DateRa
           type="date"
           value={startStr}
           onChange={handleStartChange}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+          className="foresight-control rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 focus:outline-none"
         />
-        <span className="text-xs text-gray-400">~</span>
+        <span className="text-xs font-bold text-stone-400">~</span>
         <input
           type="date"
           value={endStr}
           min={startStr}
           onChange={handleEndChange}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+          className="foresight-control rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 focus:outline-none"
         />
       </div>
 
@@ -109,10 +109,10 @@ export default function DateRangePicker({ startDate, endDate, onChange }: DateRa
             key={d}
             type="button"
             onClick={() => applyPreset(d)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+            className={`rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] active:scale-[0.98] ${
               days === d
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                ? 'border-teal-900 bg-teal-900 text-white'
+                : 'border-stone-200 bg-white/80 text-slate-600 hover:border-teal-700/30 hover:text-teal-900'
             }`}
           >
             {label}
@@ -122,9 +122,8 @@ export default function DateRangePicker({ startDate, endDate, onChange }: DateRa
 
       {/* 성수기 경고 */}
       {isPeak && (
-        <div className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
-          <span>⚠️</span>
-          <span>11~12월 성수기 포함 — CPM 할증(+15%)이 자동 반영됩니다</span>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-5 text-amber-800">
+          11~12월 성수기 포함 - CPM 할증(+15%)이 자동 반영됩니다
         </div>
       )}
     </div>

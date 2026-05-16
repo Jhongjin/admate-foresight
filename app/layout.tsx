@@ -14,9 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-[#eef2ef] text-slate-950">
+      <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foresight-ink)]">
         <Navigation />
-        <main className="flex-1 max-w-[1500px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+        <main className="flex-1 max-w-[1500px] mx-auto w-full px-4 py-6 sm:px-6 lg:px-8">
           {children}
         </main>
       </body>
