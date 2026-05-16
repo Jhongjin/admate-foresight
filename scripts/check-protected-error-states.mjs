@@ -4,6 +4,8 @@ import path from 'node:path'
 const root = process.cwd()
 
 const statePanelPath = path.join(root, 'components', 'StatePanel.tsx')
+const competitorPath = path.join(root, 'app', 'competitor', 'CompetitorPageClient.tsx')
+const pyPredictRoutePath = path.join(root, 'app', 'api', 'py-predict', 'route.ts')
 const protectedPages = [
   {
     label: 'trends',
@@ -72,6 +74,8 @@ assertIncludes(statePanelSource, "'loading' | 'empty' | 'error'", 'StatePanel va
 assertIncludes(statePanelSource, "role={isError ? 'alert'", 'StatePanel error semantics')
 assertIncludes(statePanelSource, "aria-live={isError ? 'assertive'", 'StatePanel error live region')
 assertIncludes(statePanelSource, 'border-red-200', 'StatePanel error visual style')
+assertIncludes(statePanelSource, 'ledger?: StatePanelLedgerItem[]', 'StatePanel analytics ledger contract')
+assertIncludes(statePanelSource, 'nextActions?: string[]', 'StatePanel next action contract')
 
 for (const page of protectedPages) {
   const source = readSource(page.path)
@@ -104,6 +108,36 @@ for (const page of protectedPages) {
   const consoleErrorCount = (source.match(/console\.error/g) || []).length
   if (consoleErrorCount > 0) {
     fail(`${relative} has console-only error handling`)
+  }
+}
+
+const competitorSource = readSource(competitorPath)
+assertIncludes(competitorSource, "import StatePanel from '@/components/StatePanel'", 'competitor common state panel')
+assertIncludes(competitorSource, '/api/meta-ads-scrape?', 'competitor scrape fetch contract')
+assertIncludes(competitorSource, 'const PRODUCT_SAFE_ERROR', 'competitor bounded error constant')
+assertIncludes(competitorSource, 'setError(PRODUCT_SAFE_ERROR)', 'competitor product-safe error setter')
+assertIncludes(competitorSource, 'variant="error"', 'competitor common error panel')
+assertIncludes(competitorSource, '소재 수집 연결 상태를 확인하고 있습니다', 'competitor bounded Korean error copy')
+assertIncludes(competitorSource, '소재 기준선이 비어 있습니다', 'competitor empty state copy')
+assertIncludes(competitorSource, 'ledger={captureLedger.map', 'competitor empty/error ledger')
+assertIncludes(competitorSource, '직접 입력 검색어', 'competitor keyword echo guard')
+
+for (const forbidden of forbiddenRawErrorSnippets) {
+  if (competitorSource.includes(forbidden)) {
+    fail(`app/competitor/CompetitorPageClient.tsx must not render raw error details via ${forbidden}`)
+  }
+}
+
+if ((competitorSource.match(/console\.error/g) || []).length > 0) {
+  fail('app/competitor/CompetitorPageClient.tsx has console-only error handling')
+}
+
+const pyPredictSource = readSource(pyPredictRoutePath)
+assertIncludes(pyPredictSource, "error: 'ML 서비스 오류'", 'py-predict bounded upstream error')
+assertIncludes(pyPredictSource, "error: isTimeout ? 'ML 서비스 응답 시간 초과' : 'ML 서비스 연결 실패'", 'py-predict bounded connection error')
+for (const forbidden of ['detail:', 'tip:', 'String(err', 'String(error', 'data.detail']) {
+  if (pyPredictSource.includes(forbidden)) {
+    fail(`app/api/py-predict/route.ts must not expose detailed ML service errors via ${forbidden}`)
   }
 }
 

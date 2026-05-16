@@ -51,14 +51,14 @@ function MetaCard({ ad }: { ad: MetaAd }) {
           }
           <p className="truncate text-sm font-semibold text-slate-900">{ad.page_name || '알 수 없는 페이지'}</p>
         </div>
-        {ad.body && <p className="line-clamp-3 text-xs leading-relaxed text-slate-600">{ad.body}</p>}
-        {ad.title && <p className="line-clamp-2 rounded-md border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-xs font-semibold text-slate-800">{ad.title}</p>}
-        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-2">
-          <div className="flex flex-col gap-0.5">
-            {ad.caption && <span className="text-xs text-slate-400">{ad.caption}</span>}
+        {ad.body && <p className="line-clamp-3 break-words text-xs leading-relaxed text-slate-600">{ad.body}</p>}
+        {ad.title && <p className="line-clamp-2 break-words rounded-md border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-xs font-semibold text-slate-800">{ad.title}</p>}
+        <div className="mt-auto flex flex-col gap-2 border-t border-slate-100 pt-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex flex-col gap-0.5">
+            {ad.caption && <span className="break-words text-xs text-slate-400">{ad.caption}</span>}
             {ad.start_date && <span className="text-xs text-slate-400">집행 시작 {ad.start_date}</span>}
           </div>
-          {ad.cta && <span className="shrink-0 rounded-md border border-teal-100 bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">{ad.cta}</span>}
+          {ad.cta && <span className="max-w-full shrink-0 break-words rounded-md border border-teal-100 bg-teal-50 px-2 py-0.5 text-center text-xs font-semibold text-teal-800">{ad.cta}</span>}
         </div>
         <a href={ad.snapshot_url} target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-800">
@@ -141,23 +141,34 @@ export default function CompetitorPage() {
   }
 
   const activeScope = searchLabel || (industry === ALL_LABEL ? '전체업종' : industry || '캡처 범위 대기');
-  const captureMode = searchLabel && searchLabel !== ALL_LABEL && industry === '' ? '키워드 직접 캡처' : '업종 기준 캡처';
+  const isKeywordScope = Boolean(searchLabel && searchLabel !== ALL_LABEL && industry === '');
+  const visibleScope = isKeywordScope ? '직접 입력 검색어' : activeScope === ALL_LABEL ? '전체업종' : activeScope;
+  const captureMode = isKeywordScope ? '키워드 직접 캡처' : '업종 기준 캡처';
   const captureLedger = [
     {
       label: '캡처 범위',
-      value: activeScope === ALL_LABEL ? '전체업종' : activeScope,
+      value: visibleScope,
       detail: loading ? '소재 흐름 수집 중' : error ? '연결 상태 확인 필요' : '현재 검토 기준',
     },
     {
       label: '검토 모드',
       value: captureMode,
-      detail: searchTerm ? `Meta 검색어 ${searchTerm}` : '업종/브랜드 신호 기준',
+      detail: searchTerm ? 'Meta 검색어 기준' : '업종/브랜드 신호 기준',
     },
     {
       label: '판독 상태',
       value: loading ? '수집 중' : ads.length > 0 ? `${ads.length}개 소재 확보` : error ? '보류' : '관찰 행 대기',
       detail: ads.length > 0 ? '카피, CTA, 시작일 비교 가능' : '검색 범위를 조정해 증거를 확보',
     },
+  ];
+  const competitorStateChecks = ['업종 범위', '키워드', '소재 증거'];
+  const emptyActions = [
+    '브랜드명을 더 짧게 입력하거나 대표 제품명으로 다시 검색합니다.',
+    '업종 기준 탐색으로 범위를 넓힌 뒤 반복되는 카피와 CTA를 확인합니다.',
+  ];
+  const errorActions = [
+    '잠시 후 같은 조건으로 다시 시도합니다.',
+    '문제가 반복되면 운영 담당자에게 Meta 소재 수집 연결 상태 확인을 요청합니다.',
   ];
 
   return (
@@ -240,7 +251,7 @@ export default function CompetitorPage() {
             {captureLedger.map((item) => (
               <div key={item.label} className="min-w-0 px-4 py-3 sm:px-5 sm:py-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
-                <p className="mt-1 truncate text-sm font-bold text-slate-950">{item.value}</p>
+                <p className="mt-1 break-words text-sm font-bold text-slate-950">{item.value}</p>
                 <p className="mt-1 text-[11px] leading-snug text-slate-500">{item.detail}</p>
               </div>
             ))}
@@ -273,7 +284,7 @@ export default function CompetitorPage() {
               <h2 className="text-base font-semibold text-slate-800">
                 {searchLabel === ALL_LABEL
                   ? <span className="text-slate-700">전체업종</span>
-                  : <span className="text-teal-700">{searchLabel}</span>
+                  : <span className="text-teal-700">{isKeywordScope ? '직접 검색' : searchLabel}</span>
                 }
                 {' '}광고 소재
                 <span className="ml-2 text-sm font-normal text-slate-400">{ads.length}개</span>
@@ -300,24 +311,34 @@ export default function CompetitorPage() {
       {!loading && !error && ads.length === 0 && searchLabel && (
         <StatePanel
           variant="empty"
-          title={`"${searchLabel}" 소재 기준선이 비어 있습니다`}
+          title={isKeywordScope ? '직접 입력 검색어 소재 기준선이 비어 있습니다' : `"${searchLabel}" 소재 기준선이 비어 있습니다`}
           description="다른 키워드로 검색하거나 업종을 변경해 현재 시장에서 관찰 가능한 소재 흐름을 다시 확인해 보세요."
           eyebrow="소재 캡처 대기"
+          checks={competitorStateChecks}
+          ledger={captureLedger.map((item) => ({
+            ...item,
+            tone: item.label === '판독 상태' ? ('watch' as const) : ('neutral' as const),
+          }))}
+          nextActions={emptyActions}
           className="min-h-64"
         />
       )}
 
       {/* 에러 */}
       {!loading && error && (
-        <div className="space-y-2 rounded-md border border-amber-100 bg-amber-50 p-4">
-          <p className="text-sm font-semibold text-amber-800">소재 수집 연결 상태를 확인하고 있습니다.</p>
-          <p className="text-xs text-amber-600">
-            {PRODUCT_SAFE_ERROR}
-          </p>
-          <p className="rounded-md border border-amber-100 bg-white p-3 text-xs leading-relaxed text-slate-600">
-            잠시 후 다시 시도해 주세요. 같은 문제가 반복되면 운영 담당자에게 연결 상태 확인을 요청하세요.
-          </p>
-        </div>
+        <StatePanel
+          variant="error"
+          title="소재 수집 연결 상태를 확인하고 있습니다"
+          description={PRODUCT_SAFE_ERROR}
+          eyebrow="소재 수집 보류"
+          checks={['연결 확인', '화면 보호', '재시도']}
+          ledger={captureLedger.map((item) => ({
+            ...item,
+            tone: item.label === '판독 상태' ? ('risk' as const) : ('watch' as const),
+          }))}
+          nextActions={errorActions}
+          className="min-h-64"
+        />
       )}
     </div>
   );

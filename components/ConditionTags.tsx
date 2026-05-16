@@ -11,14 +11,14 @@ interface ConditionTagsProps {
 
 export default function ConditionTags({ tags }: ConditionTagsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex max-w-full flex-wrap gap-2">
       {tags.map((tag) => (
         <span
           key={tag.label}
-          className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium"
+          className="inline-flex max-w-full min-w-0 items-start gap-1.5 rounded-md border border-teal-100 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800"
         >
-          <span className="text-indigo-400">{tag.label}</span>
-          <span>{tag.value}</span>
+          <span className="shrink-0 text-teal-500">{tag.label}</span>
+          <span className="min-w-0 break-words text-slate-700">{tag.value}</span>
         </span>
       ))}
     </div>

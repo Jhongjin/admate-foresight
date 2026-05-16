@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: 'ML 서비스 미설정',
-        detail: 'PYTHON_API_URL 환경변수를 설정하세요. (예: http://localhost:8000)',
       },
       { status: 503 },
     );
@@ -48,20 +47,17 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: data.detail ?? 'ML 서비스 오류', status: res.status },
+        { error: 'ML 서비스 오류', status: res.status },
         { status: res.status },
       );
     }
 
     return NextResponse.json(data);
   } catch (err) {
-    const msg = String(err);
-    const isTimeout = msg.includes('TimeoutError') || msg.includes('AbortError');
+    const isTimeout = err instanceof DOMException && (err.name === 'TimeoutError' || err.name === 'AbortError');
     return NextResponse.json(
       {
         error: isTimeout ? 'ML 서비스 응답 시간 초과' : 'ML 서비스 연결 실패',
-        detail: msg,
-        tip: 'python/ 디렉토리에서 "uvicorn main:app --port 8000" 으로 서버를 시작하세요.',
       },
       { status: 503 },
     );

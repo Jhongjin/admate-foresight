@@ -45,6 +45,7 @@ const FIXED_OBJECTIVES = [
 ];
 
 const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+const DIMINISHING_RETURNS_BETA = 0.864;
 
 interface MarketAvg {
   cpm: number; cpc: number; cpcLink: number; cpv: number; vtr: number; count: number;
@@ -442,19 +443,26 @@ export default function SimulatorPage() {
           : null;
       })()
     : null;
-  const confidenceScore = result
+  const confidenceScore = result && result.predictionMethod === 'regression' && averageR2 != null
     ? Math.min(
         96,
         Math.max(
           42,
           Math.round(
-            ((averageR2 ?? 0.62) * 70)
+            (averageR2 * 70)
             + (Math.min(matchedSampleCount, 200) / 200) * 20
             + (marketSelected ? 6 : 0)
           )
         )
       )
     : null;
+  const evidenceBasisLabel = result?.predictionMethod === 'regression'
+    ? averageR2 == null ? '회귀 검증 대기' : '회귀 검증'
+    : result?.predictionMethod === 'weighted_avg'
+      ? '표본 가중 평균'
+      : result?.predictionMethod === 'fallback'
+        ? '대체 기준'
+        : '실행 전';
   const readinessTone = loading
     ? 'border-sky-200 bg-sky-50 text-sky-700'
     : !isCalculated
@@ -493,12 +501,31 @@ export default function SimulatorPage() {
   const confidenceLabel = loading
     ? '계산 중'
     : confidenceScore == null
-      ? '실행 전'
+      ? evidenceBasisLabel
       : confidenceScore >= 82
         ? '높음'
         : confidenceScore >= 66
           ? '보통'
           : '주의';
+  const confidenceDisplay = confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}`;
+  const confidenceGateStatus = confidenceScore == null
+    ? result?.predictionMethod === 'fallback'
+      ? '근거 보강'
+      : result
+        ? '표본 기준'
+        : '미산정'
+    : confidenceScore >= 66
+      ? '검토 가능'
+      : '근거 보강';
+  const confidenceGateTone = confidenceScore == null
+    ? result?.predictionMethod === 'fallback'
+      ? 'watch'
+      : result
+        ? 'idle'
+        : 'idle'
+    : confidenceScore >= 66
+      ? 'ok'
+      : 'watch';
   const confidenceTone = confidenceScore == null
     ? 'text-gray-500'
     : confidenceScore >= 82
@@ -533,7 +560,7 @@ export default function SimulatorPage() {
   const readinessChecks = [
     { label: '플랜 입력', value: selectedTargetCount > 0 ? `${selectedTargetCount}개 조건` : '전체 기준' },
     { label: '벤치마크', value: benchmarkLabel },
-    { label: '신뢰도', value: confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}` },
+    { label: '근거 상태', value: confidenceDisplay },
   ];
   const planningBasis = [
     { label: '기준 기간', value: '최근 6개월', detail: benchmarkLabel },
@@ -573,7 +600,7 @@ export default function SimulatorPage() {
       const ratio = (b120 - lower.budget) / (upper.budget - lower.budget);
       reach120 = lower.reach + ratio * (upper.reach - lower.reach);
     } else if (lower) {
-      reach120 = lower.reach * Math.pow(b120 / lower.budget, 0.82);
+      reach120 = lower.reach * Math.pow(b120 / lower.budget, DIMINISHING_RETURNS_BETA);
     }
     const additionalReach = Math.max(0, Math.round((reach120 - result.reach) * durationFactor));
     return { canExpand: true, frequency: freq, reachRate, additionalReach, additionalBudget: Math.round(budget * 0.2) };
@@ -635,10 +662,10 @@ export default function SimulatorPage() {
       tone: marketSelected ? 'ok' : isCalculated ? 'watch' : 'idle',
     },
     {
-      label: '예측 신뢰도',
-      status: confidenceScore == null ? '미산정' : confidenceScore >= 66 ? '검토 가능' : '근거 보강',
-      detail: confidenceScore == null ? '계산 전' : `${confidenceScore}% · ${confidenceLabel}`,
-      tone: confidenceScore == null ? 'idle' : confidenceScore >= 66 ? 'ok' : 'watch',
+      label: '예측 근거',
+      status: confidenceGateStatus,
+      detail: confidenceDisplay,
+      tone: confidenceGateTone,
     },
     {
       label: '집행 압력',
@@ -1134,7 +1161,7 @@ export default function SimulatorPage() {
                     <p className={`text-2xl font-bold num ${confidenceTone}`}>
                       {confidenceScore == null ? '-' : confidenceScore}
                     </p>
-                    <p className="text-[11px] font-semibold text-slate-500">신뢰도</p>
+                    <p className="text-[11px] font-semibold text-slate-500">근거 점수</p>
                   </div>
                 </div>
                 <div className="mt-4 space-y-2">
@@ -1228,7 +1255,7 @@ export default function SimulatorPage() {
         <PlanningEmptyCockpit
           eyebrow="예측 데스크 대기"
           title="벤치마크 플랜을 계산하기 전입니다"
-          description="조건을 확인하고 시뮬레이션을 실행하면 최근 6개월 기준, 필터, 신뢰도, 예산 구간이 같은 기준선으로 열립니다."
+          description="조건을 확인하고 시뮬레이션을 실행하면 최근 6개월 기준, 필터, 근거 상태, 예산 구간이 같은 기준선으로 열립니다."
           signals={forecastEmptySignals}
           stages={forecastEmptyStages}
         />
@@ -1306,7 +1333,7 @@ export default function SimulatorPage() {
           };
           const kpiLedgerProps = {
             benchmarkStatusLabel: hasMarket ? '업종 매칭 벤치마크' : '전체 기준 벤치마크',
-            benchmarkConfidenceLabel: confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}`,
+            benchmarkConfidenceLabel: confidenceDisplay,
             benchmarkSyntheticContextLabel: '최근 6개월 · KRW Net',
             benchmarkVisibleCopy: [
               chartData.length > 0 ? 'Range gate: 예산 곡선과 같은 실행 결과' : 'Range gate: 예산 구간 대기',
@@ -1380,7 +1407,7 @@ export default function SimulatorPage() {
             </div>
             {mlResult && (
               <span className="text-[11px] text-gray-400 num">
-                기준 표본 {mlResult.n_samples.toLocaleString()}건 · 검증 신뢰도 {mlResult.cv_r2.toFixed(3)}
+                기준 표본 {mlResult.n_samples.toLocaleString()}건 · 검증 R² {mlResult.cv_r2.toFixed(3)}
               </span>
             )}
           </div>
@@ -1453,9 +1480,9 @@ export default function SimulatorPage() {
                   현재 설정한 타겟 시장에 광고가 아직 충분히 노출되지 않아,
                   {' '}<strong className="text-emerald-700">성과를 더 키울 수 있는 여유가 있습니다.</strong>
                 </p>
-                <div className="flex items-center gap-2 bg-white rounded-md px-3 py-2.5 border border-emerald-200">
+                <div className="flex flex-col gap-2 rounded-md border border-emerald-200 bg-white px-3 py-2.5 sm:flex-row sm:items-start">
                   <span className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">+20%</span>
-                  <p className="text-sm text-gray-700">
+                  <p className="min-w-0 break-words text-sm text-gray-700">
                     예산을 <strong>20% 늘리면</strong> 약{' '}
                     <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()} 명</strong>의 고객에게 추가로 도달할 수 있습니다.
                     {' '}<span className="text-gray-400 text-xs">(+₩{(expansionPotential.additionalBudget ?? 0).toLocaleString()})</span>
@@ -1659,7 +1686,7 @@ export default function SimulatorPage() {
       <div className="rounded-md border border-teal-100 bg-teal-50 p-4 text-sm text-teal-900">
         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-700">예측 방식 장부</p>
         <p className="mt-1 leading-6">
-          <strong>예측 방식:</strong> Meta 공식 기반 (예산÷CPM×1000÷빈도) + Diminishing Returns 보정 (β=0.82).
+          <strong>예측 방식:</strong> Meta 공식 기반 (예산÷CPM×1000÷빈도) + Diminishing Returns 보정 (β={DIMINISHING_RETURNS_BETA}).
           캠페인 목표별 CPM·빈도를 실제 데이터에서 적용하며, 예산이 클수록 단위당 도달 효율이 감소합니다.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -1668,8 +1695,8 @@ export default function SimulatorPage() {
             <p className="mt-0.5 text-xs text-teal-900">{selectedTargetCount > 0 ? `${selectedTargetCount}개 조건 적용` : '전체 기준 입력'}</p>
           </div>
           <div className="rounded-md border border-teal-100 bg-white/70 px-3 py-2">
-            <p className="text-[11px] font-semibold text-teal-700">기준선 신뢰도</p>
-            <p className="mt-0.5 text-xs text-teal-900">{confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}`}</p>
+            <p className="text-[11px] font-semibold text-teal-700">기준선 근거</p>
+            <p className="mt-0.5 text-xs text-teal-900">{confidenceDisplay}</p>
           </div>
           <div className="rounded-md border border-teal-100 bg-white/70 px-3 py-2">
             <p className="text-[11px] font-semibold text-teal-700">Range gate</p>
