@@ -680,6 +680,57 @@ export default function SimulatorPage() {
       tone: chartData.length > 0 ? 'ok' : rangeLoading ? 'watch' : 'idle',
     },
   ];
+  const evidencePanelTone = confidenceGateTone === 'ok'
+    ? {
+        shell: 'border-teal-100 bg-teal-50/70 text-teal-950',
+        label: 'text-teal-700',
+        badge: 'border-teal-200 bg-white text-teal-800',
+        cell: 'border-teal-100 bg-white/80',
+        cellLabel: 'text-teal-700',
+      }
+    : confidenceGateTone === 'watch'
+      ? {
+          shell: 'border-amber-200 bg-amber-50/80 text-amber-950',
+          label: 'text-amber-800',
+          badge: 'border-amber-300 bg-white text-amber-800',
+          cell: 'border-amber-100 bg-white/85',
+          cellLabel: 'text-amber-800',
+        }
+      : {
+          shell: 'border-stone-200 bg-[#fbfaf6] text-slate-950',
+          label: 'text-stone-500',
+          badge: 'border-stone-200 bg-white text-stone-600',
+          cell: 'border-stone-200 bg-white/85',
+          cellLabel: 'text-stone-500',
+        };
+  const forecastGuardrails = result
+    ? [
+        !marketSelected
+          ? {
+              label: '업종 특화 평균처럼 표시하지 않음',
+              detail: '업종 벤치마크가 없으면 전체 기준선으로만 표기합니다.',
+            }
+          : null,
+        confidenceGateStatus === '근거 보강'
+          ? {
+              label: '신뢰도 사유 없는 내보내기 금지',
+              detail: '보고서나 공유 전 표본/회귀 근거 부족 사유를 함께 남깁니다.',
+            }
+          : null,
+        result.predictionMethod !== 'regression'
+          ? {
+              label: '확정 성과 표현 금지',
+              detail: `${evidenceBasisLabel} 결과는 시나리오 검토용 범위로만 사용합니다.`,
+            }
+          : null,
+        chartData.length === 0
+          ? {
+              label: '예산 곡선 없는 단일 KPI 판단 금지',
+              detail: '구간 계산 전에는 증액/감액 결정을 확정하지 않습니다.',
+            }
+          : null,
+      ].filter((item): item is { label: string; detail: string } => Boolean(item))
+    : [];
   const forecastEmptySignals = [
     {
       label: '기준선 근거',
@@ -1308,15 +1359,15 @@ export default function SimulatorPage() {
           </div>
         </div>
         {result && (
-          <section className="mb-4 rounded-md border border-teal-100 bg-teal-50/70 p-4 text-teal-950">
+          <section className={`mb-4 rounded-md border p-4 ${evidencePanelTone.shell}`}>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-700">
+                <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${evidencePanelTone.label}`}>
                   Prediction evidence
                 </p>
                 <h3 className="mt-1 text-sm font-bold text-slate-950">이번 예측의 판독 근거</h3>
               </div>
-              <span className="w-fit rounded-md border border-teal-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-800">
+              <span className={`w-fit rounded-md border px-2.5 py-1 text-[11px] font-semibold ${evidencePanelTone.badge}`}>
                 {confidenceGateStatus}
               </span>
             </div>
@@ -1345,13 +1396,34 @@ export default function SimulatorPage() {
                   detail: chartData.length > 0 ? '도달 곡선과 비교표 동시 검토' : 'KPI 먼저 검토 후 구간 계산 대기',
                 },
               ].map((item) => (
-                <div key={item.label} className="rounded-md border border-teal-100 bg-white/80 px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-teal-700">{item.label}</p>
+                <div key={item.label} className={`rounded-md border px-3 py-2 ${evidencePanelTone.cell}`}>
+                  <p className={`text-[11px] font-semibold uppercase tracking-[0.06em] ${evidencePanelTone.cellLabel}`}>{item.label}</p>
                   <p className="mt-1 break-words text-sm font-bold text-slate-950">{item.value}</p>
                   <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{item.detail}</p>
                 </div>
               ))}
             </div>
+            {forecastGuardrails.length > 0 && (
+              <div className="mt-3 rounded-md border border-amber-200 bg-white/80 p-3">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">제한된 출력</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-600">근거가 약한 상태에서는 과도한 확정 표현을 막고, 검토용 범위로만 사용합니다.</p>
+                  </div>
+                  <span className="w-fit rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
+                    보호 {forecastGuardrails.length}개
+                  </span>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {forecastGuardrails.map((item) => (
+                    <div key={item.label} className="rounded-md border border-stone-200 bg-[#fbfaf7] px-3 py-2">
+                      <p className="text-xs font-bold text-slate-950">{item.label}</p>
+                      <p className="mt-1 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
         {(() => {
