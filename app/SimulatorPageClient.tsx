@@ -8,6 +8,7 @@ import {
 import KPICard from '@/components/KPICard';
 import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
+import PlanningStatePanel from '@/components/PlanningStatePanel';
 import StatePanel from '@/components/StatePanel';
 
 const ALL_GENDERS = [
@@ -111,81 +112,6 @@ interface MLResult {
 function formatBudget(v: number) {
   if (v >= 100_000_000) return `${v / 100_000_000}억`;
   return `${v / 10_000}만`;
-}
-
-type PlanningEmptySignal = {
-  label: string;
-  value: string;
-  detail: string;
-};
-
-type PlanningEmptyStage = {
-  label: string;
-  status: string;
-};
-
-function PlanningEmptyCockpit({
-  eyebrow,
-  title,
-  description,
-  signals,
-  stages,
-  className = '',
-}: {
-  eyebrow: string;
-  title: string;
-  description: string;
-  signals: PlanningEmptySignal[];
-  stages?: PlanningEmptyStage[];
-  className?: string;
-}) {
-  return (
-    <section
-      aria-label={title}
-      className={`relative overflow-hidden rounded-md border border-dashed border-stone-300 bg-[#fbfaf6] ${className}`}
-    >
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 opacity-60"
-        style={{
-          backgroundImage:
-            'linear-gradient(to right, rgba(120,113,108,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(120,113,108,0.10) 1px, transparent 1px)',
-          backgroundSize: '28px 28px',
-        }}
-      />
-      <div className="relative border-b border-stone-200 bg-white/80 px-4 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500">{eyebrow}</p>
-        <h2 className="mt-1 text-sm font-bold text-slate-950">{title}</h2>
-        <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">{description}</p>
-      </div>
-      <div className="relative grid gap-0 sm:grid-cols-3">
-        {signals.map((signal) => (
-          <div key={signal.label} className="border-t border-stone-200 bg-white/45 px-4 py-3 sm:border-r sm:border-t-0 last:border-r-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-500">{signal.label}</p>
-            <p className="mt-1 text-sm font-bold text-slate-950">{signal.value}</p>
-            <p className="mt-1 text-[11px] leading-snug text-slate-500">{signal.detail}</p>
-          </div>
-        ))}
-      </div>
-      {stages && stages.length > 0 && (
-        <div className="relative border-t border-stone-200 bg-stone-50/85 px-4 py-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-            {stages.map((stage, index) => (
-              <div key={stage.label} className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-stone-200 bg-white px-3 py-2">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-950 text-[11px] font-bold text-white">
-                  {index + 1}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-500">{stage.label}</p>
-                  <p className="truncate text-xs font-bold text-slate-950">{stage.status}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </section>
-  );
 }
 
 export default function SimulatorPage() {
@@ -1376,7 +1302,7 @@ export default function SimulatorPage() {
       </section>
 
       {!isCalculated && !loading && (
-        <PlanningEmptyCockpit
+        <PlanningStatePanel
           eyebrow="예측 데스크 대기"
           title="벤치마크 플랜을 계산하기 전입니다"
           description="조건을 확인하고 시뮬레이션을 실행하면 최근 6개월 기준, 필터, 근거 상태, 예산 구간이 같은 기준선으로 열립니다."
@@ -1841,7 +1767,7 @@ export default function SimulatorPage() {
             className="h-64"
           />
         ) : (
-          <PlanningEmptyCockpit
+          <PlanningStatePanel
             eyebrow="구간 계획"
             title="예산 곡선은 계산된 구간만 표시합니다"
             description="현재 화면은 빈 차트가 아니라, 예산별 도달 범위를 아직 신뢰할 수 있게 계산하지 못한 상태입니다."
@@ -1904,7 +1830,7 @@ export default function SimulatorPage() {
             className="h-44"
           />
         ) : (
-          <PlanningEmptyCockpit
+          <PlanningStatePanel
             eyebrow="비교표 가드"
             title="비교표는 실제 계산 행이 있을 때만 열립니다"
             description="예산별 도달, 노출, 클릭은 같은 range 결과에서 파생되므로 곡선과 표가 서로 다른 근거를 갖지 않습니다."

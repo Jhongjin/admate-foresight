@@ -5,6 +5,7 @@ const root = process.cwd()
 
 const files = {
   kpiCard: path.join(root, 'components', 'KPICard.tsx'),
+  planningStatePanel: path.join(root, 'components', 'PlanningStatePanel.tsx'),
   simulator: path.join(root, 'app', 'SimulatorPageClient.tsx'),
   viewModel: path.join(root, 'lib', 'benchmark', 'uiStateViewModel.ts'),
   uiRenderingTest: path.join(root, 'tests', 'benchmark', 'benchmark-ui-state-rendering.test.tsx'),
@@ -71,9 +72,22 @@ const requiredViewModelSnippets = [
   'promotionReady: false',
 ]
 
+const requiredPlanningStatePanelSnippets = [
+  'interface PlanningStatePanelSignal',
+  'interface PlanningStatePanelStage',
+  'interface PlanningStatePanelProps',
+  'signals: PlanningStatePanelSignal[]',
+  'stages?: PlanningStatePanelStage[]',
+  'aria-label={title}',
+  'border border-dashed border-stone-300',
+  'grid gap-0 sm:grid-cols-3',
+  'stages && stages.length > 0',
+]
+
 const requiredSimulatorSnippets = [
   'dataSufficiencyStatus',
   'dataSufficiencyLedger',
+  'PlanningStatePanel',
   'predictionRangeSpread',
   'predictionRangeRows',
   'Expected range',
@@ -160,6 +174,14 @@ for (const expected of requiredViewModelSnippets) {
 }
 for (const forbidden of ['fetch(', 'process.env', 'createClient', '@supabase', '/api/', 'py-retrain']) {
   assertDoesNotInclude(viewModelSource, forbidden, 'benchmark view model local-only boundary')
+}
+
+const planningStatePanelSource = readSource(files.planningStatePanel)
+for (const expected of requiredPlanningStatePanelSnippets) {
+  assertIncludes(planningStatePanelSource, expected, 'PlanningStatePanel state surface contract')
+}
+for (const forbidden of ['fetch(', 'process.env', 'createClient', '@supabase', '/api/', 'document.cookie']) {
+  assertDoesNotInclude(planningStatePanelSource, forbidden, 'PlanningStatePanel presentational boundary')
 }
 
 const simulatorSource = readSource(files.simulator)
