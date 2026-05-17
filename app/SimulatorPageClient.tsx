@@ -1308,10 +1308,51 @@ export default function SimulatorPage() {
           </div>
         </div>
         {result && (
-          <div className="mb-4 px-4 py-3 bg-teal-50 border border-teal-100 rounded-md text-sm text-teal-800">
-            선택하신 기간은 총 <strong>{campaignDays}일</strong>이며,
-            일 평균 <strong>₩{dailyBudget.toLocaleString()}</strong>의 예산이 투입될 예정입니다.
-          </div>
+          <section className="mb-4 rounded-md border border-teal-100 bg-teal-50/70 p-4 text-teal-950">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-700">
+                  Prediction evidence
+                </p>
+                <h3 className="mt-1 text-sm font-bold text-slate-950">이번 예측의 판독 근거</h3>
+              </div>
+              <span className="w-fit rounded-md border border-teal-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-800">
+                {confidenceGateStatus}
+              </span>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                {
+                  label: '기간 예산',
+                  value: `${campaignDays}일 · 일 ₩${dailyBudget.toLocaleString()}`,
+                  detail: '월 기준 예측값을 캠페인 기간으로 환산',
+                },
+                {
+                  label: '예측 방식',
+                  value: evidenceBasisLabel,
+                  detail: result.predictionMethod === 'regression' ? 'R²와 표본 수로 근거 점수 산정' : '회귀 근거가 부족할 때 보수 기준 사용',
+                },
+                {
+                  label: '표본 근거',
+                  value: marketSelected
+                    ? `${matchedSampleCount.toLocaleString()} / ${marketSampleCount.toLocaleString()}건`
+                    : `${matchedSampleCount.toLocaleString()}건`,
+                  detail: marketSelected ? '선택 업종 표본과 매칭 표본' : '업종 특화 평균 미적용',
+                },
+                {
+                  label: '구간 상태',
+                  value: chartData.length > 0 ? `${chartData.length}개 예산 구간` : '구간 대기',
+                  detail: chartData.length > 0 ? '도달 곡선과 비교표 동시 검토' : 'KPI 먼저 검토 후 구간 계산 대기',
+                },
+              ].map((item) => (
+                <div key={item.label} className="rounded-md border border-teal-100 bg-white/80 px-3 py-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-teal-700">{item.label}</p>
+                  <p className="mt-1 break-words text-sm font-bold text-slate-950">{item.value}</p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
         {(() => {
           const hasMarket = result?.marketAvg?.industrySelected === true;
