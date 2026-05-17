@@ -74,6 +74,11 @@ const requiredViewModelSnippets = [
 const requiredSimulatorSnippets = [
   'dataSufficiencyStatus',
   'dataSufficiencyLedger',
+  'predictionRangeSpread',
+  'predictionRangeRows',
+  'Expected range',
+  '예상 범위',
+  '예산 곡선 기반 범위',
   '데이터 충분성 판정',
   '데이터 부족 상태',
   '업종 평균 대체 금지',

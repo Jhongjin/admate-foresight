@@ -533,6 +533,17 @@ export default function SimulatorPage() {
       : confidenceScore >= 66
         ? 'text-sky-700'
         : 'text-amber-700';
+  const predictionRangeSpread = result
+    ? confidenceScore == null
+      ? result.predictionMethod === 'fallback'
+        ? 0.24
+        : 0.18
+      : confidenceScore >= 82
+        ? 0.08
+        : confidenceScore >= 66
+          ? 0.14
+          : 0.22
+    : null;
   const nextActionTitle = loading
     ? '예측 계산 중'
     : !isCalculated
@@ -614,6 +625,25 @@ export default function SimulatorPage() {
     clicks: p.cpc > 0 ? Math.round(p.budget / p.cpc) : 0,
     reachEfficiency: p.reach > 0 ? Math.round(p.reach / (p.budget / 10_000)) : 0,
   }));
+  const predictionRangeRows = result && predictionRangeSpread != null
+    ? [
+        {
+          label: '도달 예상 범위',
+          value: `${Math.max(0, Math.round(totalReach * (1 - predictionRangeSpread))).toLocaleString()}~${Math.round(totalReach * (1 + predictionRangeSpread)).toLocaleString()}명`,
+          detail: `${campaignDays}일 환산 · ±${Math.round(predictionRangeSpread * 100)}%`,
+        },
+        {
+          label: 'CPM 예상 범위',
+          value: `₩${Math.max(0, Math.round((applySeasonBoost ? result.cpm * PEAK_CPM_MULTIPLIER : result.cpm) * (1 - predictionRangeSpread))).toLocaleString()}~₩${Math.round((applySeasonBoost ? result.cpm * PEAK_CPM_MULTIPLIER : result.cpm) * (1 + predictionRangeSpread)).toLocaleString()}`,
+          detail: applySeasonBoost ? '시즌 보정 CPM 기준' : '현재 조건 CPM 기준',
+        },
+        {
+          label: '범위 근거',
+          value: chartData.length > 0 ? '예산 곡선 기반 범위' : '단일 결과 범위',
+          detail: chartData.length > 0 ? `${chartData.length}개 예산 구간과 함께 검토` : '예산 곡선 대기',
+        },
+      ]
+    : [];
   const rangeTrendBrief = chartData.length > 0
     ? (() => {
         const first = chartData[0];
@@ -1445,6 +1475,26 @@ export default function SimulatorPage() {
                   <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{item.detail}</p>
                 </div>
               ))}
+            </div>
+            <div className="mt-3 rounded-md border border-stone-200 bg-white/75 p-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Expected range</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">단일 KPI를 확정값처럼 보지 않도록 신뢰도에 맞춘 예상 범위를 함께 표시합니다.</p>
+                </div>
+                <span className="w-fit rounded-md border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] font-semibold text-stone-600">
+                  예상 범위
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {predictionRangeRows.map((item) => (
+                  <div key={item.label} className="rounded-md border border-stone-200 bg-[#fbfaf7] px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
+                    <p className="mt-1 break-words text-sm font-bold text-slate-950">{item.value}</p>
+                    <p className="mt-1 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="mt-3 rounded-md border border-stone-200 bg-white/75 p-3">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
