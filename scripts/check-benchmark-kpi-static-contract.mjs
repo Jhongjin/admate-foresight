@@ -5,6 +5,7 @@ const root = process.cwd()
 
 const files = {
   kpiCard: path.join(root, 'components', 'KPICard.tsx'),
+  simulator: path.join(root, 'app', 'SimulatorPageClient.tsx'),
   viewModel: path.join(root, 'lib', 'benchmark', 'uiStateViewModel.ts'),
   uiRenderingTest: path.join(root, 'tests', 'benchmark', 'benchmark-ui-state-rendering.test.tsx'),
   routeGuardTest: path.join(root, 'tests', 'benchmark', 'benchmark-route-output-guards.test.ts'),
@@ -68,6 +69,18 @@ const requiredViewModelSnippets = [
   "syntheticContextLabel: '로컬 검증용 예시 데이터'",
   'reportReady: false',
   'promotionReady: false',
+]
+
+const requiredSimulatorSnippets = [
+  'dataSufficiencyStatus',
+  'dataSufficiencyLedger',
+  '데이터 충분성 판정',
+  '데이터 부족 상태',
+  '업종 평균 대체 금지',
+  '예산 곡선 대기',
+  '보고서 출력은 검토용',
+  '내보내기 허용',
+  '확정 성과 표현 금지 원칙',
 ]
 
 const requiredUiTestSnippets = [
@@ -142,6 +155,11 @@ for (const expected of requiredViewModelSnippets) {
 }
 for (const forbidden of ['fetch(', 'process.env', 'createClient', '@supabase', '/api/', 'py-retrain']) {
   assertDoesNotInclude(viewModelSource, forbidden, 'benchmark view model local-only boundary')
+}
+
+const simulatorSource = readSource(files.simulator)
+for (const expected of requiredSimulatorSnippets) {
+  assertIncludes(simulatorSource, expected, 'Simulator data sufficiency contract')
 }
 
 const uiTestSource = readSource(files.uiRenderingTest)

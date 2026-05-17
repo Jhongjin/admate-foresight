@@ -731,6 +731,49 @@ export default function SimulatorPage() {
           : null,
       ].filter((item): item is { label: string; detail: string } => Boolean(item))
     : [];
+  const dataSufficiencyStatus = !result
+    ? '계산 전'
+    : confidenceGateStatus === '근거 보강'
+      ? '데이터 부족 상태'
+      : !marketSelected
+        ? '전체 기준 상태'
+        : chartData.length === 0
+          ? '구간 보강 필요'
+          : '검토 가능';
+  const dataSufficiencyLedger = result
+    ? [
+        {
+          label: '표본 매칭',
+          value: marketSelected
+            ? `${matchedSampleCount.toLocaleString()}건 매칭`
+            : '업종 평균 대체 금지',
+          detail: marketSelected
+            ? `업종 표본 ${marketSampleCount.toLocaleString()}건 기준`
+            : '업종 특화 평균처럼 표시하지 않고 전체 기준으로만 표기합니다.',
+        },
+        {
+          label: '회귀 검증',
+          value: confidenceScore == null ? evidenceBasisLabel : confidenceDisplay,
+          detail: confidenceScore == null
+            ? '회귀 점수 없이 보수 기준 또는 표본 기준으로 표시합니다.'
+            : 'R², 표본 수, 업종 매칭 여부를 합산한 근거 점수입니다.',
+        },
+        {
+          label: '예산 구간',
+          value: chartData.length > 0 ? `${chartData.length}개 구간` : '예산 곡선 대기',
+          detail: chartData.length > 0
+            ? '곡선과 비교표가 같은 range 결과를 공유합니다.'
+            : '단일 KPI만으로 증액/감액 결정을 확정하지 않습니다.',
+        },
+        {
+          label: '출력 허용',
+          value: confidenceGateStatus === '근거 보강' || chartData.length === 0
+            ? '보고서 출력은 검토용'
+            : '내보내기 허용',
+          detail: '확정 성과 표현 금지 원칙을 유지합니다.',
+        },
+      ]
+    : [];
   const forecastEmptySignals = [
     {
       label: '기준선 근거',
@@ -1402,6 +1445,32 @@ export default function SimulatorPage() {
                   <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{item.detail}</p>
                 </div>
               ))}
+            </div>
+            <div className="mt-3 rounded-md border border-stone-200 bg-white/75 p-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">데이터 충분성 판정</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">표본, 회귀 검증, 예산 구간, 출력 허용 범위를 같은 원장으로 묶어 확인합니다.</p>
+                </div>
+                <span className={`w-fit rounded-md border px-2.5 py-1 text-[11px] font-semibold ${
+                  dataSufficiencyStatus === '검토 가능'
+                    ? 'border-teal-200 bg-teal-50 text-teal-800'
+                    : dataSufficiencyStatus === '데이터 부족 상태' || dataSufficiencyStatus === '구간 보강 필요'
+                      ? 'border-amber-200 bg-amber-50 text-amber-800'
+                      : 'border-stone-200 bg-stone-50 text-stone-600'
+                }`}>
+                  {dataSufficiencyStatus}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {dataSufficiencyLedger.map((item) => (
+                  <div key={item.label} className="rounded-md border border-stone-200 bg-[#fbfaf7] px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
+                    <p className="mt-1 break-words text-sm font-bold text-slate-950">{item.value}</p>
+                    <p className="mt-1 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
             </div>
             {forecastGuardrails.length > 0 && (
               <div className="mt-3 rounded-md border border-amber-200 bg-white/80 p-3">
