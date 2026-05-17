@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const navItems = [
-  { href: '/', label: 'Forecast' },
-  { href: '/trends', label: 'Benchmarks' },
-  { href: '/insights', label: 'Seasonality' },
-  { href: '/competitor', label: 'Market watch' },
+  { href: '/', label: '예측 데스크' },
+  { href: '/trends', label: '기준선' },
+  { href: '/insights', label: '시즌성' },
+  { href: '/competitor', label: '시장 감시' },
   { href: '/account', label: '계정' },
 ];
 
