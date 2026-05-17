@@ -91,6 +91,64 @@ h1, h2, h3 {
     0 24px 70px rgba(24, 32, 30, 0.08);
 }
 
+.foresight-workspace {
+  position: relative;
+}
+
+.foresight-hero-shell {
+  position: relative;
+  isolation: isolate;
+  border-color: rgba(15, 118, 110, 0.22) !important;
+  border-radius: 14px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 28px 80px rgba(16, 24, 32, 0.11) !important;
+}
+
+.foresight-hero-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 84% 12%, rgba(15, 118, 110, 0.16), transparent 32%),
+    radial-gradient(circle at 14% 96%, rgba(183, 121, 31, 0.12), transparent 30%);
+  pointer-events: none;
+}
+
+.foresight-hero-head {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.92), rgba(242,247,243,0.84)),
+    #f8faf7 !important;
+}
+
+.foresight-hero-head::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(16, 24, 32, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 24, 32, 0.035) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: linear-gradient(90deg, transparent, black 16%, black 86%, transparent);
+  pointer-events: none;
+}
+
+.foresight-hero-head > * {
+  position: relative;
+}
+
+.foresight-timeline {
+  border-radius: 12px !important;
+  border-color: rgba(15, 118, 110, 0.24) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 18px 40px rgba(16, 24, 32, 0.08) !important;
+}
+
 .foresight-control {
   border: 1px solid rgba(120, 113, 108, 0.28);
   background: rgba(255, 255, 255, 0.84);

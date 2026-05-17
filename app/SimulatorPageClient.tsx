@@ -838,9 +838,9 @@ export default function SimulatorPage() {
   }, [result, rangeData, industryLabel, genderLabel, ageLabel, budget]);
 
   return (
-    <div className="space-y-6">
-      <section className="overflow-hidden rounded-md border border-stone-300 bg-white shadow-sm">
-        <div className="border-b border-stone-200 bg-[#f6f8f1] px-5 py-4 text-slate-950 sm:px-6">
+    <div className="foresight-workspace space-y-6">
+      <section className="foresight-hero-shell overflow-hidden rounded-md border border-stone-300 bg-white shadow-sm">
+        <div className="foresight-hero-head border-b border-stone-200 bg-[#f6f8f1] px-5 py-5 text-slate-950 sm:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -851,12 +851,15 @@ export default function SimulatorPage() {
                   매체 기준선 데스크
                 </span>
               </div>
-              <h1 className="text-2xl font-bold text-slate-950 sm:text-3xl">Foresight 예측 데스크</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              <h1 className="max-w-4xl text-[clamp(2.4rem,5vw,4.9rem)] font-black leading-[0.98] tracking-[0] text-slate-950">
+                Foresight Planning Observatory
+              </h1>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
                 최근 성과 표본을 기준선으로 삼아 예산, 기간, 타겟 조건의 집행 압력을 검토합니다.
+                데이터가 부족한 상태도 숨기지 않고 예측 방식, 표본 근거, 구간 상태로 분리해 보여줍니다.
               </p>
             </div>
-            <div className="grid min-w-0 grid-cols-3 gap-1 rounded-md border border-stone-300 bg-white p-1 shadow-sm">
+            <div className="foresight-timeline grid min-w-0 grid-cols-3 gap-1 rounded-md border border-stone-300 bg-white p-1 shadow-sm">
               {cockpitTimeline.map((step) => (
                 <div
                   key={step.label}
