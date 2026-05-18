@@ -91,6 +91,396 @@ h1, h2, h3 {
     0 24px 70px rgba(24, 32, 30, 0.08);
 }
 
+.foresight-login-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.foresight-login-stage::before {
+  content: '';
+  position: absolute;
+  inset: 3rem -12vw auto auto;
+  z-index: -1;
+  width: min(52rem, 72vw);
+  height: 18rem;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent 0 18%, rgba(15, 118, 110, 0.08) 18% 19%, transparent 19% 42%, rgba(183, 121, 31, 0.08) 42% 43%, transparent 43%),
+    rgba(255, 253, 248, 0.26);
+  transform: rotate(-13deg);
+}
+
+.foresight-gate-brief,
+.foresight-gate-action {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(120, 113, 108, 0.3);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(247, 247, 242, 0.94)),
+    var(--foresight-paper);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 24px 70px rgba(16, 24, 32, 0.08);
+}
+
+.foresight-gate-brief {
+  padding: clamp(1.5rem, 3.5vw, 3rem);
+  border-top: 5px solid #101820;
+}
+
+.foresight-gate-brief::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(16, 24, 32, 0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 24, 32, 0.026) 1px, transparent 1px),
+    linear-gradient(112deg, transparent 0 56%, rgba(15, 118, 110, 0.055) 56% 56.5%, transparent 56.5%),
+    linear-gradient(71deg, transparent 0 72%, rgba(183, 121, 31, 0.055) 72% 72.5%, transparent 72.5%);
+  background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%;
+  mask-image: linear-gradient(90deg, black, black 74%, transparent);
+}
+
+.foresight-gate-brief > * {
+  position: relative;
+}
+
+.foresight-gate-kicker {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 999px;
+  background: rgba(216, 243, 236, 0.58);
+  padding: 0 0.9rem;
+  color: #0b625b;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.foresight-gate-head {
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 0.28fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.foresight-gate-title {
+  max-width: 46rem;
+  color: var(--foresight-ink);
+  font-size: clamp(2.7rem, 5.4vw, 5.7rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.foresight-gate-stamp {
+  justify-self: end;
+  width: min(10rem, 100%);
+  aspect-ratio: 1;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  background: rgba(255, 255, 255, 0.34);
+  color: #0b625b;
+}
+
+.foresight-gate-stamp span {
+  display: block;
+  font-size: clamp(1.2rem, 2.2vw, 2rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.foresight-gate-stamp strong {
+  margin-top: 0.4rem;
+  color: #66736d;
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.foresight-gate-signal-strip {
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid rgba(64, 81, 73, 0.22);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(213, 222, 216, 0.74);
+  gap: 1px;
+}
+
+.foresight-gate-signal-strip div {
+  min-width: 0;
+  background: rgba(255, 253, 248, 0.9);
+  padding: 0.9rem 1rem;
+}
+
+.foresight-gate-signal-strip span,
+.foresight-gate-card-grid p,
+.foresight-gate-access-list span {
+  color: #66736d;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.foresight-gate-signal-strip strong,
+.foresight-gate-card-grid strong,
+.foresight-gate-access-list strong {
+  display: block;
+  margin-top: 0.36rem;
+  color: var(--foresight-ink);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.foresight-gate-signal-strip p,
+.foresight-gate-card-grid span {
+  display: block;
+  margin-top: 0.42rem;
+  color: #66736d;
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.foresight-gate-forecast {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(17rem, 0.62fr);
+  gap: 1rem;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(239, 244, 236, 0.54)),
+    rgba(255, 253, 248, 0.78);
+  padding: 1rem;
+}
+
+.foresight-gate-forecast-copy {
+  display: grid;
+  align-content: center;
+  min-height: 13.5rem;
+  padding: 1rem;
+}
+
+.foresight-gate-forecast-copy p {
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.foresight-gate-forecast-copy h2 {
+  margin-top: 0.65rem;
+  max-width: 26rem;
+  color: var(--foresight-ink);
+  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  font-weight: 950;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.foresight-gate-forecast-copy span {
+  display: block;
+  margin-top: 0.9rem;
+  max-width: 30rem;
+  color: #66736d;
+  font-size: 0.82rem;
+  line-height: 1.75;
+}
+
+.foresight-gate-chart {
+  position: relative;
+  min-height: 13.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(120, 113, 108, 0.24);
+  border-radius: 10px;
+  background:
+    linear-gradient(rgba(16, 24, 32, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 24, 32, 0.035) 1px, transparent 1px),
+    rgba(255, 253, 248, 0.86);
+  background-size: 24px 24px;
+}
+
+.foresight-gate-chart-bars {
+  position: absolute;
+  inset: auto 1rem 1rem 1rem;
+  display: grid;
+  height: 8.2rem;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.foresight-gate-chart-bars span {
+  display: block;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 999px 999px 2px 2px;
+  background:
+    linear-gradient(180deg, rgba(15, 118, 110, 0.82), rgba(15, 118, 110, 0.18));
+}
+
+.foresight-gate-chart svg {
+  position: absolute;
+  inset: 1rem 0.85rem 2.8rem;
+  width: calc(100% - 1.7rem);
+  height: calc(100% - 3.8rem);
+  overflow: visible;
+}
+
+.foresight-gate-chart path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 5;
+}
+
+.foresight-gate-chart path:first-child {
+  stroke: #101820;
+}
+
+.foresight-gate-chart path:nth-child(2) {
+  stroke: rgba(183, 121, 31, 0.7);
+  stroke-width: 3;
+}
+
+.foresight-gate-chart-note {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  display: grid;
+  justify-items: end;
+}
+
+.foresight-gate-chart-note span {
+  color: #66736d;
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+.foresight-gate-chart-note strong {
+  margin-top: 0.24rem;
+  color: var(--foresight-ink);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.foresight-gate-card-grid {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.foresight-gate-card-grid article {
+  min-width: 0;
+  min-height: 9.5rem;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 10px;
+  background: rgba(255, 253, 248, 0.82);
+  padding: 1rem;
+}
+
+.foresight-gate-step-strip {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(213, 222, 216, 0.74);
+  gap: 1px;
+}
+
+.foresight-gate-step-strip span {
+  display: grid;
+  gap: 0.22rem;
+  background: rgba(255, 253, 248, 0.9);
+  padding: 0.85rem 0.95rem;
+  color: var(--foresight-ink);
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.foresight-gate-step-strip em {
+  color: #0f766e;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.foresight-gate-action {
+  display: grid;
+  gap: 1.5rem;
+  align-content: start;
+  border-top: 5px solid #0f766e;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.foresight-gate-access-list {
+  display: grid;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(213, 222, 216, 0.72);
+  gap: 1px;
+}
+
+.foresight-gate-access-list div {
+  background: rgba(255, 253, 248, 0.92);
+  padding: 0.95rem 1rem;
+}
+
+@media (max-width: 767px) {
+  .foresight-login-stage {
+    padding-top: 1rem;
+  }
+
+  .foresight-login-stage::before {
+    display: none;
+  }
+
+  .foresight-gate-head,
+  .foresight-gate-forecast {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .foresight-gate-title {
+    font-size: clamp(2.3rem, 11vw, 3.2rem);
+    line-height: 1.02;
+  }
+
+  .foresight-gate-stamp {
+    display: none;
+  }
+
+  .foresight-gate-signal-strip,
+  .foresight-gate-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .foresight-gate-step-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .foresight-gate-forecast-copy {
+    min-height: auto;
+    padding: 0.4rem 0.2rem 0.8rem;
+  }
+}
+
 .foresight-workspace {
   position: relative;
 }
