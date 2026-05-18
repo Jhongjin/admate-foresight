@@ -77,9 +77,9 @@ const loginCopy = {
   },
   handoff_disabled: {
     title: '로그인 연결이 준비되지 않았습니다',
-    body: '현재 이 작업 공간에서는 Foresight 로그인 연결을 사용할 수 없습니다. 접근이 필요하면 관리자에게 문의해 주세요.',
-    primaryAction: '이용 신청',
-    helper: '접근이 필요하면 Foresight 이용 신청을 보내 주세요.',
+    body: '현재 이 작업 공간에서는 Foresight 로그인 연결을 사용할 수 없습니다. 접근이 필요하면 AdMate 가입 요청을 진행해 주세요.',
+    primaryAction: 'AdMate 가입 요청',
+    helper: 'Foresight 사용 권한은 AdMate 가입 요청으로 확인합니다.',
     notice: '로그인 연결을 사용할 수 없습니다.',
     noticeTone: 'danger',
   },

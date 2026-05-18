@@ -124,9 +124,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
             <div className="mt-6 grid gap-3">
               {[
-                ['Session', isForesightHandoffConfigured() ? 'handoff ready' : 'request gate'],
-                ['Scope', 'forecast workspace'],
-                ['Access', loginState === 'handoff_disabled' ? 'manual review' : 'AdMate account'],
+                ['Session', isForesightHandoffConfigured() ? '로그인 연결 준비' : '가입 요청 필요'],
+                ['Scope', '예측 작업 공간'],
+                ['Access', loginState === 'handoff_disabled' ? '사용 권한 확인' : 'AdMate 계정'],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">{label}</p>
@@ -138,7 +138,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               href={FORESIGHT_ACCESS_REQUEST_URL}
               className="mt-6 inline-flex w-full items-center justify-between rounded-full border border-amber-200/30 bg-amber-100/10 px-5 py-3 text-sm font-bold text-amber-100 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-amber-100/15 active:scale-[0.98]"
             >
-              이용 신청
+              AdMate 가입 요청
               <span aria-hidden="true">→</span>
             </a>
           </div>

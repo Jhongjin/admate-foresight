@@ -185,7 +185,7 @@ for (const marker of [
   'FORESIGHT_ACCESS_REQUEST_URL',
   '로그인 후 이동',
   '비밀번호 재설정',
-  '이용 신청',
+  'AdMate 가입 요청',
 ]) {
   assertIncludes(loginPageSource, marker, 'login page bounded handoff UX')
 }
