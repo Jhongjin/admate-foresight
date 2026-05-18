@@ -750,7 +750,7 @@ export default function SimulatorPage() {
   const forecastEmptyStages = [
     { label: '입력 고정', status: selectedTargetCount > 0 ? `필터 ${selectedTargetCount}개 적용` : '타겟 열림' },
     { label: '기준선 호출', status: '최근 6개월 기준선' },
-    { label: '예측 게이트', status: 'KPI와 구간 동시 확인' },
+    { label: '예측 확인', status: 'KPI와 구간 동시 확인' },
     { label: '계획 출력', status: '검토 / 수정 / 확장' },
   ];
   const rangeEmptySignals = [
@@ -1230,7 +1230,7 @@ export default function SimulatorPage() {
               <section className="rounded-md border border-stone-200 bg-[#fbfaf6] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">매체 플랜 게이트</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">매체 플랜 확인</p>
                     <h2 className="mt-1 text-sm font-semibold text-slate-950">집행 전 검토 신호</h2>
                   </div>
                   <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] font-semibold text-stone-500">
