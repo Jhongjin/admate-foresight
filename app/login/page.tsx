@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import {
@@ -95,7 +94,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 {loginCopy.body}
               </p>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-stone-500">
-                로그인 후에는 요청한 분석 화면으로 돌아가며, 세션 없이 예측 API나 기준 데이터는 호출하지 않습니다.
+                로그인 후에는 요청한 분석 화면으로 돌아가며, 로그인 전에는 분석 결과와 기준 데이터를 열지 않습니다.
               </p>
             </div>
             <div className="foresight-gate-stamp" aria-hidden="true">
@@ -167,7 +166,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
               로그인 후 이동
             </p>
-            <h2 className="mt-2 text-2xl font-black leading-tight text-slate-950">
+            <h2 className="mt-2 text-2xl font-extrabold leading-tight text-slate-950">
               Foresight 분석 화면 열기
             </h2>
             <p className="mt-3 text-sm leading-6 text-stone-500">
@@ -177,7 +176,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="foresight-gate-access-list">
             {[
-              ['로그인 연결', isForesightHandoffConfigured() ? '준비됨' : '가입 요청 필요'],
+              ['로그인 상태', isForesightHandoffConfigured() ? '로그인 가능' : '가입 요청 필요'],
               ['사용 범위', '성과 예측과 기준 데이터'],
               ['계정 확인', loginState === 'handoff_disabled' ? '사용 권한 확인' : 'AdMate 계정'],
             ].map(([label, value]) => (
@@ -188,7 +187,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             ))}
           </div>
 
-          <div className="space-y-3">
+          <div>
             {primaryActionHref ? (
               <a
                 href={primaryActionHref}
@@ -205,12 +204,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 {loginCopy.primaryAction}
               </button>
             )}
-            <Link
-              href="/reset-password"
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-teal-50/60 active:scale-[0.98]"
-            >
-              비밀번호 재설정
-            </Link>
           </div>
 
           <div className="space-y-3 rounded-xl border border-stone-200 bg-[#f7f7f2] p-4">
@@ -236,7 +229,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="space-y-2">
             <p className="text-xs leading-5 text-stone-500">
-              {primaryActionHref ? loginCopy.helper : '로그인 연결이 아직 준비되지 않았습니다.'}
+              {primaryActionHref ? loginCopy.helper : 'Foresight 사용이 필요하다면 AdMate 가입 요청을 진행해 주세요.'}
             </p>
             {loginCopy.notice ? (
               <p className={`text-xs leading-5 ${noticeToneClass}`}>

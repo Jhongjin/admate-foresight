@@ -184,8 +184,8 @@ for (const marker of [
   'isForesightHandoffConfigured()',
   'FORESIGHT_ACCESS_REQUEST_URL',
   '로그인 후 이동',
-  '비밀번호 재설정',
   'AdMate 가입 요청',
+  'AdMate 홈페이지로 이동',
 ]) {
   assertIncludes(loginPageSource, marker, 'login page bounded handoff UX')
 }
