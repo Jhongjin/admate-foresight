@@ -840,10 +840,10 @@ export default function SimulatorPage() {
   return (
     <div className="foresight-workspace space-y-6">
       <section className="foresight-hero-shell overflow-hidden rounded-md border border-stone-300 bg-white shadow-sm">
-        <div className="foresight-hero-head border-b border-stone-200 bg-[#f6f8f1] px-5 py-5 text-slate-950 sm:px-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="foresight-hero-head border-b border-stone-200 px-5 py-6 text-slate-950 sm:px-6 lg:px-8 lg:py-8">
+          <div className="foresight-hero-grid">
+            <div className="foresight-hero-copy">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${readinessTone}`}>
                   {readinessLabel}
                 </span>
@@ -851,34 +851,79 @@ export default function SimulatorPage() {
                   매체 기준선 데스크
                 </span>
               </div>
-              <h1 className="max-w-4xl text-[clamp(2.4rem,5vw,4.9rem)] font-black leading-[0.98] tracking-[0] text-slate-950">
-                AdMate Foresight Forecast Lab
+
+              <h1 className="foresight-hero-title" aria-label="AdMate Foresight Forecast Lab">
+                <span>AdMate</span>
+                <span className="foresight-title-capsule foresight-title-capsule--teal">
+                  <span className="foresight-capsule-line" />
+                  최근 6개월
+                </span>
+                <span>Foresight</span>
+                <span>Forecast</span>
+                <span className="foresight-title-capsule foresight-title-capsule--amber">
+                  신뢰 {confidenceScore == null ? '산정 전' : `${confidenceScore}%`}
+                </span>
+                <span>Lab</span>
               </h1>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
+
+              <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
                 최근 성과 표본을 기준선으로 삼아 예산, 기간, 타겟 조건의 집행 압력을 검토합니다.
                 데이터가 부족한 상태도 숨기지 않고 예측 방식, 표본 근거, 구간 상태로 분리해 보여줍니다.
               </p>
             </div>
-            <div className="foresight-signal-board min-w-0 rounded-md border border-stone-300 bg-white p-3 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
+
+            <div className="foresight-observatory" aria-label="예측 관측 상태">
+              <div className="foresight-observatory-topline">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">근거 점수</p>
-                  <p className={`mt-1 text-3xl font-black leading-none num ${confidenceTone}`}>
-                    {confidenceScore == null ? '--' : confidenceScore}
-                  </p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Forecast Range</p>
+                  <p className="mt-1 text-sm font-bold text-slate-950">예산 집행면 판독</p>
                 </div>
                 <span className={`rounded-md border px-2 py-1 text-[11px] font-semibold ${readinessTone}`}>
                   {confidenceGateStatus}
                 </span>
               </div>
-              <div className="mt-3 grid gap-1.5">
+
+              <div className="foresight-curve-field">
+                <div className="foresight-curve-band" />
+                <svg viewBox="0 0 420 180" role="img" aria-label="예상 도달 곡선">
+                  <path
+                    d="M28 142 C92 118 118 82 174 94 C230 106 244 58 306 66 C354 72 382 46 402 35"
+                    fill="none"
+                    stroke="#0f766e"
+                    strokeLinecap="round"
+                    strokeWidth="5"
+                  />
+                  <path
+                    d="M30 154 C96 130 120 96 176 108 C232 120 248 76 308 84 C354 90 382 64 402 52"
+                    fill="none"
+                    stroke="#b7791f"
+                    strokeDasharray="8 10"
+                    strokeLinecap="round"
+                    strokeWidth="2.5"
+                  />
+                  <circle cx="174" cy="94" r="6" fill="#fbfaf6" stroke="#0f766e" strokeWidth="4" />
+                  <circle cx="306" cy="66" r="6" fill="#fbfaf6" stroke="#0f766e" strokeWidth="4" />
+                  <circle cx="402" cy="35" r="6" fill="#101820" />
+                </svg>
+                <div className="foresight-curve-label foresight-curve-label--left">
+                  <span>예산</span>
+                  <strong>{formatBudget(budget)}</strong>
+                </div>
+                <div className="foresight-curve-label foresight-curve-label--right">
+                  <span>근거</span>
+                  <strong>{confidenceDisplay}</strong>
+                </div>
+              </div>
+
+              <div className="foresight-observatory-ledger">
                 {readinessChecks.map((check) => (
-                  <div key={check.label} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 rounded bg-[#f8faf7] px-2.5 py-2">
-                    <span className="text-[11px] font-semibold text-stone-500">{check.label}</span>
-                    <strong className="truncate text-right text-[11px] text-slate-950">{check.value}</strong>
+                  <div key={check.label}>
+                    <span>{check.label}</span>
+                    <strong>{check.value}</strong>
                   </div>
                 ))}
               </div>
+
               <div className="foresight-timeline mt-3 grid min-w-0 grid-cols-3 gap-1 rounded-md border border-stone-300 bg-white p-1 shadow-sm">
                 {cockpitTimeline.map((step) => (
                   <div

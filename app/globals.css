@@ -99,7 +99,7 @@ h1, h2, h3 {
   position: relative;
   isolation: isolate;
   border-color: rgba(15, 118, 110, 0.22) !important;
-  border-radius: 14px !important;
+  border-radius: 12px !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
     0 28px 80px rgba(16, 24, 32, 0.11) !important;
@@ -111,8 +111,8 @@ h1, h2, h3 {
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(circle at 84% 12%, rgba(15, 118, 110, 0.16), transparent 32%),
-    radial-gradient(circle at 14% 96%, rgba(183, 121, 31, 0.12), transparent 30%);
+    linear-gradient(115deg, rgba(15, 118, 110, 0.09), transparent 42%),
+    linear-gradient(295deg, rgba(183, 121, 31, 0.08), transparent 46%);
   pointer-events: none;
 }
 
@@ -120,8 +120,8 @@ h1, h2, h3 {
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.92), rgba(242,247,243,0.84)),
-    #f8faf7 !important;
+    linear-gradient(180deg, rgba(251, 250, 246, 0.98), rgba(239, 244, 236, 0.9)),
+    #f8faf7;
 }
 
 .foresight-hero-head::after {
@@ -129,15 +129,238 @@ h1, h2, h3 {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(16, 24, 32, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16, 24, 32, 0.035) 1px, transparent 1px);
-  background-size: 30px 30px;
-  mask-image: linear-gradient(90deg, transparent, black 16%, black 86%, transparent);
+    linear-gradient(rgba(16, 24, 32, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 24, 32, 0.035) 1px, transparent 1px),
+    linear-gradient(115deg, transparent 0 48%, rgba(15, 118, 110, 0.045) 48% 49%, transparent 49% 100%),
+    linear-gradient(63deg, transparent 0 55%, rgba(183, 121, 31, 0.04) 55% 56%, transparent 56% 100%);
+  background-position: center;
+  background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%;
+  mask-image: linear-gradient(90deg, transparent, black 9%, black 91%, transparent);
   pointer-events: none;
 }
 
 .foresight-hero-head > * {
   position: relative;
+}
+
+.foresight-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.78fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: center;
+}
+
+.foresight-hero-copy {
+  min-width: 0;
+}
+
+.foresight-hero-title {
+  display: flex;
+  max-width: 900px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.18em 0.28em;
+  color: var(--foresight-ink);
+  font-size: clamp(2.25rem, 5.8vw, 5.7rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0.96;
+}
+
+.foresight-title-capsule {
+  display: inline-flex;
+  min-height: 0.94em;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 999px;
+  padding: 0.18em 0.55em;
+  font-size: clamp(0.78rem, 1.55vw, 1.2rem);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 14px 32px rgba(16, 24, 32, 0.08);
+}
+
+.foresight-title-capsule--teal {
+  background: rgba(216, 243, 236, 0.76);
+  color: #0b625b;
+}
+
+.foresight-title-capsule--amber {
+  background: rgba(247, 232, 199, 0.8);
+  color: #8a5416;
+}
+
+.foresight-capsule-line {
+  display: inline-block;
+  width: clamp(2rem, 6vw, 5.5rem);
+  height: 0.56em;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, #0f766e 0 32%, #d5a21f 32% 57%, #b7543f 57% 78%, #101820 78% 100%);
+}
+
+.foresight-observatory {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 246, 239, 0.86)),
+    var(--foresight-paper);
+  padding: clamp(1rem, 2vw, 1.35rem);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 24px 60px rgba(16, 24, 32, 0.13);
+}
+
+.foresight-observatory::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(16, 24, 32, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 24, 32, 0.032) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(to bottom, black, transparent 82%);
+  pointer-events: none;
+}
+
+.foresight-observatory > * {
+  position: relative;
+}
+
+.foresight-observatory-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.foresight-curve-field {
+  position: relative;
+  margin-top: 1rem;
+  min-height: 190px;
+  overflow: hidden;
+  border: 1px solid rgba(120, 113, 108, 0.24);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.2)),
+    rgba(239, 244, 236, 0.72);
+}
+
+.foresight-curve-field::before,
+.foresight-curve-field::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+.foresight-curve-field::before {
+  inset: 18px 20px 30px;
+  border-left: 1px solid rgba(16, 24, 32, 0.18);
+  border-bottom: 1px solid rgba(16, 24, 32, 0.18);
+}
+
+.foresight-curve-field::after {
+  left: 28px;
+  right: 24px;
+  top: 58%;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, rgba(16, 24, 32, 0.2) 0 6px, transparent 6px 12px);
+}
+
+.foresight-curve-field svg {
+  position: absolute;
+  inset: 8px 8px 18px;
+  width: calc(100% - 16px);
+  height: calc(100% - 26px);
+  filter: drop-shadow(0 9px 16px rgba(15, 118, 110, 0.16));
+}
+
+.foresight-curve-band {
+  position: absolute;
+  left: 9%;
+  right: 7%;
+  top: 26%;
+  height: 44%;
+  transform: skewY(-8deg);
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  background: rgba(15, 118, 110, 0.08);
+}
+
+.foresight-curve-label {
+  position: absolute;
+  display: grid;
+  gap: 0.18rem;
+  border: 1px solid rgba(120, 113, 108, 0.26);
+  border-radius: 8px;
+  background: rgba(251, 250, 246, 0.88);
+  padding: 0.55rem 0.7rem;
+  box-shadow: 0 14px 32px rgba(16, 24, 32, 0.1);
+}
+
+.foresight-curve-label span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--foresight-muted);
+}
+
+.foresight-curve-label strong {
+  font-size: 0.82rem;
+  color: var(--foresight-ink);
+}
+
+.foresight-curve-label--left {
+  left: 1rem;
+  bottom: 1rem;
+}
+
+.foresight-curve-label--right {
+  right: 1rem;
+  top: 1rem;
+  text-align: right;
+}
+
+.foresight-observatory-ledger {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.foresight-observatory-ledger div {
+  min-width: 0;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.66);
+  padding: 0.62rem 0.68rem;
+}
+
+.foresight-observatory-ledger span,
+.foresight-observatory-ledger strong {
+  display: block;
+  min-width: 0;
+}
+
+.foresight-observatory-ledger span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--foresight-muted);
+}
+
+.foresight-observatory-ledger strong {
+  margin-top: 0.25rem;
+  overflow: hidden;
+  color: var(--foresight-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .foresight-timeline {
@@ -179,4 +402,38 @@ h1, h2, h3 {
 
 .foresight-range {
   accent-color: var(--foresight-teal);
+}
+
+@media (max-width: 1100px) {
+  .foresight-hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .foresight-observatory {
+    max-width: 680px;
+  }
+}
+
+@media (max-width: 640px) {
+  .foresight-hero-title {
+    font-size: clamp(2.1rem, 13vw, 3.65rem);
+    line-height: 1;
+  }
+
+  .foresight-title-capsule {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .foresight-observatory {
+    padding: 0.85rem;
+  }
+
+  .foresight-curve-field {
+    min-height: 170px;
+  }
+
+  .foresight-observatory-ledger {
+    grid-template-columns: 1fr;
+  }
 }
