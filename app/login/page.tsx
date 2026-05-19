@@ -16,7 +16,7 @@ import {
 
 export const metadata: Metadata = {
   title: 'AdMate Foresight 로그인',
-  description: 'AdMate Foresight에 접근하려면 AdMate 계정으로 로그인하세요.',
+  description: 'AdMate Foresight를 사용하려면 AdMate 계정으로 로그인하세요.',
 };
 
 interface LoginPageProps {
@@ -34,29 +34,29 @@ function describeNextDestination(nextPath: string): string {
     case '/competitor':
       return '경쟁사 모니터링 화면으로 돌아갑니다.';
     case '/account':
-      return '계정 접근 상태 화면으로 돌아갑니다.';
+      return '계정 사용 상태 화면으로 돌아갑니다.';
     default:
       return '성과 예측 시뮬레이터로 돌아갑니다.';
   }
 }
 
 const forecastSignals = [
-  { label: '기준 데이터', value: '최근 6개월', detail: '업종과 매체 기준을 먼저 맞춥니다.' },
+  { label: '비교 기준 데이터', value: '최근 6개월', detail: '업종과 매체 기준을 먼저 선택합니다.' },
   { label: '입력 항목', value: '예산 / 기간', detail: '목표 KPI와 집행 조건을 함께 봅니다.' },
-  { label: '결과 범위', value: '예측 구간', detail: '성과 예상과 데이터 부족 상태를 구분합니다.' },
+  { label: '결과 범위', value: '예측 구간', detail: '예상 성과와 데이터가 부족한 경우를 구분해 보여줍니다.' },
 ] as const;
 
 const forecastSteps = [
-  '기준 데이터 선택',
+  '예측 기준 선택',
   '예산과 기간 입력',
   '예측 결과 확인',
-  '인사이트 저장',
+  '인사이트 확인',
 ] as const;
 
 const destinationCards = [
   { label: '시뮬레이터', title: '성과 예측', detail: '예산, 기간, KPI를 조정해 예상 성과 범위를 확인합니다.' },
-  { label: '기준선', title: '업종 트렌드', detail: '최근 흐름과 시즌성을 기준 데이터로 함께 검토합니다.' },
-  { label: '비교', title: '시장 감시', detail: '경쟁사와 주요 매체 변화를 분석 화면에서 확인합니다.' },
+  { label: '예측 기준', title: '업종 트렌드', detail: '최근 흐름과 시즌성을 업종 기준 데이터로 함께 검토합니다.' },
+  { label: '비교', title: '시장 모니터링', detail: '경쟁사와 주요 매체 변화를 분석 화면에서 확인합니다.' },
 ] as const;
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -94,7 +94,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 {loginCopy.body}
               </p>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-stone-500">
-                로그인 후에는 요청한 분석 화면으로 돌아가며, 로그인 전에는 분석 결과와 기준 데이터를 열지 않습니다.
+                로그인 후에는 요청한 분석 화면으로 돌아가며, 로그인 전에는 분석 결과와 비교 기준 데이터를 열지 않습니다.
               </p>
             </div>
             <div className="foresight-gate-stamp" aria-hidden="true">
@@ -116,9 +116,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="foresight-gate-forecast" aria-label="성과 예측 화면 미리보기">
             <div className="foresight-gate-forecast-copy">
               <p>예측 작업 화면</p>
-              <h2>성과 범위와 기준 데이터를 같은 화면에서 확인합니다.</h2>
+              <h2>성과 예측과 비교 기준 데이터를 같은 화면에서 확인합니다.</h2>
               <span>
-                최근 흐름, 시즌성, 경쟁 변화, 목표 KPI를 함께 보고 데이터가 부족한 상태도 명확히 구분합니다.
+                최근 흐름, 시즌성, 경쟁 변화, 목표 KPI를 함께 보고 데이터가 부족한 경우도 명확히 구분합니다.
               </span>
             </div>
             <div className="foresight-gate-chart" aria-hidden="true">
@@ -176,8 +176,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="foresight-gate-access-list">
             {[
-              ['로그인 상태', isForesightHandoffConfigured() ? '로그인 가능' : '가입 요청 필요'],
-              ['사용 범위', '성과 예측과 기준 데이터'],
+              ['로그인 상태', isForesightHandoffConfigured() ? '로그인 가능' : '권한 요청 필요'],
+              ['사용 범위', '성과 예측과 비교 기준 데이터'],
               ['계정 확인', loginState === 'handoff_disabled' ? '사용 권한 확인' : 'AdMate 계정'],
             ].map(([label, value]) => (
               <div key={label}>
@@ -208,16 +208,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="space-y-3 rounded-xl border border-stone-200 bg-[#f7f7f2] p-4">
             <p className="text-sm font-bold text-slate-950">
-              접근 권한이 없다면 AdMate 가입 요청
+              사용 권한이 필요하다면 AdMate 이용 권한 요청
             </p>
             <p className="text-xs leading-5 text-stone-500">
-              Foresight 사용 권한은 AdMate 가입 요청을 통해 확인합니다.
+              Foresight 사용 권한은 AdMate 이용 권한 요청을 통해 확인합니다.
             </p>
             <a
               href={FORESIGHT_ACCESS_REQUEST_URL}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
             >
-              AdMate 가입 요청
+              AdMate 이용 권한 요청
             </a>
             <a
               href="https://home.admate.ai.kr"
@@ -229,7 +229,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="space-y-2">
             <p className="text-xs leading-5 text-stone-500">
-              {primaryActionHref ? loginCopy.helper : 'Foresight 사용이 필요하다면 AdMate 가입 요청을 진행해 주세요.'}
+              {primaryActionHref ? loginCopy.helper : 'Foresight 사용이 필요하다면 AdMate 이용 권한 요청을 진행해 주세요.'}
             </p>
             {loginCopy.notice ? (
               <p className={`text-xs leading-5 ${noticeToneClass}`}>
