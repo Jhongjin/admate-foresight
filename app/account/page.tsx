@@ -43,9 +43,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const returnLabel =
     returnPath === '/' ? accountCopy.primaryAction : describeReturnTarget(returnPath);
   const accessLedger = [
-    { label: '제품 접근', value: accountCopy.productSummary, detail: '예측 데스크와 기준선 화면 접근 가능' },
+    { label: '제품 접근', value: accountCopy.productSummary, detail: '성과 예측과 기준 데이터 화면 접근 가능' },
     { label: '운영 역할', value: accountCopy.roleSummary, detail: '시뮬레이션, 트렌드, 시즌 판단 검토' },
-    { label: '작업 공간', value: accountCopy.workspaceSummary, detail: 'Foresight 매체 계획 워크스페이스' },
+    { label: '작업 공간', value: accountCopy.workspaceSummary, detail: 'Foresight 매체 계획 작업 공간' },
   ];
 
   return (
@@ -54,7 +54,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         <div className="border-b border-stone-200 bg-[#f8f6f0] px-5 py-5 sm:px-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="inline-flex w-fit rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-800">
-              예측 데스크 접근
+              성과 예측 화면 접근
             </p>
             <div
               aria-label="접근 상태"
@@ -74,7 +74,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
 
             <div className="mt-7 rounded-md border border-stone-200 bg-[#fbfaf7]">
               <div className="border-b border-stone-200 px-4 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">계획 데스크 준비도</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">계획 화면 준비도</p>
               </div>
               <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                 {accessLedger.map((item) => (
@@ -104,7 +104,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
           </div>
 
           <aside className="border-t border-stone-200 bg-[#f6f4ee] p-5 sm:p-8 lg:border-l lg:border-t-0">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">다음 작업면</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">다음 작업 화면</p>
             <h2 className="mt-2 text-base font-bold text-gray-950">계정 확인 후 바로 열 수 있는 계획 화면</h2>
             <div className="mt-5 grid gap-2">
               {secondaryActions.map((action) => (

@@ -176,10 +176,10 @@ h1, h2, h3 {
 .foresight-gate-title {
   max-width: 34rem;
   color: var(--foresight-ink);
-  font-size: clamp(1.875rem, 2.4vw, 2.25rem);
+  font-size: 30px;
   font-weight: 600;
   letter-spacing: 0;
-  line-height: 1.18;
+  line-height: 36px;
   text-wrap: balance;
 }
 
@@ -445,6 +445,63 @@ h1, h2, h3 {
   padding: 0.95rem 1rem;
 }
 
+.foresight-gate-email-check {
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 10px;
+  background: rgba(255, 253, 248, 0.92);
+  padding: 1rem;
+}
+
+.foresight-gate-email-check > span {
+  display: block;
+  color: #66736d;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+}
+
+.foresight-gate-email-field {
+  display: grid;
+  min-height: 46px;
+  margin-top: 0.65rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 10px;
+  background: white;
+}
+
+.foresight-gate-email-field strong,
+.foresight-gate-email-field em {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding: 0.72rem 0.85rem;
+  line-height: 1;
+}
+
+.foresight-gate-email-field strong {
+  color: var(--foresight-ink);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.foresight-gate-email-field em {
+  border-left: 1px solid rgba(120, 113, 108, 0.2);
+  background: rgba(239, 244, 236, 0.78);
+  color: #0b625b;
+  font-size: 0.86rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.foresight-gate-email-check p {
+  margin-top: 0.65rem;
+  color: #66736d;
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
 @media (max-width: 767px) {
   .foresight-login-stage {
     padding-top: 1rem;
@@ -460,8 +517,8 @@ h1, h2, h3 {
   }
 
   .foresight-gate-title {
-    font-size: clamp(1.75rem, 7vw, 2rem);
-    line-height: 1.18;
+    font-size: 30px;
+    line-height: 36px;
   }
 
   .foresight-gate-stamp {

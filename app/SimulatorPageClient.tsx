@@ -849,7 +849,7 @@ export default function SimulatorPage() {
                   {readinessLabel}
                 </span>
                 <span className="inline-flex rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-800">
-                  매체 기준선 데스크
+                  매체 기준 데이터
                 </span>
               </div>
 
@@ -877,7 +877,7 @@ export default function SimulatorPage() {
               <div className="foresight-observatory-topline">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Forecast Range</p>
-                  <p className="mt-1 text-sm font-bold text-slate-950">예산 집행면 판독</p>
+                  <p className="mt-1 text-sm font-bold text-slate-950">예산 집행 기준 확인</p>
                 </div>
                 <span className={`rounded-md border px-2 py-1 text-[11px] font-semibold ${readinessTone}`}>
                   {confidenceGateStatus}
@@ -1373,7 +1373,7 @@ export default function SimulatorPage() {
 
       {!isCalculated && !loading && (
         <PlanningStatePanel
-          eyebrow="예측 데스크 대기"
+          eyebrow="성과 예측 대기"
           title="벤치마크 플랜을 계산하기 전입니다"
           description="조건을 확인하고 시뮬레이션을 실행하면 최근 6개월 기준, 필터, 근거 상태, 예산 구간이 같은 기준선으로 열립니다."
           signals={forecastEmptySignals}
@@ -1496,7 +1496,7 @@ export default function SimulatorPage() {
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">데이터 충분성 판정</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-600">표본, 회귀 검증, 예산 구간, 출력 허용 범위를 {truthBandLabel} 기준의 검증 밴드로 묶어 확인합니다.</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">표본, 회귀 검증, 예산 구간, 출력 허용 범위를 {truthBandLabel} 기준의 검증 기준으로 묶어 확인합니다.</p>
                 </div>
                 <span className={`w-fit rounded-md border px-2.5 py-1 text-[11px] font-semibold ${
                   dataSufficiencyStatus === '검토 가능'
@@ -1678,11 +1678,11 @@ export default function SimulatorPage() {
             </div>
           )}
 
-          {/* 운영 파이프라인에서 관리되는 모델 상태 안내 */}
+          {/* 내부 기준 데이터로 관리되는 모델 상태 안내 */}
           {!mlLoading && (
             <div className="flex items-center justify-end pt-1 border-t border-gray-50">
               <p className="text-[11px] text-gray-400">
-                보조 예측 기준 데이터는 운영 파이프라인에서 관리됩니다.
+                보조 예측 기준 데이터는 내부 기준 데이터로 관리됩니다.
               </p>
             </div>
           )}

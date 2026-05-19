@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 const navItems = [
-  { href: '/', label: '예측 데스크' },
+  { href: '/', label: '성과 예측' },
   { href: '/trends', label: '기준선' },
   { href: '/insights', label: '시즌성' },
   { href: '/competitor', label: '시장 감시' },

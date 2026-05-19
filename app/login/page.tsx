@@ -54,9 +54,9 @@ const forecastSteps = [
 ] as const;
 
 const destinationCards = [
-  { label: '시뮬레이터', title: '성과 예측', detail: '예산, 기간, KPI를 조정해 예상 성과 범위를 확인합니다.' },
-  { label: '예측 기준', title: '업종 트렌드', detail: '최근 흐름과 시즌성을 업종 기준 데이터로 함께 검토합니다.' },
-  { label: '비교', title: '시장 모니터링', detail: '경쟁사와 주요 매체 변화를 분석 화면에서 확인합니다.' },
+  { label: '성과 예측', title: '예산별 예측 범위', detail: '예산, 기간, KPI를 조정해 예상 성과 범위를 확인합니다.' },
+  { label: '기준 데이터', title: '최근 6개월 비교 기준', detail: '업종과 매체 흐름을 내부 기준 데이터로 함께 검토합니다.' },
+  { label: '데이터 충분성', title: '근거 상태 확인', detail: '표본과 예측 근거가 부족한 경우를 별도로 구분합니다.' },
 ] as const;
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -185,6 +185,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 <strong>{value}</strong>
               </div>
             ))}
+          </div>
+
+          <div className="foresight-gate-email-check" aria-label="AdMate 계정 이메일 확인">
+            <span>AdMate 계정 이메일</span>
+            <div className="foresight-gate-email-field" aria-hidden="true">
+              <strong>name</strong>
+              <em>@nasmedia.co.kr</em>
+            </div>
+            <p>회사 이메일 계정으로 AdMate 로그인을 진행합니다.</p>
           </div>
 
           <div>

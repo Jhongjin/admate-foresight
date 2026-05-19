@@ -13,13 +13,13 @@ export default function ResetPasswordPage() {
       <section className="mx-auto grid w-full max-w-4xl gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="foresight-panel rounded-2xl p-8 sm:p-10">
           <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-teal-800/10 bg-teal-50/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-900">
-            account recovery
+            계정 복구 안내
           </div>
           <h1 className="max-w-xl text-4xl font-black leading-[1.05] text-slate-950 sm:text-5xl">
             비밀번호 재설정
           </h1>
           <p className="mt-5 max-w-lg text-sm leading-7 text-slate-600">
-            AdMate 계정의 비밀번호를 재설정한 뒤 Foresight 예측 데스크로 돌아와 접근 상태를 다시 확인하세요.
+            AdMate 계정의 비밀번호를 재설정한 뒤 Foresight 성과 예측 화면으로 돌아와 접근 상태를 다시 확인하세요.
           </p>
 
           <div className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -43,12 +43,12 @@ export default function ResetPasswordPage() {
 
         <aside className="rounded-2xl border border-stone-300/70 bg-[#101820] p-2 text-white shadow-[0_24px_70px_rgba(16,24,32,0.16)]">
           <div className="h-full rounded-[0.85rem] border border-white/10 bg-white/[0.04] p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200">recovery ledger</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-200">재설정 절차</p>
             <div className="mt-6 grid gap-3">
               {[
-                ['Step 01', 'AdMate 계정 인증'],
-                ['Step 02', '새 비밀번호 설정'],
-                ['Step 03', 'Foresight 접근 재확인'],
+                ['01단계', 'AdMate 계정 인증'],
+                ['02단계', '새 비밀번호 설정'],
+                ['03단계', 'Foresight 접근 재확인'],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/40">{label}</p>
