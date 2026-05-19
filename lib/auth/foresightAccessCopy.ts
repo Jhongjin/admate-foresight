@@ -44,7 +44,7 @@ const loginCopy = {
     helper: 'AdMate 로그인 후 요청한 Foresight 화면으로 돌아갑니다.',
   },
   session_expired: {
-    title: '세션이 만료되었습니다',
+    title: '로그인이 만료되었습니다',
     body: '보안을 위해 Foresight 접속이 종료되었습니다. 다시 로그인하면 요청한 분석 화면으로 돌아갑니다.',
     primaryAction: '다시 로그인',
     helper: '다시 로그인한 뒤 요청한 Foresight 화면으로 돌아갑니다.',
@@ -69,7 +69,7 @@ const loginCopy = {
   },
   handoff_invalid: {
     title: 'Foresight 로그인 상태를 확인할 수 없습니다',
-    body: 'Foresight 로그인 확인을 완료하지 못했습니다. AdMate에서 다시 시작하거나 사용 권한을 문의해 주세요.',
+    body: '로그인을 완료하지 못했습니다. AdMate에서 다시 시작하거나 사용 권한을 문의해 주세요.',
     primaryAction: 'AdMate로 로그인',
     helper: 'AdMate에서 다시 시작한 뒤 요청한 Foresight 화면으로 돌아갑니다.',
     notice: '로그인 요청을 완료할 수 없습니다.',
@@ -111,7 +111,7 @@ export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
     productSummary: 'Foresight 사용 권한 필요',
     roleSummary: '사용 가능한 역할 없음',
     workspaceSummary: '사용 권한 확인 필요',
-    primaryAction: 'Foresight 사용 권한 문의',
+    primaryAction: 'AdMate 이용 권한 요청',
     secondaryAction: 'AdMate로 돌아가기',
   },
   entitlement_disabled: {

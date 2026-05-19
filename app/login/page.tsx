@@ -47,15 +47,30 @@ const forecastSignals = [
 ] as const;
 
 const destinationCards = [
-  { label: '성과 예측', title: '예산별 예측 범위', detail: '예산, 기간, KPI를 조정해 예상 성과 범위를 확인합니다.' },
-  { label: '기준 데이터', title: '최근 6개월 비교 기준', detail: '업종과 매체 흐름을 AdMate 기준 데이터로 함께 검토합니다.' },
-  { label: '데이터 충분성', title: '근거 상태 확인', detail: '표본과 예측 근거가 부족한 경우를 별도로 구분합니다.' },
+  { label: '성과 예측', title: '예측 보류 상태', detail: '표본 또는 기준이 부족하면 결과 대신 보류 사유를 먼저 표시합니다.' },
+  { label: '기준 데이터', title: '기준 데이터 없음', detail: '업종과 매체 기준이 비어 있으면 비교 기준을 명확히 안내합니다.' },
+  { label: '데이터 충분성', title: '표본 부족 확인', detail: '최소 표본에 미달하는 조건은 별도 상태로 구분합니다.' },
 ] as const;
 
-const sampleStatusLegend = [
-  { label: '표본 충분', detail: '업종 매칭 기준', tone: 'ok' },
-  { label: '주의', detail: '전체 기준 검토', tone: 'watch' },
-  { label: '부족', detail: '조건 재검토', tone: 'risk' },
+const forecastReadinessRows = [
+  {
+    label: '표본 부족',
+    value: '18 / 30건',
+    detail: '업종·매체 매칭 수가 기준보다 낮으면 예측값을 숨깁니다.',
+    tone: 'risk',
+  },
+  {
+    label: '기준 데이터 없음',
+    value: '비교 기준 미선택',
+    detail: '기준 기간 데이터가 없으면 벤치마크를 먼저 다시 확인합니다.',
+    tone: 'empty',
+  },
+  {
+    label: '예측 보류',
+    value: '로그인 후 산출',
+    detail: '권한 확인 뒤 충분한 기준이 모일 때 예측 구간을 표시합니다.',
+    tone: 'hold',
+  },
 ] as const;
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -100,10 +115,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 로그인 후 보려던 분석 화면으로 돌아갑니다. 로그인 전에는 분석 결과와 비교 기준 데이터를 표시하지 않습니다.
               </p>
             </div>
-            <div className="foresight-gate-stamp" aria-hidden="true">
-              <span>AF</span>
-              <strong>Predict</strong>
-            </div>
+            <dl className="foresight-gate-stamp" aria-label="예측 기준 요약">
+              <div>
+                <dt>기준 기간</dt>
+                <dd>최근 6개월</dd>
+              </div>
+              <div>
+                <dt>표본</dt>
+                <dd>최소 30건</dd>
+              </div>
+              <div>
+                <dt>예측 구간</dt>
+                <dd>권한 확인 후</dd>
+              </div>
+            </dl>
           </div>
 
           <div className="foresight-gate-mobile-action">
@@ -130,19 +155,22 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <div className="foresight-gate-forecast-copy">
               <p>예측 작업 화면</p>
               <h2>AdMate Foresight 성과 예측</h2>
-              <span>
+              <span className="foresight-gate-forecast-summary">
                 예산 시뮬레이션 결과와 AdMate 기준 데이터, 표본 상태를 한 화면에서 함께 확인합니다.
               </span>
-              <div className="foresight-gate-sample-legend" aria-label="데이터 충분성 상태">
-                {sampleStatusLegend.map((item) => (
-                  <div key={item.label} data-tone={item.tone}>
-                    <strong>{item.label}</strong>
-                    <span>{item.detail}</span>
-                  </div>
+              <div className="foresight-gate-status-board" aria-label="데이터 부족 상태">
+                {forecastReadinessRows.map((item) => (
+                  <article key={item.label} data-tone={item.tone}>
+                    <div>
+                      <strong>{item.label}</strong>
+                      <span>{item.value}</span>
+                    </div>
+                    <p>{item.detail}</p>
+                  </article>
                 ))}
               </div>
             </div>
-            <div className="foresight-gate-chart" aria-hidden="true">
+            <div className="foresight-gate-chart" aria-label="예측 보류 상태 미리보기">
               <div className="foresight-gate-chart-bars">
                 <span style={{ height: '42%' }} />
                 <span style={{ height: '58%' }} />
@@ -156,8 +184,23 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 <path d="M14 112 C62 100 90 78 126 86 C160 94 184 64 218 68 C242 70 256 58 266 52" />
               </svg>
               <div className="foresight-gate-chart-note">
-                <span>예측 신뢰도</span>
-                <strong>기준 확인 후 표시</strong>
+                <span>예측 상태</span>
+                <strong>예측 보류</strong>
+              </div>
+              <div className="foresight-gate-chart-state-card">
+                <p>예측 보류</p>
+                <strong>기준 데이터 확인 필요</strong>
+                <span>
+                  표본 부족 또는 기준 데이터 없음 상태에서는 결과 대신 보류 사유를 먼저 표시합니다.
+                </span>
+              </div>
+              <div className="foresight-gate-chart-readiness">
+                {forecastReadinessRows.slice(0, 2).map((item) => (
+                  <div key={item.label} data-tone={item.tone}>
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

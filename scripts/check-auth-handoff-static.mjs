@@ -61,7 +61,7 @@ const accountStates = [
 ]
 const requiredKoreanCopy = [
   'AdMate Foresight 성과 예측',
-  '세션이 만료되었습니다',
+  '로그인이 만료되었습니다',
   '다시 로그인이 필요합니다',
   '로그인 확인이 만료되었습니다',
   'Foresight 로그인 상태를 확인할 수 없습니다',
