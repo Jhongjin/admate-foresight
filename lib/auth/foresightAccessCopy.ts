@@ -76,11 +76,11 @@ const loginCopy = {
     noticeTone: 'danger',
   },
   handoff_disabled: {
-    title: 'Foresight 이용 권한 확인이 필요합니다',
-    body: '현재 계정으로는 Foresight에 로그인할 수 없습니다. 사용 권한이 필요하면 Foresight 이용 권한 요청을 진행해 주세요.',
-    primaryAction: 'Foresight 이용 권한 요청',
-    helper: 'Foresight 사용 권한은 Foresight 이용 권한 요청으로 확인합니다.',
-    notice: 'Foresight 로그인을 사용할 수 없습니다.',
+    title: 'AdMate 이용 권한 확인이 필요합니다',
+    body: '현재 계정에는 Foresight 사용 권한이 아직 확인되지 않았습니다. AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.',
+    primaryAction: 'AdMate 이용 권한 요청',
+    helper: 'AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.',
+    notice: '권한 확인 후 Foresight를 이용할 수 있습니다.',
     noticeTone: 'danger',
   },
   logout_complete: {

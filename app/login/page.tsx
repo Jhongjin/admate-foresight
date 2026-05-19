@@ -76,7 +76,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const renderedPrimaryActionHref = primaryActionHref ?? FORESIGHT_ACCESS_REQUEST_URL;
   const renderedPrimaryActionLabel = primaryActionHref
     ? loginCopy.primaryAction
-    : 'Foresight 이용 권한 요청';
+    : 'AdMate 이용 권한 요청';
   const noticeToneClass =
     loginCopy.noticeTone === 'danger' ? 'text-red-700' : 'text-stone-500';
 
@@ -113,7 +113,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             >
               {renderedPrimaryActionLabel}
             </a>
-            <p>{primaryActionHref ? loginCopy.helper : 'Foresight 사용이 필요하다면 Foresight 이용 권한 요청을 진행해 주세요.'}</p>
+            <p>{primaryActionHref ? loginCopy.helper : 'AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.'}</p>
           </div>
 
           <div className="foresight-gate-signal-strip" aria-label="Foresight 로그인 후 확인할 예측 기준">
@@ -131,7 +131,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <p>예측 작업 화면</p>
               <h2>AdMate Foresight 성과 예측</h2>
               <span>
-                예측 결과와 AdMate 기준 데이터, 표본 상태를 한 화면에서 함께 확인합니다.
+                예산 시뮬레이션 결과와 AdMate 기준 데이터, 표본 상태를 한 화면에서 함께 확인합니다.
               </span>
               <div className="foresight-gate-sample-legend" aria-label="데이터 충분성 상태">
                 {sampleStatusLegend.map((item) => (
@@ -179,7 +179,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               로그인 후 이동
             </p>
             <h2 className="mt-2 text-2xl font-extrabold leading-tight text-slate-950">
-              성과 예측 화면으로 이동
+              성과 예측으로 돌아가기
             </h2>
             <p className="mt-3 text-sm leading-6 text-stone-500">
               {nextDescription}
@@ -215,16 +215,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="space-y-3 rounded-xl border border-stone-200 bg-[#f7f7f2] p-4">
             <p className="text-sm font-bold text-slate-950">
-              Foresight 이용 권한이 필요하신가요?
+              AdMate 이용 권한이 필요하신가요?
             </p>
             <p className="text-xs leading-5 text-stone-500">
-              Foresight 사용 권한은 Foresight 이용 권한 요청을 통해 확인합니다.
+              AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.
             </p>
             <a
               href={FORESIGHT_ACCESS_REQUEST_URL}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
             >
-              Foresight 이용 권한 요청
+              AdMate 이용 권한 요청
             </a>
             <a
               href="https://home.admate.ai.kr"
@@ -236,7 +236,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="space-y-2">
             <p className="text-xs leading-5 text-stone-500">
-              {primaryActionHref ? loginCopy.helper : 'Foresight 사용이 필요하다면 Foresight 이용 권한 요청을 진행해 주세요.'}
+              {primaryActionHref ? loginCopy.helper : 'AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.'}
             </p>
             {loginCopy.notice ? (
               <p className={`text-xs leading-5 ${noticeToneClass}`}>

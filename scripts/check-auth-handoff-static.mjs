@@ -65,15 +65,15 @@ const requiredKoreanCopy = [
   '다시 로그인이 필요합니다',
   '로그인 확인이 만료되었습니다',
   'Foresight 로그인 상태를 확인할 수 없습니다',
-  'Foresight 이용 권한 확인이 필요합니다',
+  'AdMate 이용 권한 확인이 필요합니다',
   '계정 및 사용 상태',
   'Foresight 사용 권한이 없습니다',
   'Foresight 사용이 비활성화되어 있습니다',
   '역할 확인이 필요합니다',
   '사용 환경을 확인할 수 없습니다',
   'AdMate로 로그인',
-  'Foresight 이용 권한 요청',
-  '현재 계정으로는 Foresight에 로그인할 수 없습니다',
+  'AdMate 이용 권한 요청',
+  '현재 계정에는 Foresight 사용 권한이 아직 확인되지 않았습니다',
 ]
 
 let failed = false
@@ -187,7 +187,7 @@ for (const marker of [
   'isForesightHandoffConfigured()',
   'FORESIGHT_ACCESS_REQUEST_URL',
   '로그인 후 이동',
-  'Foresight 이용 권한 요청',
+  'AdMate 이용 권한 요청',
   'AdMate 홈페이지로 이동',
 ]) {
   assertIncludes(loginPageSource, marker, 'login page bounded handoff UX')
