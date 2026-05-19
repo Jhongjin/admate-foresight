@@ -5,6 +5,11 @@ import Navigation from "@/components/Navigation";
 export const metadata: Metadata = {
   title: "AdMate Foresight — 성과 예측 시뮬레이터",
   description: "디지털 광고 성과를 예측하고 기준 데이터를 검토하는 AdMate Foresight",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg",
+    apple: "/brand/admate-foresight-mark.svg",
+  },
 };
 
 export default function RootLayout({

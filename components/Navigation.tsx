@@ -52,9 +52,11 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-16 items-center py-3">
             <div className="flex shrink-0 items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-teal-700">
-                <span className="text-white text-xs font-bold">AF</span>
-              </div>
+              <span
+                aria-hidden="true"
+                className="h-8 w-8 rounded-md bg-cover bg-center"
+                style={{ backgroundImage: "url('/brand/admate-foresight-mark.svg')" }}
+              />
               <span className="text-lg font-bold text-slate-950">AdMate Foresight</span>
             </div>
           </div>
@@ -72,9 +74,11 @@ export default function Navigation() {
             aria-label="AdMate Foresight 홈"
             className="flex shrink-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2"
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-teal-700">
-              <span className="text-white text-xs font-bold">AF</span>
-            </div>
+            <span
+              aria-hidden="true"
+              className="h-9 w-9 rounded-md bg-cover bg-center"
+              style={{ backgroundImage: "url('/brand/admate-foresight-mark.svg')" }}
+            />
             <div>
               <span className="block text-lg font-bold leading-5 text-slate-950">AdMate Foresight</span>
               <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:block">예측 기준 관리</span>
