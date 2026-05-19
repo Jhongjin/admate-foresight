@@ -307,6 +307,57 @@ h1, h2, h3 {
   line-height: 1.75;
 }
 
+.foresight-gate-sample-legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+}
+
+.foresight-gate-sample-legend div {
+  min-width: 0;
+  border: 1px solid rgba(120, 113, 108, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.55rem 0.65rem;
+}
+
+.foresight-gate-sample-legend div::before {
+  content: '';
+  display: inline-block;
+  width: 0.48rem;
+  height: 0.48rem;
+  margin-right: 0.36rem;
+  border-radius: 999px;
+  vertical-align: 0.06rem;
+  background: #94a3b8;
+}
+
+.foresight-gate-sample-legend div[data-tone='ok']::before {
+  background: #0f766e;
+}
+
+.foresight-gate-sample-legend div[data-tone='watch']::before {
+  background: #b7791f;
+}
+
+.foresight-gate-sample-legend div[data-tone='risk']::before {
+  background: #b7543f;
+}
+
+.foresight-gate-sample-legend strong {
+  color: var(--foresight-ink);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.foresight-gate-sample-legend span {
+  margin-top: 0.25rem;
+  color: #66736d;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
 .foresight-gate-chart {
   position: relative;
   min-height: 13.5rem;
@@ -482,7 +533,8 @@ h1, h2, h3 {
   }
 
   .foresight-gate-signal-strip,
-  .foresight-gate-card-grid {
+  .foresight-gate-card-grid,
+  .foresight-gate-sample-legend {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -556,16 +608,13 @@ h1, h2, h3 {
 }
 
 .foresight-hero-title {
-  display: flex;
   max-width: 900px;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.18em 0.28em;
   color: var(--foresight-ink);
-  font-size: clamp(2.25rem, 5.8vw, 5.7rem);
-  font-weight: 900;
+  font-size: 30px;
+  font-weight: 600;
   letter-spacing: 0;
-  line-height: 0.96;
+  line-height: 36px;
+  text-wrap: balance;
 }
 
 .foresight-title-capsule {
@@ -729,7 +778,7 @@ h1, h2, h3 {
 
 .foresight-observatory-ledger {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
@@ -817,8 +866,8 @@ h1, h2, h3 {
 
 @media (max-width: 640px) {
   .foresight-hero-title {
-    font-size: clamp(2.1rem, 13vw, 3.65rem);
-    line-height: 1;
+    font-size: 30px;
+    line-height: 36px;
   }
 
   .foresight-title-capsule {

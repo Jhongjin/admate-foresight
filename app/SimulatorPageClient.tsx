@@ -452,6 +452,18 @@ export default function SimulatorPage() {
     : confidenceScore >= 66
       ? 'ok'
       : 'watch';
+  const sampleStatus = !result || loading
+    ? { label: '주의', detail: loading ? '계산 중' : '실행 전', tone: 'border-amber-200 bg-amber-50 text-amber-800' }
+    : confidenceGateStatus === '근거 보강' || matchedSampleCount < 20
+      ? { label: '부족', detail: matchedSampleCount > 0 ? `매칭 ${matchedSampleCount.toLocaleString()}건` : '매칭 없음', tone: 'border-red-200 bg-red-50 text-red-700' }
+      : marketSelected && matchedSampleCount >= 50 && (confidenceScore == null || confidenceScore >= 66)
+        ? { label: '표본 충분', detail: `매칭 ${matchedSampleCount.toLocaleString()}건`, tone: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
+        : { label: '주의', detail: matchedSampleCount > 0 ? `매칭 ${matchedSampleCount.toLocaleString()}건` : '전체 기준', tone: 'border-amber-200 bg-amber-50 text-amber-800' };
+  const sampleStatusLegend = [
+    { label: '표본 충분', detail: '업종 매칭과 기준 점수가 안정적일 때 표시합니다.' },
+    { label: '주의', detail: '전체 기준 또는 일부 근거만으로 검토할 때 표시합니다.' },
+    { label: '부족', detail: '표본이 적거나 보강이 필요할 때 표시합니다.' },
+  ];
   const confidenceTone = confidenceScore == null
     ? 'text-gray-500'
     : confidenceScore >= 82
@@ -590,12 +602,12 @@ export default function SimulatorPage() {
 
         return [
           {
-            label: 'Range span',
+            label: '예산 범위',
             value: `${first.label} → ${last.label}`,
             detail: reachLiftPct == null ? '도달 증분 계산 대기' : `도달 +${reachLiftPct.toLocaleString()}%`,
           },
           {
-            label: 'Selected budget',
+            label: '선택 예산',
             value: `₩${selected.budget.toLocaleString()}`,
             detail: `만원당 ${selected.reachEfficiency.toLocaleString()}명 도달`,
           },
@@ -849,38 +861,39 @@ export default function SimulatorPage() {
                   {readinessLabel}
                 </span>
                 <span className="inline-flex rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-800">
-                  매체 기준 데이터
+                  AdMate 기준 데이터
+                </span>
+                <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold ${sampleStatus.tone}`}>
+                  {sampleStatus.label}
                 </span>
               </div>
 
-              <h1 className="foresight-hero-title" aria-label="AdMate Foresight Forecast Lab">
-                <span>AdMate</span>
-                <span className="foresight-title-capsule foresight-title-capsule--teal">
-                  <span className="foresight-capsule-line" />
-                  최근 6개월
-                </span>
-                <span>Foresight</span>
-                <span>Forecast</span>
-                <span className="foresight-title-capsule foresight-title-capsule--amber">
-                  신뢰 {confidenceScore == null ? '산정 전' : `${confidenceScore}%`}
-                </span>
-                <span>Lab</span>
+              <h1 className="foresight-hero-title" aria-label="AdMate Foresight 성과 예측">
+                AdMate Foresight 성과 예측
               </h1>
 
               <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
-                최근 성과 표본을 기준선으로 삼아 예산, 기간, 타겟 조건의 집행 압력을 검토합니다.
-                데이터가 부족한 상태도 숨기지 않고 예측 방식, 표본 근거, 구간 상태로 분리해 보여줍니다.
+                예산, 기간, 타겟 조건에 따른 예상 성과와 AdMate 기준 데이터를 함께 봅니다.
+                표본 상태가 부족하면 예측 결과와 구간 판단을 분리해 표시합니다.
               </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                {sampleStatusLegend.map((item) => (
+                  <div key={item.label} className="rounded-md border border-stone-200 bg-white/70 px-3 py-2">
+                    <p className="text-xs font-bold text-slate-950">{item.label}</p>
+                    <p className="mt-1 text-[11px] leading-snug text-slate-500">{item.detail}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="foresight-observatory" aria-label="예측 관측 상태">
               <div className="foresight-observatory-topline">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Forecast Range</p>
+                  <p className="text-[11px] font-semibold text-stone-500">예측 범위</p>
                   <p className="mt-1 text-sm font-bold text-slate-950">예산 집행 기준 확인</p>
                 </div>
                 <span className={`rounded-md border px-2 py-1 text-[11px] font-semibold ${readinessTone}`}>
-                  {confidenceGateStatus}
+                  {sampleStatus.label}
                 </span>
               </div>
 
@@ -917,7 +930,7 @@ export default function SimulatorPage() {
               </div>
 
               <div className="foresight-observatory-ledger">
-                {readinessChecks.map((check) => (
+                {[...readinessChecks, { label: '표본 상태', value: sampleStatus.detail }].map((check) => (
                   <div key={check.label}>
                     <span>{check.label}</span>
                     <strong>{check.value}</strong>
@@ -1635,7 +1648,7 @@ export default function SimulatorPage() {
             </div>
             {mlResult && (
               <span className="text-[11px] text-gray-400 num">
-                기준 표본 {mlResult.n_samples.toLocaleString()}건 · 검증 R² {mlResult.cv_r2.toFixed(3)}
+                기준 표본 {mlResult.n_samples.toLocaleString()}건 · 검증 점수 {mlResult.cv_r2.toFixed(3)}
               </span>
             )}
           </div>
@@ -1667,7 +1680,7 @@ export default function SimulatorPage() {
                   <p className="text-base font-bold text-gray-900 num">{value}</p>
                   {r2 != null && (
                     <p className="text-[10px] text-gray-400 num">
-                      신뢰 {r2.toFixed(3)}
+                      근거 점수 {r2.toFixed(3)}
                       <span className={`ml-1.5 ${r2 >= 0.7 ? 'text-emerald-500' : r2 >= 0.5 ? 'text-amber-500' : 'text-red-400'}`}>
                         {r2 >= 0.7 ? '●' : r2 >= 0.5 ? '◐' : '○'}
                       </span>
@@ -1678,11 +1691,11 @@ export default function SimulatorPage() {
             </div>
           )}
 
-          {/* 내부 기준 데이터로 관리되는 모델 상태 안내 */}
+          {/* AdMate 기준 데이터로 관리되는 모델 상태 안내 */}
           {!mlLoading && (
             <div className="flex items-center justify-end pt-1 border-t border-gray-50">
               <p className="text-[11px] text-gray-400">
-                보조 예측 기준 데이터는 내부 기준 데이터로 관리됩니다.
+                추가 예측 기준은 AdMate 기준 데이터로 확인합니다.
               </p>
             </div>
           )}
@@ -1912,10 +1925,10 @@ export default function SimulatorPage() {
 
       {/* Info Note */}
       <div className="rounded-md border border-teal-100 bg-teal-50 p-4 text-sm text-teal-900">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-700">예측 방식 장부</p>
+        <p className="text-[11px] font-semibold text-teal-700">예측 기준 안내</p>
         <p className="mt-1 leading-6">
-          <strong>예측 방식:</strong> Meta 공식 기반 (예산÷CPM×1000÷빈도) + Diminishing Returns 보정 (β={DIMINISHING_RETURNS_BETA}).
-          캠페인 목표별 CPM·빈도를 실제 데이터에서 적용하며, 예산이 클수록 단위당 도달 효율이 감소합니다.
+          <strong>예측 방식:</strong> 예산, CPM, 빈도, 캠페인 목표별 기준값을 함께 적용합니다.
+          예산이 커질수록 추가 도달 효율이 완만해지는 흐름도 보수적으로 반영합니다.
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <div className="rounded-md border border-teal-100 bg-white/70 px-3 py-2">

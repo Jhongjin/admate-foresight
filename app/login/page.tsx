@@ -41,15 +41,21 @@ function describeNextDestination(nextPath: string): string {
 }
 
 const forecastSignals = [
-  { label: '비교 기준 데이터', value: '최근 6개월', detail: '업종과 매체 기준을 먼저 선택합니다.' },
+  { label: 'AdMate 기준 데이터', value: '최근 6개월', detail: '업종과 매체 기준을 먼저 선택합니다.' },
   { label: '입력 항목', value: '예산 / 기간', detail: '목표 KPI와 집행 조건을 함께 봅니다.' },
   { label: '결과 범위', value: '예측 구간', detail: '예상 성과와 데이터가 부족한 경우를 구분해 보여줍니다.' },
 ] as const;
 
 const destinationCards = [
   { label: '성과 예측', title: '예산별 예측 범위', detail: '예산, 기간, KPI를 조정해 예상 성과 범위를 확인합니다.' },
-  { label: '기준 데이터', title: '최근 6개월 비교 기준', detail: '업종과 매체 흐름을 내부 기준 데이터로 함께 검토합니다.' },
+  { label: '기준 데이터', title: '최근 6개월 비교 기준', detail: '업종과 매체 흐름을 AdMate 기준 데이터로 함께 검토합니다.' },
   { label: '데이터 충분성', title: '근거 상태 확인', detail: '표본과 예측 근거가 부족한 경우를 별도로 구분합니다.' },
+] as const;
+
+const sampleStatusLegend = [
+  { label: '표본 충분', detail: '업종 매칭 기준', tone: 'ok' },
+  { label: '주의', detail: '전체 기준 검토', tone: 'watch' },
+  { label: '부족', detail: '조건 재검토', tone: 'risk' },
 ] as const;
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -96,7 +102,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
             <div className="foresight-gate-stamp" aria-hidden="true">
               <span>AF</span>
-              <strong>Forecast</strong>
+              <strong>Predict</strong>
             </div>
           </div>
 
@@ -123,10 +129,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="foresight-gate-forecast" aria-label="성과 예측 화면 미리보기">
             <div className="foresight-gate-forecast-copy">
               <p>예측 작업 화면</p>
-              <h2>성과 예측과 비교 기준 데이터를 같은 화면에서 확인합니다.</h2>
+              <h2>AdMate Foresight 성과 예측</h2>
               <span>
-                최근 흐름, 시즌성, 경쟁 변화, 목표 KPI를 함께 보고 데이터가 부족한 경우도 명확히 구분합니다.
+                예측 결과와 AdMate 기준 데이터, 표본 상태를 한 화면에서 함께 확인합니다.
               </span>
+              <div className="foresight-gate-sample-legend" aria-label="데이터 충분성 상태">
+                {sampleStatusLegend.map((item) => (
+                  <div key={item.label} data-tone={item.tone}>
+                    <strong>{item.label}</strong>
+                    <span>{item.detail}</span>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="foresight-gate-chart" aria-hidden="true">
               <div className="foresight-gate-chart-bars">
@@ -175,7 +189,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="foresight-gate-access-list">
             {[
               ['로그인 상태', isForesightHandoffConfigured() ? '로그인 가능' : '권한 요청 필요'],
-              ['사용 범위', '성과 예측과 비교 기준 데이터'],
+              ['사용 범위', '성과 예측과 AdMate 기준 데이터'],
               ['계정 확인', loginState === 'handoff_disabled' ? '사용 권한 확인' : 'AdMate 계정'],
             ].map(([label, value]) => (
               <div key={label}>
