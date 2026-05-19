@@ -94,7 +94,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 {loginCopy.body}
               </p>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-stone-500">
-                로그인 후에는 요청한 분석 화면으로 돌아가며, 로그인 전에는 분석 결과와 비교 기준 데이터를 열지 않습니다.
+                로그인 후 보려던 분석 화면으로 돌아갑니다. 로그인 전에는 분석 결과와 비교 기준 데이터를 표시하지 않습니다.
               </p>
             </div>
             <div className="foresight-gate-stamp" aria-hidden="true">
@@ -208,7 +208,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="space-y-3 rounded-xl border border-stone-200 bg-[#f7f7f2] p-4">
             <p className="text-sm font-bold text-slate-950">
-              사용 권한이 필요하다면 AdMate 이용 권한 요청
+              Foresight 이용 권한이 필요하신가요?
             </p>
             <p className="text-xs leading-5 text-stone-500">
               Foresight 사용 권한은 AdMate 이용 권한 요청을 통해 확인합니다.

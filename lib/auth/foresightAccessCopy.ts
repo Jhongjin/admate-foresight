@@ -69,14 +69,14 @@ const loginCopy = {
   },
   handoff_invalid: {
     title: 'Foresight 로그인 상태를 확인할 수 없습니다',
-    body: 'Foresight 로그인 요청을 완료할 수 없습니다. AdMate에서 다시 시작하거나 사용 권한을 문의해 주세요.',
+    body: 'Foresight 로그인 확인을 완료하지 못했습니다. AdMate에서 다시 시작하거나 사용 권한을 문의해 주세요.',
     primaryAction: 'AdMate 계정으로 계속',
     helper: 'AdMate에서 다시 시작한 뒤 요청한 Foresight 화면으로 돌아갑니다.',
     notice: '로그인 요청을 완료할 수 없습니다.',
     noticeTone: 'danger',
   },
   handoff_disabled: {
-    title: '현재 Foresight 로그인을 사용할 수 없습니다',
+    title: 'Foresight 이용 권한 확인이 필요합니다',
     body: '현재 환경에서는 Foresight 로그인을 사용할 수 없습니다. 사용 권한이 필요하면 AdMate 이용 권한 요청을 진행해 주세요.',
     primaryAction: 'AdMate 이용 권한 요청',
     helper: 'Foresight 사용 권한은 AdMate 이용 권한 요청으로 확인합니다.',
