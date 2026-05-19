@@ -90,7 +90,6 @@ const requiredSimulatorSnippets = [
   'PlanningStatePanel',
   'predictionRangeSpread',
   'predictionRangeRows',
-  'Expected range',
   '예상 범위',
   '예산 곡선 기반 범위',
   '데이터 충분성 판정',
