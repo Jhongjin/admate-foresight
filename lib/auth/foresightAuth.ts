@@ -1,10 +1,10 @@
 import { isProductionRuntime } from '@/lib/security';
 
 export const FORESIGHT_ACCESS_REQUEST_URL =
-  'https://sentinel.admate.ai.kr/access-request?product=foresight';
+  'https://home.admate.ai.kr/access-request?product=foresight';
 
 export const FORESIGHT_ACCESS_REQUEST_FALLBACK_URL =
-  'https://sentinel.admate.ai.kr/access-request';
+  'https://home.admate.ai.kr/access-request';
 
 export const FORESIGHT_RESET_PASSWORD_URL =
   'https://sentinel.admate.ai.kr/reset-password';

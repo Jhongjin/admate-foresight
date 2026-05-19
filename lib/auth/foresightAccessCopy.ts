@@ -40,7 +40,7 @@ const loginCopy = {
   missing_session: {
     title: 'AdMate Foresight 성과 예측',
     body: '성과 예측과 비교 기준 데이터를 확인하고, 데이터가 부족한 경우를 구분하려면 AdMate 계정으로 로그인하세요.',
-    primaryAction: 'AdMate 계정으로 계속',
+    primaryAction: 'AdMate로 로그인',
     helper: 'AdMate 로그인 후 요청한 Foresight 화면으로 돌아갑니다.',
   },
   session_expired: {
@@ -62,7 +62,7 @@ const loginCopy = {
   handoff_expired: {
     title: '로그인 확인이 만료되었습니다',
     body: '보안을 위해 로그인 확인 시간이 지났습니다. AdMate에서 Foresight를 다시 열어 주세요.',
-    primaryAction: 'AdMate 계정으로 계속',
+    primaryAction: 'AdMate로 로그인',
     helper: 'AdMate에서 Foresight를 다시 열면 요청한 화면으로 돌아갑니다.',
     notice: '로그인 확인 시간이 지났습니다.',
     noticeTone: 'danger',
@@ -70,23 +70,23 @@ const loginCopy = {
   handoff_invalid: {
     title: 'Foresight 로그인 상태를 확인할 수 없습니다',
     body: 'Foresight 로그인 확인을 완료하지 못했습니다. AdMate에서 다시 시작하거나 사용 권한을 문의해 주세요.',
-    primaryAction: 'AdMate 계정으로 계속',
+    primaryAction: 'AdMate로 로그인',
     helper: 'AdMate에서 다시 시작한 뒤 요청한 Foresight 화면으로 돌아갑니다.',
     notice: '로그인 요청을 완료할 수 없습니다.',
     noticeTone: 'danger',
   },
   handoff_disabled: {
     title: 'Foresight 이용 권한 확인이 필요합니다',
-    body: '현재 환경에서는 Foresight 로그인을 사용할 수 없습니다. 사용 권한이 필요하면 AdMate 이용 권한 요청을 진행해 주세요.',
-    primaryAction: 'AdMate 이용 권한 요청',
-    helper: 'Foresight 사용 권한은 AdMate 이용 권한 요청으로 확인합니다.',
+    body: '현재 계정으로는 Foresight에 로그인할 수 없습니다. 사용 권한이 필요하면 Foresight 이용 권한 요청을 진행해 주세요.',
+    primaryAction: 'Foresight 이용 권한 요청',
+    helper: 'Foresight 사용 권한은 Foresight 이용 권한 요청으로 확인합니다.',
     notice: 'Foresight 로그인을 사용할 수 없습니다.',
     noticeTone: 'danger',
   },
   logout_complete: {
     title: 'AdMate Foresight 성과 예측',
     body: '로그아웃되었습니다. 성과 예측과 비교 기준 데이터를 다시 보려면 AdMate 계정으로 로그인하세요.',
-    primaryAction: 'AdMate 계정으로 계속',
+    primaryAction: 'AdMate로 로그인',
     helper: 'AdMate 로그인 후 요청한 Foresight 화면으로 돌아갑니다.',
     notice: '로그아웃되었습니다.',
     noticeTone: 'neutral',

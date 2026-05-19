@@ -46,13 +46,6 @@ const forecastSignals = [
   { label: '결과 범위', value: '예측 구간', detail: '예상 성과와 데이터가 부족한 경우를 구분해 보여줍니다.' },
 ] as const;
 
-const forecastSteps = [
-  '예측 기준 선택',
-  '예산과 기간 입력',
-  '예측 결과 확인',
-  '인사이트 확인',
-] as const;
-
 const destinationCards = [
   { label: '성과 예측', title: '예산별 예측 범위', detail: '예산, 기간, KPI를 조정해 예상 성과 범위를 확인합니다.' },
   { label: '기준 데이터', title: '최근 6개월 비교 기준', detail: '업종과 매체 흐름을 내부 기준 데이터로 함께 검토합니다.' },
@@ -74,6 +67,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     : null;
   const primaryActionHref =
     loginState === 'handoff_disabled' ? FORESIGHT_ACCESS_REQUEST_URL : coreStartUrl;
+  const renderedPrimaryActionHref = primaryActionHref ?? FORESIGHT_ACCESS_REQUEST_URL;
+  const renderedPrimaryActionLabel = primaryActionHref
+    ? loginCopy.primaryAction
+    : 'Foresight 이용 권한 요청';
   const noticeToneClass =
     loginCopy.noticeTone === 'danger' ? 'text-red-700' : 'text-stone-500';
 
@@ -101,6 +98,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               <span>AF</span>
               <strong>Forecast</strong>
             </div>
+          </div>
+
+          <div className="foresight-gate-mobile-action">
+            <a
+              href={renderedPrimaryActionHref}
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
+            >
+              {renderedPrimaryActionLabel}
+            </a>
+            <p>{primaryActionHref ? loginCopy.helper : 'Foresight 사용이 필요하다면 Foresight 이용 권한 요청을 진행해 주세요.'}</p>
           </div>
 
           <div className="foresight-gate-signal-strip" aria-label="Foresight 로그인 후 확인할 예측 기준">
@@ -150,15 +157,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </article>
             ))}
           </div>
-
-          <div className="foresight-gate-step-strip" aria-label="로그인 후 열리는 Foresight 작업 순서">
-            {forecastSteps.map((step, index) => (
-              <span key={step}>
-                <em>{String(index + 1).padStart(2, '0')}</em>
-                {step}
-              </span>
-            ))}
-          </div>
         </div>
 
         <aside className="foresight-gate-action">
@@ -167,7 +165,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               로그인 후 이동
             </p>
             <h2 className="mt-2 text-2xl font-extrabold leading-tight text-slate-950">
-              Foresight 분석 화면 열기
+              성과 예측 화면으로 이동
             </h2>
             <p className="mt-3 text-sm leading-6 text-stone-500">
               {nextDescription}
@@ -187,32 +185,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             ))}
           </div>
 
-          <div className="foresight-gate-email-check" aria-label="AdMate 계정 이메일 확인">
-            <span>AdMate 계정 이메일</span>
-            <div className="foresight-gate-email-field" aria-hidden="true">
-              <strong>name</strong>
-              <em>@nasmedia.co.kr</em>
-            </div>
+          <div className="foresight-gate-email-check" aria-label="회사 이메일 로그인 안내">
+            <span>계정 안내</span>
             <p>회사 이메일 계정으로 AdMate 로그인을 진행합니다.</p>
           </div>
 
-          <div>
-            {primaryActionHref ? (
-              <a
-                href={primaryActionHref}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
-              >
-                {loginCopy.primaryAction}
-              </a>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="inline-flex min-h-12 w-full cursor-not-allowed items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white opacity-55"
-              >
-                {loginCopy.primaryAction}
-              </button>
-            )}
+          <div className="foresight-gate-desktop-primary-action">
+            <a
+              href={renderedPrimaryActionHref}
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
+            >
+              {renderedPrimaryActionLabel}
+            </a>
           </div>
 
           <div className="space-y-3 rounded-xl border border-stone-200 bg-[#f7f7f2] p-4">
@@ -220,13 +204,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               Foresight 이용 권한이 필요하신가요?
             </p>
             <p className="text-xs leading-5 text-stone-500">
-              Foresight 사용 권한은 AdMate 이용 권한 요청을 통해 확인합니다.
+              Foresight 사용 권한은 Foresight 이용 권한 요청을 통해 확인합니다.
             </p>
             <a
               href={FORESIGHT_ACCESS_REQUEST_URL}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
             >
-              AdMate 이용 권한 요청
+              Foresight 이용 권한 요청
             </a>
             <a
               href="https://home.admate.ai.kr"
@@ -238,7 +222,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="space-y-2">
             <p className="text-xs leading-5 text-stone-500">
-              {primaryActionHref ? loginCopy.helper : 'Foresight 사용이 필요하다면 AdMate 이용 권한 요청을 진행해 주세요.'}
+              {primaryActionHref ? loginCopy.helper : 'Foresight 사용이 필요하다면 Foresight 이용 권한 요청을 진행해 주세요.'}
             </p>
             {loginCopy.notice ? (
               <p className={`text-xs leading-5 ${noticeToneClass}`}>
