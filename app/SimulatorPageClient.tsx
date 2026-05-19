@@ -197,9 +197,9 @@ export default function SimulatorPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setMlError(data.error ?? '보조 예측 실패'); setMlResult(null); return; }
+      if (!res.ok) { setMlError(data.error ?? '보조 예측을 확인하지 못했습니다'); setMlResult(null); return; }
       setMlResult(data as MLResult);
-    } catch { setMlError('보조 예측 연결 실패'); setMlResult(null); }
+    } catch { setMlError('보조 예측 연결을 확인하지 못했습니다'); setMlResult(null); }
     finally { setMlLoading(false); }
   }, []);
 
@@ -383,11 +383,11 @@ export default function SimulatorPage() {
       )
     : null;
   const evidenceBasisLabel = result?.predictionMethod === 'regression'
-    ? averageR2 == null ? '회귀 검증 대기' : '회귀 검증'
+    ? averageR2 == null ? '예측 기준 확인 전' : '예측 기준 확인'
     : result?.predictionMethod === 'weighted_avg'
-      ? '표본 가중 평균'
+      ? '최근 데이터 기준'
       : result?.predictionMethod === 'fallback'
-        ? '대체 기준'
+        ? '임시 기준'
         : '실행 전';
   const readinessTone = loading
     ? 'border-sky-200 bg-sky-50 text-sky-700'
@@ -406,19 +406,19 @@ export default function SimulatorPage() {
   const benchmarkLabel = !isCalculated
     ? '시뮬레이션 후 확인'
     : loading
-      ? '벤치마크 확인 중'
+      ? '기준 확인 중'
       : marketSelected
-        ? '업종 벤치마크 사용'
+        ? '선택 업종 기준 사용'
         : '전체 기준 사용';
   const benchmarkDetail = !isCalculated
     ? '업종을 선택하면 평균 비교가 더 선명해집니다.'
     : marketSelected
-      ? `업종 표본 ${marketSampleCount.toLocaleString()}건 · 매칭 ${matchedSampleCount.toLocaleString()}건`
+      ? `업종 데이터 ${marketSampleCount.toLocaleString()}건 · 매칭 ${matchedSampleCount.toLocaleString()}건`
       : matchedSampleCount > 0
         ? `매칭 ${matchedSampleCount.toLocaleString()}건 · 업종 평균 미선택`
-        : '표시 가능한 벤치마크가 아직 없습니다.';
+        : '비교 기준을 확인하려면 조건을 넓혀 보세요.';
   const actionHint = loading
-    ? '예측, 구간, 모델 비교를 계산하고 있습니다.'
+    ? '예측값과 예산 구간을 계산하고 있습니다.'
     : !isCalculated
       ? '조건을 정한 뒤 시뮬레이션을 실행하세요.'
       : result
@@ -438,7 +438,7 @@ export default function SimulatorPage() {
     ? result?.predictionMethod === 'fallback'
       ? '근거 보강'
       : result
-        ? '표본 기준'
+        ? '최근 데이터 기준'
         : '미산정'
     : confidenceScore >= 66
       ? '검토 가능'
@@ -457,12 +457,12 @@ export default function SimulatorPage() {
     : confidenceGateStatus === '근거 보강' || matchedSampleCount < 20
       ? { label: '부족', detail: matchedSampleCount > 0 ? `매칭 ${matchedSampleCount.toLocaleString()}건` : '매칭 없음', tone: 'border-red-200 bg-red-50 text-red-700' }
       : marketSelected && matchedSampleCount >= 50 && (confidenceScore == null || confidenceScore >= 66)
-        ? { label: '표본 충분', detail: `매칭 ${matchedSampleCount.toLocaleString()}건`, tone: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
+        ? { label: '데이터 충분', detail: `매칭 ${matchedSampleCount.toLocaleString()}건`, tone: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
         : { label: '주의', detail: matchedSampleCount > 0 ? `매칭 ${matchedSampleCount.toLocaleString()}건` : '전체 기준', tone: 'border-amber-200 bg-amber-50 text-amber-800' };
   const sampleStatusLegend = [
-    { label: '표본 충분', detail: '업종 매칭과 기준 점수가 안정적일 때 표시합니다.' },
+    { label: '데이터 충분', detail: '업종 매칭과 기준 점수가 안정적일 때 표시합니다.' },
     { label: '주의', detail: '전체 기준 또는 일부 근거만으로 검토할 때 표시합니다.' },
-    { label: '부족', detail: '표본이 적거나 보강이 필요할 때 표시합니다.' },
+    { label: '확인 필요', detail: '데이터가 적거나 보강이 필요할 때 표시합니다.' },
   ];
   const confidenceTone = confidenceScore == null
     ? 'text-gray-500'
@@ -497,7 +497,7 @@ export default function SimulatorPage() {
       ]
     : [
         { label: '예상 도달', value: loading ? '계산 중' : '-', detail: '시뮬레이션 후 표시' },
-        { label: '예상 CPM', value: loading ? '계산 중' : '-', detail: '벤치마크 대기' },
+        { label: '예상 CPM', value: loading ? '계산 중' : '-', detail: '기준 확인 전' },
         { label: '예상 빈도', value: loading ? '계산 중' : '-', detail: '노출 압력 대기' },
       ];
   const planBrief = [
@@ -508,7 +508,7 @@ export default function SimulatorPage() {
   ];
   const readinessChecks = [
     { label: '플랜 입력', value: selectedTargetCount > 0 ? `${selectedTargetCount}개 조건` : '전체 기준' },
-    { label: '벤치마크', value: benchmarkLabel },
+    { label: '비교 기준', value: benchmarkLabel },
     { label: '근거 상태', value: confidenceDisplay },
   ];
   const planningBasis = [
@@ -516,9 +516,9 @@ export default function SimulatorPage() {
     { label: '비용 기준', value: 'KRW · Net', detail: 'VAT/수수료 제외 매체비 기준' },
     { label: '보정 규칙', value: '보수적 보정', detail: '성수기·포화·CPC 압력은 별도 배지로 표시' },
     {
-      label: '표본 매칭',
+      label: '데이터 매칭',
       value: marketSelected ? `${matchedSampleCount}/${marketSampleCount || '-'}` : `${marketSampleCount || '-'}건`,
-      detail: marketSelected ? '선택 업종 매칭 표본' : '업종 전체 벤치마크',
+      detail: marketSelected ? '선택 업종과 맞는 최근 데이터' : '전체 업종 기준',
     },
     { label: '적용 필터', value: `${selectedTargetCount}개`, detail: `${objectiveLabel} · ${genderLabel} · ${ageLabel}` },
     { label: '활용 범위', value: '시나리오 검토', detail: '확정 성과가 아닌 조건별 예상 범위' },
@@ -624,7 +624,7 @@ export default function SimulatorPage() {
       label: '기준선 범위',
       status: marketSelected ? '업종 매칭' : isCalculated ? '전체 기준선' : '실행 대기',
       detail: marketSelected
-        ? `${marketSampleCount.toLocaleString()}건 표본`
+        ? `${marketSampleCount.toLocaleString()}건 데이터`
         : isCalculated
           ? '업종 평균 미선택'
           : '시뮬레이션 후 확정',
@@ -677,13 +677,13 @@ export default function SimulatorPage() {
         !marketSelected
           ? {
               label: '업종 특화 평균처럼 표시하지 않음',
-              detail: '업종 벤치마크가 없으면 전체 기준선으로만 표기합니다.',
+              detail: '선택 업종 기준이 없으면 전체 기준으로만 표기합니다.',
             }
           : null,
         confidenceGateStatus === '근거 보강'
           ? {
-              label: '신뢰도 사유 없는 내보내기 금지',
-              detail: '보고서나 공유 전 표본/회귀 근거 부족 사유를 함께 남깁니다.',
+              label: '공유 전 근거 상태 확인',
+              detail: '보고서나 공유 전 데이터 보강이 필요한 이유를 함께 남깁니다.',
             }
           : null,
         result.predictionMethod !== 'regression'
@@ -703,7 +703,7 @@ export default function SimulatorPage() {
   const dataSufficiencyStatus = !result
     ? '계산 전'
     : confidenceGateStatus === '근거 보강'
-      ? '데이터 부족 상태'
+      ? '근거 보강 필요'
       : !marketSelected
         ? '전체 기준 상태'
         : chartData.length === 0
@@ -712,20 +712,20 @@ export default function SimulatorPage() {
   const dataSufficiencyLedger = result
     ? [
         {
-          label: '표본 매칭',
+          label: '데이터 매칭',
           value: marketSelected
             ? `${matchedSampleCount.toLocaleString()}건 매칭`
-            : '업종 평균 대체 금지',
+            : '전체 기준으로 표시',
           detail: marketSelected
-            ? `업종 표본 ${marketSampleCount.toLocaleString()}건 기준`
-            : '업종 특화 평균처럼 표시하지 않고 전체 기준으로만 표기합니다.',
+            ? `업종 데이터 ${marketSampleCount.toLocaleString()}건 기준`
+            : '선택 업종 평균처럼 보이지 않도록 전체 기준으로만 표기합니다.',
         },
         {
-          label: '회귀 검증',
+          label: '예측 기준 확인',
           value: confidenceScore == null ? evidenceBasisLabel : confidenceDisplay,
           detail: confidenceScore == null
-            ? '회귀 점수 없이 보수 기준 또는 표본 기준으로 표시합니다.'
-            : 'R², 표본 수, 업종 매칭 여부를 합산한 근거 점수입니다.',
+            ? '설명력 점수 없이 보수적인 기준 또는 최근 데이터 기준으로 표시합니다.'
+            : '설명력, 데이터 수, 업종 매칭 여부를 합산한 근거 점수입니다.',
         },
         {
           label: '예산 구간',
@@ -747,7 +747,7 @@ export default function SimulatorPage() {
     {
       label: '기준선 근거',
       value: '최근 6개월 · KRW Net',
-      detail: '시뮬레이션 후 업종/목표 필터와 표본 매칭을 공개합니다.',
+      detail: '시뮬레이션 후 업종/목표 필터와 데이터 매칭을 공개합니다.',
     },
     {
       label: '플래너 입력',
@@ -844,7 +844,7 @@ export default function SimulatorPage() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error(e);
-      alert('Excel 내보내기에 실패했습니다.');
+      alert('Excel 내보내기를 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
       setExporting(false);
     }
@@ -930,7 +930,7 @@ export default function SimulatorPage() {
               </div>
 
               <div className="foresight-observatory-ledger">
-                {[...readinessChecks, { label: '표본 상태', value: sampleStatus.detail }].map((check) => (
+                {[...readinessChecks, { label: '데이터 상태', value: sampleStatus.detail }].map((check) => (
                   <div key={check.label}>
                     <span>{check.label}</span>
                     <strong>{check.value}</strong>
@@ -1463,14 +1463,14 @@ export default function SimulatorPage() {
                 {
                   label: '예측 방식',
                   value: evidenceBasisLabel,
-                  detail: result.predictionMethod === 'regression' ? 'R²와 표본 수로 근거 점수 산정' : '회귀 근거가 부족할 때 보수 기준 사용',
+                  detail: result.predictionMethod === 'regression' ? '설명력과 데이터 수로 근거 점수 산정' : '근거가 충분하지 않을 때 보수 기준 사용',
                 },
                 {
-                  label: '표본 근거',
+                  label: '데이터 근거',
                   value: marketSelected
                     ? `${matchedSampleCount.toLocaleString()} / ${marketSampleCount.toLocaleString()}건`
                     : `${matchedSampleCount.toLocaleString()}건`,
-                  detail: marketSelected ? '선택 업종 표본과 매칭 표본' : '업종 특화 평균 미적용',
+                  detail: marketSelected ? '선택 업종 데이터와 매칭 데이터' : '전체 기준으로 표시',
                 },
                 {
                   label: '구간 상태',
@@ -1509,12 +1509,12 @@ export default function SimulatorPage() {
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">데이터 충분성 판정</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-600">표본, 회귀 검증, 예산 구간, 출력 허용 범위를 {truthBandLabel} 기준의 검증 기준으로 묶어 확인합니다.</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">데이터 매칭, 예측 기준, 예산 구간, 출력 허용 범위를 {truthBandLabel} 기준으로 함께 확인합니다.</p>
                 </div>
                 <span className={`w-fit rounded-md border px-2.5 py-1 text-[11px] font-semibold ${
                   dataSufficiencyStatus === '검토 가능'
                     ? 'border-teal-200 bg-teal-50 text-teal-800'
-                    : dataSufficiencyStatus === '데이터 부족 상태' || dataSufficiencyStatus === '구간 보강 필요'
+                    : dataSufficiencyStatus === '근거 보강 필요' || dataSufficiencyStatus === '구간 보강 필요'
                       ? 'border-amber-200 bg-amber-50 text-amber-800'
                       : 'border-stone-200 bg-stone-50 text-stone-600'
                 }`}>
@@ -1581,7 +1581,7 @@ export default function SimulatorPage() {
             ],
           };
           const kpiBasisLines = [
-            `표본: ${hasMarket ? `${marketSampleCount.toLocaleString()}건 / 매칭 ${matchedSampleCount.toLocaleString()}건` : `매칭 ${matchedSampleCount.toLocaleString()}건`}`,
+            `데이터: ${hasMarket ? `${marketSampleCount.toLocaleString()}건 / 매칭 ${matchedSampleCount.toLocaleString()}건` : `매칭 ${matchedSampleCount.toLocaleString()}건`}`,
             `필터: ${objectiveLabel} · ${genderLabel} · ${ageLabel}`,
             `용도: 확정 성과가 아닌 매체 플랜 검토`,
           ];
@@ -1648,7 +1648,7 @@ export default function SimulatorPage() {
             </div>
             {mlResult && (
               <span className="text-[11px] text-gray-400 num">
-                기준 표본 {mlResult.n_samples.toLocaleString()}건 · 검증 점수 {mlResult.cv_r2.toFixed(3)}
+                기준 데이터 {mlResult.n_samples.toLocaleString()}건 · 설명력 {mlResult.cv_r2.toFixed(3)}
               </span>
             )}
           </div>

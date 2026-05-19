@@ -77,7 +77,7 @@ export default function Navigation() {
             </div>
             <div>
               <span className="block text-lg font-bold leading-5 text-slate-950">AdMate Foresight</span>
-              <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:block">Planning Intelligence</span>
+              <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:block">예측 기준 관리</span>
             </div>
           </Link>
           <div className="hidden items-center gap-2 md:flex">

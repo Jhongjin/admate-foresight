@@ -112,15 +112,15 @@ function labelIndustries(industries: string[]) {
 function chartEmptyDescription(scope: string, selectedIndustries: string[]) {
   const industryHint = selectedIndustries.length > 0
     ? '선택 업종을 줄이거나 전체 업종 기준으로 되돌려 검토 범위를 넓혀 보세요.'
-    : '목표 필터를 해제하거나 최근 6개월 벤치마크 적재 상태를 확인해 주세요.';
-  return `${scope} 기준선이 아직 열리지 않았습니다. ${industryHint}`;
+    : '목표 필터를 해제하거나 최근 6개월 데이터 준비 상태를 확인해 주세요.';
+  return `${scope} 기준을 아직 확인할 수 없습니다. ${industryHint}`;
 }
 
 function chartEmptyLedger(scope: string, selectedIndustries: string[]) {
   return [
-    { label: '기준 기간', value: '최근 6개월', detail: '기본 계획 기준선' },
+    { label: '기준 기간', value: '최근 6개월', detail: '기본 비교 기준' },
     {
-      label: '세그먼트 범위',
+      label: '비교 범위',
       value: selectedIndustries.length > 0 ? `${selectedIndustries.length}개 업종 선택` : '업종 전체',
       detail: selectedIndustries.length > 0 ? '필터가 좁아진 상태' : '비교 범위 넓게 유지',
     },
@@ -201,8 +201,8 @@ function SectionShell({
 function ForecastEmptyPanel({
   title,
   description,
-  eyebrow = '기준선 대기',
-  ledger = chartEmptyLedger('벤치마크', []),
+  eyebrow = '기준 대기',
+  ledger = chartEmptyLedger('비교 기준', []),
 }: {
   title: string;
   description: string;
@@ -211,22 +211,22 @@ function ForecastEmptyPanel({
 }) {
   const planningProtocol = [
     {
-      code: 'CPM/CPC',
-      label: '비용 압력',
+      code: '비용',
+      label: '비용 흐름',
       detail: '낮은 구간을 예산 방어선으로 먼저 읽습니다.',
     },
     {
-      code: 'CTR/REACH',
-      label: '반응 확장',
+      code: '반응',
+      label: '반응과 도달',
       detail: '높은 구간을 증액 후보와 도달 계획에 연결합니다.',
     },
     {
-      code: 'SEGMENT',
-      label: '세그먼트 판독',
+      code: '대상',
+      label: '대상 비교',
       detail: '업종, 성별, 연령을 같은 필터 문맥으로 맞춥니다.',
     },
   ];
-  const quickChecks = ['최근 6개월', '필터 검토', '예산 기준선', '오디언스 분해'];
+  const quickChecks = ['최근 6개월', '필터 검토', '예산 기준', '대상별 비교'];
   const baselineBars = [42, 68, 54, 76, 48];
   const baselineMarkers = ['M-5', 'M-3', 'M-1'];
 
@@ -286,7 +286,7 @@ function ForecastEmptyPanel({
             </div>
             <div className="rounded-md border border-stone-300 bg-white/80 p-3">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">기준선 프리뷰</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">기준 미리보기</p>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-teal-500" aria-hidden="true" />
                   <span className="text-[10px] font-semibold text-stone-500">대기</span>
@@ -294,7 +294,7 @@ function ForecastEmptyPanel({
               </div>
               <div
                 className="mt-3 rounded-md border border-stone-200 bg-[#f7f5ef] p-2"
-                aria-label="기준선 대기 상태 예시"
+                aria-label="기준 대기 상태 예시"
               >
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   <span className="rounded-sm border border-teal-100 bg-teal-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-teal-800">
@@ -326,7 +326,7 @@ function ForecastEmptyPanel({
                 </div>
               </div>
               <p className="mt-2 text-[11px] leading-5 text-stone-500">
-                수치 대신 판독 기준선만 먼저 고정합니다.
+                수치가 준비되기 전에는 확인 기준만 먼저 고정합니다.
               </p>
             </div>
           </div>
@@ -338,14 +338,14 @@ function ForecastEmptyPanel({
             ))}
           </div>
           <p className="mt-3 border-t border-stone-200 pt-2 text-[11px] leading-5 text-stone-500">
-            빈 차트는 실패가 아니라 플래닝 기준선 판독을 보류한 상태입니다.
+            빈 차트는 오류가 아니라 아직 확인할 데이터가 충분하지 않은 상태입니다.
           </p>
         </div>
         <div className="grid min-w-0 content-start rounded-md border border-stone-300 bg-white/75 p-3 sm:p-4">
           <div className="flex items-center justify-between gap-3 border-b border-stone-200 pb-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">준비 상태</p>
             <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800">
-              기준선 대기
+              기준 대기
             </span>
           </div>
           <div className="mt-3 grid gap-2">
@@ -360,9 +360,9 @@ function ForecastEmptyPanel({
             ))}
           </div>
           <div className="mt-3 rounded-md border border-teal-100 bg-teal-50 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-teal-800">Planner note</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-teal-800">확인 메모</p>
             <p className="mt-1 text-[11px] leading-5 text-teal-900">
-              기준선이 열리면 비용 압력, 반응 확장, 세그먼트 편차 순서로 미디어 플랜을 정렬합니다.
+              기준이 확인되면 비용 흐름, 반응 확장, 대상별 차이 순서로 계획을 정리합니다.
             </p>
           </div>
         </div>
@@ -512,10 +512,10 @@ export default function TrendsPage() {
   const trendIndustryKeys = trendData.map((d) => d.industry);
   const summaryRows = trendData.map((d) => ({ industry: d.industry, ...(d.trends[d.trends.length - 1] ?? {}) }));
   const latestTrendMonth = trendChartData.length > 0 ? String(trendChartData[trendChartData.length - 1].month) : '월 기준 대기';
-  const metricPlanningRule = metric === 'avgCTR' || metric === 'totalReach' ? '높은 구간을 증액 후보로 검토' : '낮은 구간을 효율 기준선으로 검토';
+  const metricPlanningRule = metric === 'avgCTR' || metric === 'totalReach' ? '높은 구간을 증액 후보로 검토' : '낮은 구간을 효율 기준으로 검토';
   const trendEvidenceLedger = [
     { label: '최신 기준월', value: latestTrendMonth, detail: '월별 추이의 마지막 집계 지점' },
-    { label: '비교 세그먼트', value: `${trendIndustryKeys.length.toLocaleString()}개 업종`, detail: trendIndustryContext },
+    { label: '비교 대상', value: `${trendIndustryKeys.length.toLocaleString()}개 업종`, detail: trendIndustryContext },
     { label: '판단 규칙', value: metricConfig.label, detail: metricPlanningRule },
   ];
   const segmentReadiness = availableIndustries.length > 0 || availableObjectives.length > 0
@@ -532,34 +532,34 @@ export default function TrendsPage() {
       ? '필터 완화 후 재검토'
       : top3.length > 0
         ? '효율 랭킹 비교'
-        : '기준선 적재 대기';
+        : '기준 데이터 대기';
   const forecastMethodSteps = [
     {
       step: '01',
-      title: 'Scope lock',
+      title: '범위 확정',
       value: objectiveContext,
       detail: '목표와 업종 범위를 먼저 고정해 비교 기준을 흔들리지 않게 둡니다.',
       tone: 'border-teal-200 bg-teal-50 text-teal-900',
     },
     {
       step: '02',
-      title: 'Pressure read',
+      title: '효율 확인',
       value: metricConfig.label,
       detail: metricPlanningRule,
       tone: 'border-amber-200 bg-amber-50 text-amber-900',
     },
     {
       step: '03',
-      title: 'Audience split',
+      title: '대상 비교',
       value: `${genderIndustryContext} / ${ageIndustryContext}`,
-      detail: '성별과 연령 기준선을 분리해 증액 후보의 편차를 확인합니다.',
+      detail: '성별과 연령 기준을 나누어 증액 후보의 차이를 확인합니다.',
       tone: 'border-stone-200 bg-stone-50 text-stone-800',
     },
     {
       step: '04',
-      title: 'Planning memo',
+      title: '다음 확인',
       value: nextPlanningAction,
-      detail: '빈 구간은 실패 카드가 아니라 다음 플래닝 액션으로 남깁니다.',
+      detail: '빈 구간은 오류가 아니라 다음 확인 사항으로 남깁니다.',
       tone: 'border-slate-200 bg-slate-50 text-slate-800',
     },
   ];
@@ -595,20 +595,20 @@ export default function TrendsPage() {
               매체 계획 관제
             </p>
             <h1 className="mt-4 max-w-3xl text-2xl font-bold leading-tight text-slate-950 sm:text-4xl">
-              업종별 예측 기준선 스튜디오
+              업종별 예측 기준 확인
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              Meta 성과 신호를 목표, 업종, 지표별로 재조합해 플래너가 다음 예산 판단에 쓸 기준선을 확인합니다.
+              공개 성과 데이터를 목표, 업종, 지표별로 정리해 다음 예산 판단에 쓸 기준을 확인합니다.
             </p>
             <div className="mt-5 grid gap-2 sm:grid-cols-3">
               <SignalPill label="목표" value={objectiveContext} tone={objectives.length > 0 ? 'ready' : 'idle'} />
               <SignalPill label="지표" value={metricConfig.label} tone="ready" />
-              <SignalPill label="범위" value={activeFilterCount > 0 ? `필터 ${activeFilterCount}개` : '전체 기준선'} tone="watch" />
+                <SignalPill label="범위" value={activeFilterCount > 0 ? `필터 ${activeFilterCount}개` : '전체 기준'} tone="watch" />
             </div>
           </div>
           <aside className="border-t border-stone-200 bg-[#fffaf0] p-4 text-slate-950 sm:p-6 lg:border-l lg:border-t-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">준비도 장부</p>
-            <h2 className="mt-2 text-lg font-semibold leading-snug sm:mt-3 sm:text-xl">기준선 판독 순서</h2>
+            <h2 className="mt-2 text-lg font-semibold leading-snug sm:mt-3 sm:text-xl">기준 확인 순서</h2>
             <div className="mt-4 grid gap-3 text-sm sm:mt-6">
               <div className="flex items-start gap-3 rounded-md border border-stone-200 bg-white/70 px-3 py-2">
                 <span className="mt-1 h-2 w-6 rounded-full bg-teal-700" />
@@ -620,7 +620,7 @@ export default function TrendsPage() {
               </div>
               <div className="flex items-start gap-3 rounded-md border border-stone-200 bg-white/70 px-3 py-2">
                 <span className="mt-1 h-2 w-6 rounded-full bg-stone-500" />
-                <p className="text-slate-600">성별/연령/월별 기준선은 동일한 필터 문맥 안에서 비교합니다.</p>
+                <p className="text-slate-600">성별/연령/월별 기준은 동일한 필터 조건 안에서 비교합니다.</p>
               </div>
             </div>
           </aside>
@@ -630,10 +630,10 @@ export default function TrendsPage() {
       <section className="overflow-hidden rounded-md border border-stone-200 bg-white shadow-sm">
         <div className="grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
           <div className="border-b border-stone-200 bg-[#fbfaf7] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Predictive protocol</p>
-            <h2 className="mt-2 text-base font-bold text-slate-950">예측 기준선 판독법</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">확인 순서</p>
+            <h2 className="mt-2 text-base font-bold text-slate-950">예측 기준 확인법</h2>
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              Foresight는 차트보다 먼저 범위, 압력, 오디언스, 다음 액션을 잠급니다.
+              Foresight는 차트보다 먼저 범위, 효율 흐름, 대상별 차이, 다음 확인 사항을 정리합니다.
             </p>
           </div>
           <div className="grid divide-y divide-stone-200 md:grid-cols-2 md:divide-x md:divide-y-0 xl:grid-cols-4">
@@ -643,7 +643,7 @@ export default function TrendsPage() {
                   <span className="rounded-md border border-current/20 bg-white/70 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]">
                     {item.step}
                   </span>
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-70">method</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-70">순서</span>
                 </div>
                 <p className="mt-3 text-xs font-bold uppercase tracking-[0.06em]">{item.title}</p>
                 <p className="mt-1 truncate text-sm font-bold text-slate-950">{item.value}</p>
@@ -656,7 +656,7 @@ export default function TrendsPage() {
 
       <section className="rounded-md border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-4 py-3 sm:px-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">운영 제어면</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">필터 설정</p>
         </div>
         <div className="space-y-4 p-4 sm:space-y-5 sm:p-5">
           {filtersError && (
@@ -703,7 +703,7 @@ export default function TrendsPage() {
                   </button>
                 )}
               </div>
-              {objectives.length === 0 && <p className="text-xs text-slate-400">선택 없음 = 전체 기준선</p>}
+              {objectives.length === 0 && <p className="text-xs text-slate-400">선택 없음 = 전체 기준</p>}
             </div>
 
             <div className="min-w-0 space-y-2">
@@ -733,7 +733,7 @@ export default function TrendsPage() {
         <div className="grid gap-0 lg:grid-cols-[240px_minmax(0,1fr)]">
           <div className="border-b border-slate-100 bg-[#fbfaf7] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">계획 장부</p>
-            <h2 className="mt-2 text-base font-bold text-slate-950">벤치마크 입력 준비도</h2>
+            <h2 className="mt-2 text-base font-bold text-slate-950">비교 기준 준비도</h2>
             <p className="mt-2 text-xs leading-5 text-slate-500">
               현재 화면의 필터, 지표, 빈 구간을 다음 계획 액션으로 정리합니다.
             </p>
@@ -742,25 +742,25 @@ export default function TrendsPage() {
             <PlanningLedgerCard
               label="기준 기간"
               value="최근 6개월"
-              detail={`${metricConfig.label} 기준으로 월별 기준선을 확인합니다.`}
+              detail={`${metricConfig.label} 기준으로 월별 흐름을 확인합니다.`}
               tone="teal"
             />
             <PlanningLedgerCard
-              label="세그먼트 준비"
+              label="비교 범위"
               value={segmentReadiness}
-              detail={filtersError ? '필터 목록을 불러온 뒤 세그먼트를 조정할 수 있습니다.' : '업종과 목표 필터로 계획 범위를 좁힙니다.'}
+              detail={filtersError ? '필터 목록을 불러온 뒤 비교 범위를 조정할 수 있습니다.' : '업종과 목표 필터로 계획 범위를 좁힙니다.'}
               tone={filtersError ? 'amber' : 'stone'}
             />
             <PlanningLedgerCard
               label="입력 공백"
               value={missingInputLedger}
-              detail={activeFilterCount > 0 ? '선택 입력을 기준으로 각 차트를 다시 집계합니다.' : '전체 기준선에서 시작해 비교 대상을 좁혀 보세요.'}
+              detail={activeFilterCount > 0 ? '선택 입력을 기준으로 각 차트를 다시 집계합니다.' : '전체 기준에서 시작해 비교 대상을 좁혀 보세요.'}
               tone={filtersError ? 'amber' : activeFilterCount > 0 ? 'teal' : 'slate'}
             />
             <PlanningLedgerCard
               label="다음 계획 액션"
               value={nextPlanningAction}
-              detail="빈 차트는 실패가 아니라 입력 범위나 적재 상태를 점검할 신호입니다."
+              detail="빈 차트는 오류가 아니라 입력 범위나 데이터 준비 상태를 점검할 신호입니다."
               tone={nextPlanningAction.includes('재확인') || nextPlanningAction.includes('완화') ? 'amber' : 'slate'}
             />
           </div>
@@ -811,8 +811,8 @@ export default function TrendsPage() {
           </div>
         ) : (
           <ForecastEmptyPanel
-            title="순위 기준선 대기"
-            description="목표 필터를 해제하거나 벤치마크 적재 후 다시 확인해 주세요. CPM/CPC는 낮은 값, CTR/도달은 높은 값을 기준으로 정렬합니다."
+            title="순위 기준 대기"
+            description="목표 필터를 해제하거나 데이터 준비 후 다시 확인해 주세요. CPM/CPC는 낮은 값, CTR/도달은 높은 값을 기준으로 정렬합니다."
             eyebrow="순위 판단"
             ledger={[
               { label: '기준 기간', value: '최근 6개월', detail: '효율 순위 기본 기준' },
@@ -850,7 +850,7 @@ export default function TrendsPage() {
           />
         ) : trendChartData.length === 0 ? (
           <ForecastEmptyPanel
-            title="월별 기준선 대기"
+            title="월별 기준 대기"
             description={chartEmptyDescription('월별 추이', trendIndustries)}
             eyebrow="기준 기간"
             ledger={chartEmptyLedger('월별 추이', trendIndustries)}
@@ -940,9 +940,9 @@ export default function TrendsPage() {
               />
             ) : (
               <ForecastEmptyPanel
-                title="성별 기준선 대기"
+                title="성별 기준 대기"
                 description={chartEmptyDescription('성별 분포', genderIndustries)}
-                eyebrow="세그먼트 준비"
+                eyebrow="비교 범위"
                 ledger={chartEmptyLedger('성별 분포', genderIndustries)}
               />
             )
@@ -987,9 +987,9 @@ export default function TrendsPage() {
               />
             ) : (
               <ForecastEmptyPanel
-                title="연령대 기준선 대기"
+                title="연령대 기준 대기"
                 description={chartEmptyDescription('연령대 분포', ageIndustries)}
-                eyebrow="오디언스 범위"
+                eyebrow="대상 범위"
                 ledger={chartEmptyLedger('연령대 분포', ageIndustries)}
               />
             )
@@ -1018,9 +1018,9 @@ export default function TrendsPage() {
         <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_260px]">
           <div className="p-5 sm:p-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-800">소재 맥락</p>
-            <h2 className="mt-2 text-lg font-bold text-slate-950">벤치마크 수치와 소재 맥락을 함께 확인하세요</h2>
+            <h2 className="mt-2 text-lg font-bold text-slate-950">비교 수치와 소재 맥락을 함께 확인하세요</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              업종 기준선이 비어 있거나 변동 폭이 큰 경우, 경쟁사 소재 보드에서 같은 시장의 메시지와 크리에이티브 흐름을 먼저 확인합니다.
+              업종 기준이 비어 있거나 변동 폭이 큰 경우, 경쟁사 소재 보드에서 같은 시장의 메시지와 크리에이티브 흐름을 먼저 확인합니다.
             </p>
           </div>
           <div className="border-t border-teal-200 bg-white/70 p-5 md:border-l md:border-t-0">
@@ -1031,7 +1031,7 @@ export default function TrendsPage() {
               경쟁사 소재 보드 열기
             </a>
             <p className="mt-3 text-xs leading-5 text-slate-500">
-              Meta 라이브러리 기반 소재 관찰 화면으로 이동합니다.
+              공개 광고 자료 기반 소재 확인 화면으로 이동합니다.
             </p>
           </div>
         </div>
