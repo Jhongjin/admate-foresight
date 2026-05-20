@@ -8,48 +8,66 @@ interface NavigationProps {
   isAuthenticated?: boolean;
 }
 
-const navItems = [
-  { href: '/', label: '성과 예측' },
-  { href: '/trends', label: '기준선' },
-  { href: '/insights', label: '시즌성' },
-  { href: '/competitor', label: '시장 감시' },
-];
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      aria-hidden="true"
+      className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+    >
+      <path
+        d="m5.8 7.5 4.2 4.2 4.2-4.2"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
 
 const siteItems = [
   {
     href: 'https://home.admate.ai.kr',
     label: 'AdMate Home',
     description: '제품군 안내와 공지',
+    icon: 'H',
     active: false,
   },
   {
     href: 'https://home.admate.ai.kr/access-request?product=foresight',
     label: '이용 권한 요청',
     description: '필요한 제품 권한 신청',
+    icon: '+',
     active: false,
   },
   {
     href: 'https://compass.admate.ai.kr',
     label: 'Compass',
     description: '광고 정책 근거 확인',
+    icon: 'C',
     active: false,
   },
   {
     href: 'https://sentinel.admate.ai.kr',
     label: 'Sentinel',
     description: '실시간 관제와 사전 검수',
+    icon: 'S',
     active: false,
   },
   {
     href: 'https://lens.admate.ai.kr',
     label: 'Lens',
     description: '캡처 검수와 작업 기록',
+    icon: 'L',
     active: false,
   },
   {
     href: 'https://foresight.admate.ai.kr',
     label: 'Foresight',
     description: '성과 예측과 기준선 관리',
+    icon: 'F',
     active: true,
   },
 ];
@@ -57,7 +75,6 @@ const siteItems = [
 export default function Navigation({ isAuthenticated = false }: NavigationProps) {
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [siteOpen, setSiteOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const siteRef = useRef<HTMLDivElement>(null);
@@ -75,19 +92,6 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
     document.addEventListener('mousedown', handlePointerDown);
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, []);
-
-  function getLinkClass(href: string, variant: 'desktop' | 'mobile') {
-    const isActive = href === '/' ? pathname === href : pathname.startsWith(href);
-    const base =
-      'rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2';
-    const active = isActive
-      ? 'bg-teal-50 text-teal-800 ring-1 ring-teal-100'
-      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950';
-
-    return variant === 'desktop'
-      ? `${base} ${active} px-3 py-2`
-      : `${base} ${active} block px-3 py-2`;
-  }
 
   async function handleLogout() {
     if (isLoggingOut) return;
@@ -123,39 +127,39 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
             </div>
           </Link>
 
-          <div className="hidden min-w-0 flex-1 justify-center gap-1 lg:flex">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href} className={getLinkClass(item.href, 'desktop')}>
-                {item.label}
-              </Link>
-            ))}
-          </div>
+          <div className="hidden min-w-0 flex-1 lg:block" aria-hidden="true" />
 
           <div className="flex shrink-0 items-center gap-2">
             <div className="relative" ref={siteRef}>
               <button
                 type="button"
+                aria-label="사이트 이동"
+                aria-haspopup="menu"
+                aria-expanded={siteOpen}
                 onClick={() => setSiteOpen((current) => !current)}
-                className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2"
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2"
               >
                 <span aria-hidden="true" className="grid h-5 w-5 place-items-center rounded bg-amber-100 text-[10px] font-black text-amber-700">A</span>
                 <span className="hidden sm:inline">사이트 이동</span>
-                <span aria-hidden="true" className="text-xs text-slate-400">v</span>
+                <ChevronIcon open={siteOpen} />
               </button>
               {siteOpen ? (
-                <div className="absolute right-0 mt-2 w-72 rounded-md border border-slate-200 bg-white p-2 text-slate-900 shadow-xl">
+                <div className="absolute right-0 mt-2 w-72 overflow-hidden rounded-md border border-slate-200 bg-white p-2 text-slate-900 shadow-xl">
                   <p className="px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">AdMate Suite</p>
                   <div className="my-1 h-px bg-slate-100" />
                   {siteItems.map((site) => (
                     <Link
                       key={site.label}
                       href={site.href}
-                      className="flex rounded-md px-3 py-2.5 transition-colors hover:bg-teal-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700"
+                      className="flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-teal-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700"
                     >
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-slate-200 bg-slate-50 text-xs font-black text-teal-700">
+                        {site.icon}
+                      </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2 text-sm font-bold">
                           {site.label}
-                          {site.active ? <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">현재</span> : null}
+                          {site.active ? <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">현재</span> : null}
                         </span>
                         <span className="mt-0.5 block truncate text-xs text-slate-500">{site.description}</span>
                       </span>
@@ -174,6 +178,7 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
                 >
                   <span className="grid h-7 w-7 place-items-center rounded-md bg-teal-700 text-xs font-black text-white">A</span>
                   <span className="hidden sm:inline">AdMate 계정</span>
+                  <ChevronIcon open={profileOpen} />
                 </button>
                 {profileOpen ? (
                   <div className="absolute right-0 mt-2 w-64 rounded-md border border-slate-200 bg-white p-2 text-slate-900 shadow-xl">
@@ -205,39 +210,6 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
               </Link>
             )}
 
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen((current) => !current)}
-              aria-controls="foresight-mobile-navigation"
-              aria-expanded={isMobileMenuOpen}
-              aria-label={isMobileMenuOpen ? '모바일 메뉴 닫기' : '모바일 메뉴 열기'}
-              className="inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 lg:hidden"
-            >
-              {isMobileMenuOpen ? '닫기' : '메뉴'}
-            </button>
-          </div>
-        </div>
-
-        <div
-          id="foresight-mobile-navigation"
-          className={`border-t border-slate-100 pb-3 lg:hidden ${isMobileMenuOpen ? 'block' : 'hidden'}`}
-        >
-          <div className="grid gap-1 py-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={getLinkClass(item.href, 'mobile')}
-              >
-                {item.label}
-              </Link>
-            ))}
-            {showSignedIn ? (
-              <Link href="/account" onClick={() => setIsMobileMenuOpen(false)} className={getLinkClass('/account', 'mobile')}>
-                마이페이지
-              </Link>
-            ) : null}
           </div>
         </div>
       </div>
