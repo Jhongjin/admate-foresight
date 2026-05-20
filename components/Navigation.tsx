@@ -27,50 +27,131 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
+function SparkleIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 text-amber-500">
+      <path
+        d="M10 2.8 11.6 7l4.2 1.6-4.2 1.6L10 14.4l-1.6-4.2-4.2-1.6L8.4 7 10 2.8Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+      <path
+        d="m15.2 13.2.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8ZM4.6 12.1l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5.5-1.2Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+type SiteIconName = 'home' | 'access' | 'compass' | 'sentinel' | 'lens' | 'foresight';
+
+function SiteIcon({ name }: { name: SiteIconName }) {
+  const common = {
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    strokeWidth: '1.8',
+  };
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-[22px] w-[22px] text-[#2764D9]">
+      {name === 'home' ? (
+        <>
+          <path d="m4 10 8-6 8 6" {...common} />
+          <path d="M6.5 9.5V20h11V9.5" {...common} />
+          <path d="M10 20v-5h4v5" {...common} />
+        </>
+      ) : null}
+      {name === 'access' ? (
+        <>
+          <path d="M12 3.5 19 7v5.2c0 4.2-2.8 6.8-7 8.3-4.2-1.5-7-4.1-7-8.3V7l7-3.5Z" {...common} />
+          <path d="M12 8v7M8.5 11.5h7" {...common} />
+        </>
+      ) : null}
+      {name === 'compass' ? (
+        <>
+          <circle cx="12" cy="12" r="8.5" {...common} />
+          <path d="m14.9 8.1-1.8 5-4 2 1.8-5 4-2Z" {...common} />
+          <path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2" {...common} />
+        </>
+      ) : null}
+      {name === 'sentinel' ? (
+        <>
+          <path d="M4.5 19.5h15M7 19.5 8.2 8.8a3.8 3.8 0 0 1 7.6 0L17 19.5" {...common} />
+          <path d="M9 12h6M10 8.7h4M12 3.5v-2M5.2 6.3 3.8 4.9M18.8 6.3l1.4-1.4" {...common} />
+        </>
+      ) : null}
+      {name === 'lens' ? (
+        <>
+          <rect x="4" y="6" width="16" height="12" rx="3" {...common} />
+          <circle cx="12" cy="12" r="3.2" {...common} />
+          <path d="M7.5 9.2h.1M16.8 17.4l2.2 2.2" {...common} />
+        </>
+      ) : null}
+      {name === 'foresight' ? (
+        <>
+          <path d="M3.8 12s3-5.5 8.2-5.5 8.2 5.5 8.2 5.5-3 5.5-8.2 5.5S3.8 12 3.8 12Z" {...common} />
+          <circle cx="12" cy="12" r="2.5" {...common} />
+          <path d="M16.8 5.1 18.5 3.4M18 8.2h2.2M7.2 18.9l-1.7 1.7" {...common} />
+        </>
+      ) : null}
+    </svg>
+  );
+}
+
 const siteItems = [
   {
     href: 'https://home.admate.ai.kr',
     label: 'AdMate Home',
     description: '제품군 안내와 공지',
-    icon: 'H',
+    icon: 'home',
     active: false,
   },
   {
     href: 'https://home.admate.ai.kr/access-request?product=foresight',
     label: '이용 권한 요청',
     description: '필요한 제품 권한 신청',
-    icon: '+',
+    icon: 'access',
     active: false,
   },
   {
     href: 'https://compass.admate.ai.kr',
     label: 'Compass',
     description: '광고 정책 근거 확인',
-    icon: 'C',
+    icon: 'compass',
     active: false,
   },
   {
     href: 'https://sentinel.admate.ai.kr',
     label: 'Sentinel',
     description: '실시간 관제와 사전 검수',
-    icon: 'S',
+    icon: 'sentinel',
     active: false,
   },
   {
     href: 'https://lens.admate.ai.kr',
     label: 'Lens',
     description: '캡처 검수와 작업 기록',
-    icon: 'L',
+    icon: 'lens',
     active: false,
   },
   {
     href: 'https://foresight.admate.ai.kr',
     label: 'Foresight',
     description: '성과 예측과 기준선 관리',
-    icon: 'F',
+    icon: 'foresight',
     active: true,
   },
-];
+] satisfies Array<{
+  href: string;
+  label: string;
+  description: string;
+  icon: SiteIconName;
+  active: boolean;
+}>;
 
 export default function Navigation({ isAuthenticated = false }: NavigationProps) {
   const pathname = usePathname();
@@ -137,31 +218,36 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
                 aria-haspopup="menu"
                 aria-expanded={siteOpen}
                 onClick={() => setSiteOpen((current) => !current)}
-                className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-teal-200 hover:bg-slate-50 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2"
+                className="inline-flex h-10 min-w-10 items-center justify-center gap-2 rounded-[8px] border border-[#D7DCE3] bg-white/90 px-3 text-sm font-semibold text-[#25314A] shadow-[0_10px_24px_rgba(16,24,32,0.08)] transition duration-300 hover:border-[#C4CEDA] hover:bg-[#F8F6F1] hover:text-[#172033] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#172033] focus-visible:ring-offset-2 sm:min-w-[132px] sm:px-4"
               >
-                <span aria-hidden="true" className="grid h-5 w-5 place-items-center rounded bg-amber-100 text-[10px] font-black text-amber-700">A</span>
+                <SparkleIcon />
                 <span className="hidden sm:inline">사이트 이동</span>
                 <ChevronIcon open={siteOpen} />
               </button>
               {siteOpen ? (
-                <div className="absolute right-0 mt-2 w-72 overflow-hidden rounded-md border border-slate-200 bg-white p-2 text-slate-900 shadow-xl">
-                  <p className="px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">AdMate Suite</p>
-                  <div className="my-1 h-px bg-slate-100" />
+                <div
+                  role="menu"
+                  aria-label="AdMate 사이트 이동"
+                  className="absolute right-0 mt-2 w-[432px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[10px] border border-[#D7DCE3] bg-white p-3 text-[#172033] shadow-[0_24px_70px_rgba(16,24,32,0.18)] max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:top-14 max-sm:mt-0 max-sm:w-auto max-sm:max-w-none"
+                >
+                  <p className="px-4 py-3 text-[13px] font-bold uppercase tracking-[0.2em] text-[#68707C]">ADMATE SUITE</p>
+                  <div className="mb-2 h-px bg-[#D8DEE6]" />
                   {siteItems.map((site) => (
                     <Link
                       key={site.label}
                       href={site.href}
-                      className="flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-teal-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700"
+                      role="menuitem"
+                      className="grid min-h-[76px] grid-cols-[56px_minmax(0,1fr)] items-center gap-4 rounded-[8px] px-4 py-3 transition-colors hover:bg-[#F4F7FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#172033]"
                     >
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-slate-200 bg-slate-50 text-xs font-black text-teal-700">
-                        {site.icon}
+                      <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[10px] border border-[#D7DCE3] bg-[#F8F6F1]">
+                        <SiteIcon name={site.icon} />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-2 text-sm font-bold">
+                        <span className="flex items-center gap-2 text-[17px] font-extrabold leading-tight text-[#172033]">
                           {site.label}
-                          {site.active ? <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">현재</span> : null}
+                          {site.active ? <span className="rounded-[8px] bg-[#FFF3D8] px-2 py-1 text-xs font-bold text-[#7A5518]">현재</span> : null}
                         </span>
-                        <span className="mt-0.5 block truncate text-xs text-slate-500">{site.description}</span>
+                        <span className="mt-1 block text-[15px] font-medium leading-5 text-[#68707C]">{site.description}</span>
                       </span>
                     </Link>
                   ))}
@@ -174,9 +260,9 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
                 <button
                   type="button"
                   onClick={() => setProfileOpen((current) => !current)}
-                  className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2"
+                  className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
                 >
-                  <span className="grid h-7 w-7 place-items-center rounded-md bg-teal-700 text-xs font-black text-white">A</span>
+                  <span className="grid h-7 w-7 place-items-center rounded-md bg-slate-950 text-xs font-black text-white">A</span>
                   <span className="hidden sm:inline">AdMate 계정</span>
                   <ChevronIcon open={profileOpen} />
                 </button>
@@ -187,7 +273,7 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
                       <p className="mt-0.5 text-xs font-medium text-slate-500">로그인됨</p>
                     </div>
                     <div className="my-1 h-px bg-slate-100" />
-                    <Link href="/account" className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-teal-50">
+                    <Link href="/account" className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
                       마이페이지
                     </Link>
                     <button
@@ -204,7 +290,7 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
             ) : (
               <Link
                 href="/login"
-                className="inline-flex h-10 items-center rounded-md bg-teal-700 px-3 text-sm font-bold text-white transition-colors hover:bg-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2"
+                className="inline-flex h-10 min-w-[78px] items-center justify-center rounded-[8px] bg-[#172033] px-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(16,24,32,0.12)] transition duration-300 hover:bg-[#273755] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#172033] focus-visible:ring-offset-2 sm:min-w-[96px] sm:px-4"
               >
                 로그인
               </Link>
