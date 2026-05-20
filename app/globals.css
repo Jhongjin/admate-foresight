@@ -150,19 +150,32 @@ h1, h2, h3 {
   position: relative;
 }
 
-.foresight-gate-kicker {
+.foresight-gate-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.foresight-gate-pill-row span {
   display: inline-flex;
   min-height: 28px;
   align-items: center;
   border: 1px solid rgba(15, 118, 110, 0.16);
   border-radius: 999px;
   background: rgba(216, 243, 236, 0.58);
-  padding: 0 0.9rem;
+  padding: 0 0.8rem;
   color: #0b625b;
   font-size: 0.72rem;
   font-weight: 850;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.foresight-gate-pill-row span:nth-child(2) {
+  border-color: rgba(183, 121, 31, 0.22);
+  background: rgba(247, 232, 199, 0.72);
+  color: #8a5416;
+  letter-spacing: 0;
 }
 
 .foresight-gate-head {
@@ -181,6 +194,8 @@ h1, h2, h3 {
 .foresight-reactive-headline {
   position: relative;
   display: block;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .foresight-reactive-headline__title {
@@ -198,8 +213,11 @@ h1, h2, h3 {
 
 .foresight-reactive-headline__canvas {
   position: absolute;
-  inset: 0 auto auto 0;
+  inset: 0;
   z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   opacity: 0.72;
   mix-blend-mode: multiply;
@@ -269,8 +287,7 @@ h1, h2, h3 {
 }
 
 .foresight-gate-signal-strip span,
-.foresight-gate-card-grid p,
-.foresight-gate-access-list span {
+.foresight-gate-card-grid p {
   color: #66736d;
   font-size: 0.68rem;
   font-weight: 850;
@@ -278,8 +295,7 @@ h1, h2, h3 {
 }
 
 .foresight-gate-signal-strip strong,
-.foresight-gate-card-grid strong,
-.foresight-gate-access-list strong {
+.foresight-gate-card-grid strong {
   display: block;
   margin-top: 0.36rem;
   color: var(--foresight-ink);
@@ -581,40 +597,69 @@ h1, h2, h3 {
   padding: clamp(1.5rem, 3vw, 2.5rem);
 }
 
-.foresight-gate-access-list {
-  display: grid;
-  border: 1px solid rgba(120, 113, 108, 0.28);
-  border-radius: 10px;
-  overflow: hidden;
-  background: rgba(213, 222, 216, 0.72);
-  gap: 1px;
-}
-
-.foresight-gate-access-list div {
-  background: rgba(255, 253, 248, 0.92);
-  padding: 0.95rem 1rem;
-}
-
-.foresight-gate-email-check {
+.foresight-gate-account-block {
   border: 1px solid rgba(120, 113, 108, 0.28);
   border-radius: 10px;
   background: rgba(255, 253, 248, 0.92);
   padding: 1rem;
 }
 
-.foresight-gate-email-check > span {
+.foresight-gate-account-block label {
   display: block;
   color: #66736d;
-  font-size: 0.68rem;
+  font-size: 0.78rem;
   font-weight: 850;
-  letter-spacing: 0.06em;
 }
 
-.foresight-gate-email-check p {
+.foresight-gate-account-block p {
   margin-top: 0.45rem;
   color: #66736d;
   font-size: 0.76rem;
   line-height: 1.55;
+}
+
+.foresight-gate-email-field {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  transition:
+    border-color 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.foresight-gate-email-field:focus-within {
+  border-color: rgba(15, 118, 110, 0.46);
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.1);
+}
+
+.foresight-gate-email-field input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0.65rem 0.75rem;
+  color: var(--foresight-ink);
+  font-size: 0.875rem;
+  outline: 0;
+}
+
+.foresight-gate-email-field input::placeholder {
+  color: rgba(102, 115, 109, 0.74);
+}
+
+.foresight-gate-email-field span {
+  flex-shrink: 0;
+  border-left: 1px solid rgba(120, 113, 108, 0.28);
+  background: rgba(216, 243, 236, 0.58);
+  padding: 0.65rem 0.75rem;
+  color: #4b6556;
+  font-size: 0.875rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 @media (max-width: 767px) {

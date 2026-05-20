@@ -1,10 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import ReactiveHeadline from '@/components/ReactiveHeadline';
-import {
-  getForesightLoginCopy,
-  resolveForesightLoginState,
-} from '@/lib/auth/foresightAccessCopy';
+import { resolveForesightLoginState } from '@/lib/auth/foresightAccessCopy';
 import {
   buildForesightCoreStartUrl,
   FORESIGHT_ACCESS_REQUEST_URL,
@@ -69,25 +66,21 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   const loginState = resolveForesightLoginState(params);
-  const loginCopy = getForesightLoginCopy(loginState);
   const coreStartUrl = isForesightHandoffConfigured()
     ? buildForesightCoreStartUrl(nextPath)
     : null;
   const primaryActionHref =
     loginState === 'handoff_disabled' ? FORESIGHT_ACCESS_REQUEST_URL : coreStartUrl;
   const renderedPrimaryActionHref = primaryActionHref ?? FORESIGHT_ACCESS_REQUEST_URL;
-  const renderedPrimaryActionLabel = primaryActionHref
-    ? loginCopy.primaryAction
-    : 'AdMate 이용 권한 요청';
-  const noticeToneClass =
-    loginCopy.noticeTone === 'danger' ? 'text-red-700' : 'text-stone-500';
+  const renderedPrimaryActionLabel = '로그인하고 계속';
 
   return (
     <div className="foresight-login-stage min-h-[calc(100dvh-9rem)] py-8 sm:py-10">
       <section className="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,1.08fr)_430px]">
         <div className="foresight-gate-brief">
-          <div className="foresight-gate-kicker">
-            foresight.admate.ai.kr · forecast range preview
+          <div className="foresight-gate-pill-row" aria-label="Foresight 서비스 정보">
+            <span>FORESIGHT.ADMATE.AI.KR</span>
+            <span>성과 예측</span>
           </div>
 
           <div className="foresight-gate-head">
@@ -122,7 +115,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             >
               {renderedPrimaryActionLabel}
             </a>
-            <p>{primaryActionHref ? loginCopy.helper : 'AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.'}</p>
+            <p>회사 계정으로 로그인해 Foresight 작업 공간을 이용하세요.</p>
           </div>
 
           <div className="foresight-gate-signal-strip" aria-label="Foresight 로그인 후 확인할 예측 기준">
@@ -203,7 +196,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <aside className="foresight-gate-action">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
-              Account access
+              AdMate Foresight
             </p>
             <h2 className="mt-2 text-2xl font-extrabold leading-tight text-slate-950">
               AdMate 계정으로 로그인
@@ -213,21 +206,19 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
           </div>
 
-          <div className="foresight-gate-access-list">
-            {[
-              ['로그인 상태', isForesightHandoffConfigured() ? '로그인 가능' : '권한 요청 필요'],
-              ['계정 확인', loginState === 'handoff_disabled' ? '사용 권한 확인' : 'AdMate 계정'],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <span>{label}</span>
-                <strong>{value}</strong>
-              </div>
-            ))}
-          </div>
-
-          <div className="foresight-gate-email-check" aria-label="회사 이메일 로그인 안내">
-            <span>계정 안내</span>
-            <p>회사 이메일 계정으로 AdMate 로그인을 진행합니다.</p>
+          <div className="foresight-gate-account-block">
+            <label htmlFor="foresight-account-preview">이메일</label>
+            <div className="foresight-gate-email-field">
+              <input
+                id="foresight-account-preview"
+                type="text"
+                inputMode="email"
+                autoComplete="username"
+                placeholder="name"
+                aria-describedby="foresight-email-domain"
+              />
+              <span id="foresight-email-domain">@nasmedia.co.kr</span>
+            </div>
           </div>
 
           <div className="foresight-gate-desktop-primary-action">
@@ -241,34 +232,23 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="space-y-3 rounded-lg border border-stone-200 bg-[#f7f7f2] p-4">
             <p className="text-sm font-bold text-slate-950">
-              AdMate 이용 권한이 필요하신가요?
+              Foresight 이용 권한이 필요하신가요?
             </p>
             <p className="text-xs leading-5 text-stone-500">
-              AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.
+              권한이 없거나 처음 이용하는 경우, AdMate에서 Foresight 이용 권한을 요청해주세요.
             </p>
             <a
               href={FORESIGHT_ACCESS_REQUEST_URL}
               className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
             >
-              AdMate 이용 권한 요청
+              Foresight 이용 권한 요청
             </a>
             <a
               href="https://home.admate.ai.kr"
               className="inline-flex min-h-10 w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-stone-500 transition-colors hover:text-slate-950"
             >
-              AdMate Home
+              AdMate 홈페이지로 이동
             </a>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-xs leading-5 text-stone-500">
-              {primaryActionHref ? loginCopy.helper : 'AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.'}
-            </p>
-            {loginCopy.notice ? (
-              <p className={`text-xs leading-5 ${noticeToneClass}`}>
-                {loginCopy.notice}
-              </p>
-            ) : null}
           </div>
         </aside>
       </section>
