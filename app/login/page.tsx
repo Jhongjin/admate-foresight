@@ -206,19 +206,35 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
           </div>
 
-          <div className="foresight-gate-account-block">
-            <label htmlFor="foresight-account-preview">이메일</label>
-            <div className="foresight-gate-email-field">
-              <input
-                id="foresight-account-preview"
-                type="text"
-                inputMode="email"
-                autoComplete="username"
-                placeholder="name"
-                aria-describedby="foresight-email-domain"
-              />
-              <span id="foresight-email-domain">@nasmedia.co.kr</span>
+          <div className="foresight-gate-account-block" aria-label="Foresight 로그인 정보">
+            <div className="foresight-gate-field">
+              <label htmlFor="foresight-account-preview">이메일</label>
+              <div className="foresight-gate-email-field">
+                <input
+                  id="foresight-account-preview"
+                  type="text"
+                  inputMode="email"
+                  autoComplete="username"
+                  placeholder="name"
+                  aria-describedby="foresight-email-domain foresight-login-helper"
+                />
+                <span id="foresight-email-domain">@nasmedia.co.kr</span>
+              </div>
             </div>
+            <div className="foresight-gate-field">
+              <label htmlFor="foresight-password-preview">비밀번호</label>
+              <input
+                id="foresight-password-preview"
+                type="password"
+                autoComplete="current-password"
+                placeholder="비밀번호를 입력하세요"
+                className="foresight-gate-password-field"
+                aria-describedby="foresight-login-helper"
+              />
+            </div>
+            <p id="foresight-login-helper" className="foresight-gate-login-helper">
+              AdMate 인증 화면에서 회사 계정을 확인합니다.
+            </p>
           </div>
 
           <div className="foresight-gate-desktop-primary-action">
@@ -245,7 +261,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </a>
             <a
               href="https://home.admate.ai.kr"
-              className="inline-flex min-h-10 w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-stone-500 transition-colors hover:text-slate-950"
+              className="inline-flex w-full items-center justify-center text-sm font-semibold text-stone-500 transition-colors hover:text-slate-950"
             >
               AdMate 홈페이지로 이동
             </a>
