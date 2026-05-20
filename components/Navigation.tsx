@@ -204,7 +204,7 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
             />
             <div className="min-w-0">
               <span className="block truncate text-lg font-bold leading-5 text-slate-950">AdMate Foresight</span>
-              <span className="hidden text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:block">예측 기준 관리</span>
+              <span className="hidden text-[10px] font-semibold uppercase leading-3 tracking-[0.16em] text-slate-500 sm:block">FORECAST BASELINE</span>
             </div>
           </Link>
 

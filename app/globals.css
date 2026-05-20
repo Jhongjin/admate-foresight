@@ -176,11 +176,37 @@ h1, h2, h3 {
 .foresight-gate-title {
   max-width: 34rem;
   color: var(--foresight-ink);
+}
+
+.foresight-reactive-headline {
+  position: relative;
+  display: block;
+}
+
+.foresight-reactive-headline__title {
+  position: relative;
+  z-index: 1;
+  max-width: 34rem;
+  color: var(--foresight-ink);
   font-size: 30px;
   font-weight: 600;
   letter-spacing: 0;
   line-height: 36px;
+  word-break: keep-all;
   text-wrap: balance;
+}
+
+.foresight-reactive-headline__canvas {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.72;
+  mix-blend-mode: multiply;
+}
+
+.foresight-reactive-headline:hover .foresight-reactive-headline__canvas {
+  opacity: 0.86;
 }
 
 .foresight-gate-stamp {
@@ -551,7 +577,7 @@ h1, h2, h3 {
   display: grid;
   gap: 1.5rem;
   align-content: start;
-  border-top: 5px solid #0f766e;
+  border-top: 5px solid #B7791F;
   padding: clamp(1.5rem, 3vw, 2.5rem);
 }
 
@@ -606,8 +632,7 @@ h1, h2, h3 {
   }
 
   .foresight-gate-title {
-    font-size: 30px;
-    line-height: 36px;
+    max-width: 100%;
   }
 
   .foresight-gate-stamp {
@@ -650,6 +675,12 @@ h1, h2, h3 {
   .foresight-gate-forecast-copy {
     min-height: auto;
     padding: 0.4rem 0.2rem 0.8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foresight-reactive-headline__canvas {
+    opacity: 0.58;
   }
 }
 

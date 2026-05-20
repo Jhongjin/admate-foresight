@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import ReactiveHeadline from '@/components/ReactiveHeadline';
 import {
   getForesightLoginCopy,
   resolveForesightLoginState,
@@ -23,28 +24,15 @@ interface LoginPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-function describeNextDestination(nextPath: string): string {
-  const pathname = nextPath.split('?')[0];
-
-  switch (pathname) {
-    case '/trends':
-      return '업종별 트렌드 화면으로 돌아갑니다.';
-    case '/insights':
-      return '시즌 인사이트 화면으로 돌아갑니다.';
-    case '/competitor':
-      return '경쟁사 모니터링 화면으로 돌아갑니다.';
-    case '/account':
-      return '계정 사용 상태 화면으로 돌아갑니다.';
-    default:
-      return '성과 예측 시뮬레이터로 돌아갑니다.';
-  }
-}
-
 const forecastSignals = [
-  { label: 'AdMate 기준 데이터', value: '최근 6개월', detail: '업종과 매체 기준을 먼저 선택합니다.' },
+  { label: 'AdMate 기준 데이터', value: '최근 최대 6개월', detail: '업종과 매체 기준을 먼저 선택합니다.' },
   { label: '입력 항목', value: '예산 / 기간', detail: '목표 KPI와 집행 조건을 함께 봅니다.' },
   { label: '결과 범위', value: '예측 구간', detail: '예상 성과와 데이터가 부족한 경우를 구분해 보여줍니다.' },
 ] as const;
+
+const gateHeadline = '집행 전 성과 범위를 먼저 가늠합니다';
+const gateSubcopy =
+  '업종, 매체, 예산, 기간 조건을 기준 데이터와 비교해 예상 성과 범위와 예측 보류 사유를 함께 확인합니다.';
 
 const destinationCards = [
   { label: '성과 예측', title: '예측 보류 상태', detail: '표본 또는 기준이 부족하면 결과 대신 보류 사유를 먼저 표시합니다.' },
@@ -80,7 +68,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     redirect(nextPath);
   }
 
-  const nextDescription = describeNextDestination(nextPath);
   const loginState = resolveForesightLoginState(params);
   const loginCopy = getForesightLoginCopy(loginState);
   const coreStartUrl = isForesightHandoffConfigured()
@@ -100,25 +87,22 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <section className="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,1.08fr)_430px]">
         <div className="foresight-gate-brief">
           <div className="foresight-gate-kicker">
-            foresight.admate.ai.kr · 성과 예측 로그인
+            foresight.admate.ai.kr · forecast range preview
           </div>
 
           <div className="foresight-gate-head">
             <div>
-              <h1 className="foresight-gate-title">
-                {loginCopy.title}
-              </h1>
+              <ReactiveHeadline className="foresight-gate-title">
+                {gateHeadline}
+              </ReactiveHeadline>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
-                {loginCopy.body}
-              </p>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-stone-500">
-                로그인 후 보려던 분석 화면으로 돌아갑니다. 로그인 전에는 분석 결과와 비교 기준 데이터를 표시하지 않습니다.
+                {gateSubcopy}
               </p>
             </div>
             <dl className="foresight-gate-stamp" aria-label="예측 기준 요약">
               <div>
                 <dt>기준 기간</dt>
-                <dd>최근 6개월</dd>
+                <dd>최근 최대 6개월</dd>
               </div>
               <div>
                 <dt>표본</dt>
@@ -219,20 +203,19 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <aside className="foresight-gate-action">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
-              로그인 후 이동
+              Account access
             </p>
             <h2 className="mt-2 text-2xl font-extrabold leading-tight text-slate-950">
-              성과 예측으로 돌아가기
+              AdMate 계정으로 로그인
             </h2>
             <p className="mt-3 text-sm leading-6 text-stone-500">
-              {nextDescription}
+              회사 계정으로 로그인해 Foresight 작업 공간을 이용하세요.
             </p>
           </div>
 
           <div className="foresight-gate-access-list">
             {[
               ['로그인 상태', isForesightHandoffConfigured() ? '로그인 가능' : '권한 요청 필요'],
-              ['사용 범위', '성과 예측과 AdMate 기준 데이터'],
               ['계정 확인', loginState === 'handoff_disabled' ? '사용 권한 확인' : 'AdMate 계정'],
             ].map(([label, value]) => (
               <div key={label}>
@@ -256,7 +239,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </a>
           </div>
 
-          <div className="space-y-3 rounded-xl border border-stone-200 bg-[#f7f7f2] p-4">
+          <div className="space-y-3 rounded-lg border border-stone-200 bg-[#f7f7f2] p-4">
             <p className="text-sm font-bold text-slate-950">
               AdMate 이용 권한이 필요하신가요?
             </p>
@@ -273,7 +256,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               href="https://home.admate.ai.kr"
               className="inline-flex min-h-10 w-full items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-stone-500 transition-colors hover:text-slate-950"
             >
-              AdMate 홈페이지로 이동
+              AdMate Home
             </a>
           </div>
 
