@@ -2,236 +2,50 @@
 
 import { useEffect, useRef } from 'react';
 
-type Cell = {
-  glyph: string;
-  tone: number;
-};
-
-type Shape = {
-  points: Array<[number, number]>;
-};
-
-type Piece = {
+type TextParticle = {
+  char: string;
   x: number;
   y: number;
-  speed: number;
-  word: string;
-  tone: number;
-  shape: Shape;
+  vx: number;
+  vy: number;
+  settled: boolean;
+  radius: number;
 };
 
-const WORDS = ['BASELINE', 'FORECAST', 'RANGE', 'VARIANCE', 'TREND', 'MODEL'] as const;
+const SOURCE_TEXT =
+  'BASELINE FORECAST RANGE VARIANCE TREND MODEL SCENARIO DATA SAMPLE CONFIDENCE BUDGET PERIOD KPI';
 
-const SHAPES: Shape[] = [
-  { points: [[0, 0], [1, 0], [0, 1], [1, 1]] },
-  { points: [[0, 0], [0, 1], [0, 2], [1, 2]] },
-  { points: [[1, 0], [1, 1], [1, 2], [0, 2]] },
-  { points: [[0, 0], [1, 0], [2, 0], [1, 1]] },
-  { points: [[0, 0], [1, 0], [1, 1], [2, 1]] },
-  { points: [[1, 0], [2, 0], [0, 1], [1, 1]] },
-  { points: [[0, 0], [1, 0], [2, 0], [3, 0]] },
-];
+const GLYPHS = SOURCE_TEXT.replace(/\s/g, '').split('');
 
-const TONES = ['#182620', '#0b625b', '#7f5b1d', '#36516f'];
-
-function createRandom(seed: number) {
-  let value = seed;
-  return () => {
-    value |= 0;
-    value = (value + 0x6d2b79f5) | 0;
-    let next = Math.imul(value ^ (value >>> 15), 1 | value);
-    next = (next + Math.imul(next ^ (next >>> 7), 61 | next)) ^ next;
-    return ((next ^ (next >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function getGlyph(word: string, index: number) {
-  return word[index % word.length];
-}
-
-function createGrid(columns: number, rows: number) {
-  return Array<Cell | null>(columns * rows).fill(null);
-}
-
-function drawCell(
-  context: CanvasRenderingContext2D,
-  cell: Cell,
-  x: number,
-  y: number,
-  cellSize: number,
-  alpha = 1,
-) {
-  context.save();
-  context.globalAlpha = alpha;
-  context.fillStyle = TONES[cell.tone % TONES.length];
-  context.shadowColor = 'rgba(15, 118, 110, 0.16)';
-  context.shadowBlur = 5;
-  context.fillText(cell.glyph, x + cellSize / 2, y + cellSize / 2);
-  context.restore();
-}
-
-function canPlace(
-  grid: Array<Cell | null>,
-  columns: number,
-  rows: number,
-  piece: Piece,
-  yOffset: number,
-) {
-  const gridY = Math.floor(piece.y + yOffset);
-
-  return piece.shape.points.every(([pointX, pointY]) => {
-    const x = piece.x + pointX;
-    const y = gridY + pointY;
-
-    if (x < 0 || x >= columns || y >= rows) {
-      return false;
-    }
-
-    return y < 0 || grid[y * columns + x] === null;
-  });
-}
-
-function settlePiece(grid: Array<Cell | null>, columns: number, piece: Piece) {
-  const gridY = Math.floor(piece.y);
-
-  piece.shape.points.forEach(([pointX, pointY], index) => {
-    const x = piece.x + pointX;
-    const y = gridY + pointY;
-
-    if (y >= 0) {
-      grid[y * columns + x] = {
-        glyph: getGlyph(piece.word, index),
-        tone: piece.tone,
-      };
-    }
-  });
-}
-
-function trimSettledRows(grid: Array<Cell | null>, columns: number, rows: number) {
-  for (let y = rows - 1; y >= 0; y -= 1) {
-    const filled = Array.from({ length: columns }).filter((_, x) => grid[y * columns + x]).length;
-
-    if (filled >= columns - 1) {
-      for (let pullY = y; pullY > 0; pullY -= 1) {
-        for (let x = 0; x < columns; x += 1) {
-          grid[pullY * columns + x] = grid[(pullY - 1) * columns + x];
-        }
-      }
-
-      for (let x = 0; x < columns; x += 1) {
-        grid[x] = null;
-      }
-    }
-  }
-}
-
-function createPiece(random: () => number, columns: number, startAbove = true): Piece {
-  const shape = SHAPES[Math.floor(random() * SHAPES.length)];
-  const width = Math.max(...shape.points.map(([x]) => x)) + 1;
-  const word = WORDS[Math.floor(random() * WORDS.length)];
-
+function createParticle(width: number, fontSize: number, index: number): TextParticle {
   return {
-    x: Math.floor(random() * Math.max(1, columns - width)),
-    y: startAbove ? -3 - Math.floor(random() * 4) : 0,
-    speed: 0.75 + random() * 0.55,
-    word,
-    tone: Math.floor(random() * TONES.length),
-    shape,
+    char: GLYPHS[index % GLYPHS.length],
+    x: Math.random() * width,
+    y: -10 - Math.random() * 72,
+    vx: (Math.random() - 0.5) * 62,
+    vy: Math.random() * 34,
+    settled: false,
+    radius: fontSize * 0.42,
   };
 }
 
-function seedStaticGrid(grid: Array<Cell | null>, columns: number, rows: number, random: () => number) {
-  for (let count = 0; count < rows * 2; count += 1) {
-    const piece = createPiece(random, columns, false);
-    piece.y = 0;
-
-    while (canPlace(grid, columns, rows, piece, 1)) {
-      piece.y += 1;
-    }
-
-    settlePiece(grid, columns, piece);
-  }
-}
-
-function drawScene(
-  canvas: HTMLCanvasElement,
-  grid: Array<Cell | null>,
-  columns: number,
-  rows: number,
-  cellSize: number,
-  piece?: Piece,
+function drawParticle(
+  context: CanvasRenderingContext2D,
+  particle: TextParticle,
+  alpha: number,
 ) {
-  const context = canvas.getContext('2d');
-  if (!context) {
-    return;
+  const speed = Math.hypot(particle.vx, particle.vy);
+  const speedNorm = Math.min(1, speed / 220);
+
+  if (particle.settled) {
+    context.fillStyle = `rgba(16, 24, 32, ${0.42 + alpha * 0.28})`;
+  } else if (speedNorm > 0.45) {
+    context.fillStyle = `rgba(15, 118, 110, ${0.45 + speedNorm * 0.42})`;
+  } else {
+    context.fillStyle = `rgba(127, 91, 29, ${0.36 + speedNorm * 0.34})`;
   }
 
-  const width = canvas.width;
-  const height = canvas.height;
-  const dpr = window.devicePixelRatio || 1;
-
-  context.save();
-  context.scale(dpr, dpr);
-  context.clearRect(0, 0, width, height);
-  context.fillStyle = 'rgba(255, 253, 248, 0.76)';
-  context.fillRect(0, 0, width / dpr, height / dpr);
-
-  context.strokeStyle = 'rgba(16, 24, 32, 0.055)';
-  context.lineWidth = 1;
-  for (let x = 0; x <= columns; x += 1) {
-    const lineX = x * cellSize + 0.5;
-    context.beginPath();
-    context.moveTo(lineX, 0);
-    context.lineTo(lineX, rows * cellSize);
-    context.stroke();
-  }
-
-  for (let y = 0; y <= rows; y += 1) {
-    const lineY = y * cellSize + 0.5;
-    context.beginPath();
-    context.moveTo(0, lineY);
-    context.lineTo(columns * cellSize, lineY);
-    context.stroke();
-  }
-
-  context.font = `800 ${Math.max(9, cellSize * 0.58)}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-
-  grid.forEach((cell, index) => {
-    if (!cell) {
-      return;
-    }
-
-    const x = (index % columns) * cellSize;
-    const y = Math.floor(index / columns) * cellSize;
-    drawCell(context, cell, x, y, cellSize, 0.78);
-  });
-
-  if (piece) {
-    piece.shape.points.forEach(([pointX, pointY], index) => {
-      const y = (piece.y + pointY) * cellSize;
-
-      if (y > -cellSize) {
-        drawCell(
-          context,
-          { glyph: getGlyph(piece.word, index), tone: piece.tone },
-          (piece.x + pointX) * cellSize,
-          y,
-          cellSize,
-          0.92,
-        );
-      }
-    });
-  }
-
-  const gradient = context.createLinearGradient(0, 0, 0, rows * cellSize);
-  gradient.addColorStop(0, 'rgba(255, 253, 248, 0.58)');
-  gradient.addColorStop(0.28, 'rgba(255, 253, 248, 0)');
-  gradient.addColorStop(1, 'rgba(255, 253, 248, 0.22)');
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, columns * cellSize, rows * cellSize);
-  context.restore();
+  context.fillText(particle.char, particle.x, particle.y);
 }
 
 export default function ForesightTextMaterialCanvas() {
@@ -239,57 +53,218 @@ export default function ForesightTextMaterialCanvas() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
+
     if (!canvas) {
       return undefined;
     }
 
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      return undefined;
+    }
+
     const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const random = createRandom(240521);
+    const mouse = { x: -1000, y: -1000 };
+    let particles: TextParticle[] = [];
     let animationFrame = 0;
+    let spawnIndex = 0;
     let lastTime = 0;
-    let columns = 1;
-    let rows = 1;
-    let cellSize = 18;
-    let grid = createGrid(columns, rows);
-    let piece = createPiece(random, columns);
+    let width = 1;
+    let height = 1;
+    let fontSize = 12;
+    let maxParticles = 900;
+    let spawnAccumulator = 0;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      cellSize = Math.max(16, Math.min(21, Math.floor(rect.width / 20)));
-      columns = Math.max(12, Math.floor(rect.width / cellSize));
-      rows = Math.max(7, Math.floor(rect.height / cellSize));
-      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-      grid = createGrid(columns, rows);
-      seedStaticGrid(grid, columns, rows, createRandom(5206));
-      piece = createPiece(random, columns);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = Math.max(1, Math.floor(rect.width));
+      height = Math.max(1, Math.floor(rect.height));
+      fontSize = Math.max(9, Math.min(13, Math.floor(width / 34)));
+      maxParticles = Math.min(2600, Math.max(900, Math.floor((width * height) / 95)));
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      context.textBaseline = 'middle';
+      context.textAlign = 'center';
+      context.font = `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+
+      particles = particles
+        .filter((particle) => particle.y < height + 40)
+        .map((particle) => ({
+          ...particle,
+          x: Math.max(particle.radius, Math.min(width - particle.radius, particle.x)),
+          y: Math.min(height - particle.radius, particle.y),
+        }));
 
       if (reducedMotionQuery.matches) {
-        drawScene(canvas, grid, columns, rows, cellSize);
+        particles = [];
+
+        for (let index = 0; index < Math.min(maxParticles, Math.floor((width * height) / 150)); index += 1) {
+          const particle = createParticle(width, fontSize, spawnIndex + index);
+          particle.x = (index * 23) % width;
+          particle.y = height - particle.radius - Math.floor(index / Math.max(1, Math.floor(width / 10))) * particle.radius * 1.35;
+          particle.vx = 0;
+          particle.vy = 0;
+          particle.settled = true;
+          particles.push(particle);
+        }
+
+        draw();
       }
     };
 
-    const animate = (time: number) => {
+    const spawnParticles = (count: number) => {
+      for (let index = 0; index < count && particles.length < maxParticles; index += 1) {
+        particles.push(createParticle(width, fontSize, spawnIndex));
+        spawnIndex += 1;
+      }
+    };
+
+    const draw = () => {
+      context.clearRect(0, 0, width, height);
+      context.fillStyle = 'rgba(255, 253, 248, 0.62)';
+      context.fillRect(0, 0, width, height);
+      context.font = `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+      context.textBaseline = 'middle';
+      context.textAlign = 'center';
+
+      for (const particle of particles) {
+        drawParticle(context, particle, particle.y / Math.max(1, height));
+      }
+
+      if (mouse.x > 0 && mouse.y > 0) {
+        context.beginPath();
+        context.arc(mouse.x, mouse.y, 82, 0, Math.PI * 2);
+        context.strokeStyle = 'rgba(15, 118, 110, 0.12)';
+        context.lineWidth = 1;
+        context.stroke();
+      }
+    };
+
+    const tick = (time: number) => {
       if (reducedMotionQuery.matches) {
         return;
       }
 
-      const delta = lastTime ? Math.min(48, time - lastTime) : 16;
+      const delta = Math.min(1 / 28, (lastTime ? time - lastTime : 16) / 1000);
       lastTime = time;
-      piece.y += (delta / 1000) * piece.speed;
+      spawnAccumulator += delta * 52;
 
-      if (!canPlace(grid, columns, rows, piece, 0)) {
-        grid = createGrid(columns, rows);
-        piece = createPiece(random, columns);
-      } else if (!canPlace(grid, columns, rows, piece, 1)) {
-        settlePiece(grid, columns, piece);
-        trimSettledRows(grid, columns, rows);
-        piece = createPiece(random, columns);
+      if (spawnAccumulator >= 1) {
+        const spawnCount = Math.min(8, Math.floor(spawnAccumulator));
+        spawnParticles(spawnCount);
+        spawnAccumulator -= spawnCount;
       }
 
-      drawScene(canvas, grid, columns, rows, cellSize, piece);
-      animationFrame = window.requestAnimationFrame(animate);
+      for (let index = 0; index < particles.length; index += 1) {
+        const particle = particles[index];
+
+        if (particle.settled) {
+          if (mouse.x > 0) {
+            const dx = particle.x - mouse.x;
+            const dy = particle.y - mouse.y;
+            const distance = Math.hypot(dx, dy);
+
+            if (distance < 82 && distance > 0.1) {
+              const force = (82 - distance) * 9;
+              particle.vx += (dx / distance) * force * delta;
+              particle.vy += (dy / distance) * force * delta - 42 * delta;
+              particle.settled = false;
+            }
+          }
+
+          continue;
+        }
+
+        particle.vy += 420 * delta;
+
+        if (mouse.x > 0) {
+          const dx = particle.x - mouse.x;
+          const dy = particle.y - mouse.y;
+          const distance = Math.hypot(dx, dy);
+
+          if (distance < 98 && distance > 0.1) {
+            const force = (98 - distance) * 13;
+            particle.vx += (dx / distance) * force * delta;
+            particle.vy += (dy / distance) * force * delta;
+          }
+        }
+
+        particle.vx *= 0.997;
+        particle.vy *= 0.997;
+        particle.x += particle.vx * delta;
+        particle.y += particle.vy * delta;
+
+        if (particle.y > height - particle.radius) {
+          particle.y = height - particle.radius;
+          particle.vy *= -0.34;
+          particle.vx *= 0.9;
+
+          if (Math.abs(particle.vy) < 6) {
+            particle.vy = 0;
+            particle.settled = true;
+          }
+        }
+
+        if (particle.x < particle.radius) {
+          particle.x = particle.radius;
+          particle.vx *= -0.34;
+        }
+
+        if (particle.x > width - particle.radius) {
+          particle.x = width - particle.radius;
+          particle.vx *= -0.34;
+        }
+
+        for (let otherIndex = Math.max(0, index - 120); otherIndex < index; otherIndex += 1) {
+          const other = particles[otherIndex];
+          const dx = particle.x - other.x;
+          const dy = particle.y - other.y;
+          const distance = Math.hypot(dx, dy);
+          const minDistance = particle.radius + other.radius;
+
+          if (distance < minDistance && distance > 0.01) {
+            const overlap = minDistance - distance;
+            const nx = dx / distance;
+            const ny = dy / distance;
+
+            if (other.settled) {
+              particle.x += nx * overlap;
+              particle.y += ny * overlap;
+            } else {
+              particle.x += nx * overlap * 0.5;
+              particle.y += ny * overlap * 0.5;
+              other.x -= nx * overlap * 0.5;
+              other.y -= ny * overlap * 0.5;
+            }
+
+            const relativeX = particle.vx - (other.settled ? 0 : other.vx);
+            const relativeY = particle.vy - (other.settled ? 0 : other.vy);
+            const relativeDot = relativeX * nx + relativeY * ny;
+
+            if (relativeDot < 0) {
+              particle.vx -= nx * relativeDot * 1.17;
+              particle.vy -= ny * relativeDot * 1.17;
+
+              if (!other.settled) {
+                other.vx += nx * relativeDot * 0.3;
+                other.vy += ny * relativeDot * 0.3;
+              }
+            }
+
+            if (Math.abs(particle.vy) < 4 && Math.abs(particle.vx) < 4 && particle.y > height - 220) {
+              particle.vy = 0;
+              particle.vx = 0;
+              particle.settled = true;
+            }
+          }
+        }
+      }
+
+      draw();
+      animationFrame = window.requestAnimationFrame(tick);
     };
 
     const restart = () => {
@@ -298,17 +273,36 @@ export default function ForesightTextMaterialCanvas() {
       resize();
 
       if (!reducedMotionQuery.matches) {
-        animationFrame = window.requestAnimationFrame(animate);
+        if (particles.length === 0) {
+          spawnParticles(Math.min(160, Math.floor(maxParticles * 0.18)));
+        }
+
+        animationFrame = window.requestAnimationFrame(tick);
       }
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = event.clientX - rect.left;
+      mouse.y = event.clientY - rect.top;
+    };
+
+    const handlePointerLeave = () => {
+      mouse.x = -1000;
+      mouse.y = -1000;
     };
 
     const resizeObserver = new ResizeObserver(restart);
     resizeObserver.observe(canvas);
+    canvas.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('pointerleave', handlePointerLeave);
     reducedMotionQuery.addEventListener('change', restart);
     restart();
 
     return () => {
       resizeObserver.disconnect();
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('pointerleave', handlePointerLeave);
       reducedMotionQuery.removeEventListener('change', restart);
       window.cancelAnimationFrame(animationFrame);
     };
