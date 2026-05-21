@@ -218,7 +218,7 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
                 aria-haspopup="menu"
                 aria-expanded={siteOpen}
                 onClick={() => setSiteOpen((current) => !current)}
-                className="inline-flex h-9 min-w-9 items-center justify-center gap-1.5 rounded-[8px] border border-[#D7DCE3] bg-white/90 px-2 text-sm font-semibold text-[#25314A] shadow-[0_10px_24px_rgba(16,24,32,0.08)] transition duration-300 hover:border-[#C4CEDA] hover:bg-[#F8F6F1] hover:text-[#172033] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#172033] focus-visible:ring-offset-2 sm:h-10 sm:min-w-[124px] sm:gap-2 sm:px-3"
+                className="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-[#D7DCE3] bg-white/90 px-2 text-sm font-semibold text-[#25314A] shadow-[0_10px_24px_rgba(16,24,32,0.08)] transition duration-300 hover:border-[#C4CEDA] hover:bg-[#F8F6F1] hover:text-[#172033] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#172033] focus-visible:ring-offset-2 sm:h-10 sm:min-w-[124px] sm:gap-2 sm:px-3"
               >
                 <SparkleIcon />
                 <span className="hidden sm:inline">사이트 이동</span>
