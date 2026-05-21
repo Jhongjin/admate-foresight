@@ -189,9 +189,9 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
   }
 
   return (
-    <nav aria-label="주요 탐색" className="fixed left-0 right-0 top-0 z-50 border-b border-[#D7DCE3] bg-[#FBFAF6]/95 backdrop-blur">
+    <nav aria-label="주요 탐색" className="fixed left-0 right-0 top-0 z-50 border-b border-[#E2E8F0] bg-[rgba(255,255,255,0.95)] backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-14 items-center justify-between gap-2 sm:h-[60px] sm:gap-3">
+        <div className="flex h-16 items-center justify-between gap-2 sm:gap-3">
           <Link
             href="/"
             aria-label="AdMate Foresight 홈"
@@ -203,8 +203,8 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
               style={{ backgroundImage: "url('/brand/admate-foresight-mark.svg')" }}
             />
             <div className="min-w-0 max-[380px]:hidden">
-              <span className="block truncate text-base font-bold leading-5 text-slate-950 sm:text-lg">AdMate Foresight</span>
-              <span className="hidden text-[10px] font-semibold uppercase leading-3 tracking-[0.16em] text-slate-500 sm:block">FORECAST BASELINE</span>
+              <span className="block truncate text-lg font-bold leading-5 text-slate-950">AdMate Foresight</span>
+              <em className="hidden text-[10px] font-semibold not-italic uppercase leading-3 tracking-[0.16em] text-slate-500 sm:block">forecast baseline</em>
             </div>
           </Link>
 
