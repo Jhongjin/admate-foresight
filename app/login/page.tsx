@@ -76,7 +76,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <div className="foresight-login-stage min-h-[calc(100dvh-9rem)] py-8 sm:py-10">
-      <section className="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,1.08fr)_430px]">
+      <section className="mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,390px)] xl:grid-cols-[minmax(0,1.08fr)_430px]">
         <div className="foresight-gate-brief">
           <div className="foresight-gate-pill-row" aria-label="Foresight 서비스 정보">
             <span>FORESIGHT.ADMATE.AI.KR</span>
