@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import ForesightTextMaterialCanvas from './ForesightTextMaterialCanvas';
 import ReactiveHeadline from '@/components/ReactiveHeadline';
 import { resolveForesightLoginState } from '@/lib/auth/foresightAccessCopy';
 import {
@@ -56,13 +57,6 @@ const forecastReadinessRows = [
     detail: '권한 확인 뒤 충분한 기준이 모일 때 예측 구간을 표시합니다.',
     tone: 'hold',
   },
-] as const;
-
-const textMaterialRows = [
-  ['BASELINE', 'TREND', 'RANGE'],
-  ['MODEL RUN', 'FORECAST'],
-  ['SCENARIO', 'VARIANCE', 'RANGE'],
-  ['BASELINE', 'FORECAST', 'TREND'],
 ] as const;
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -276,20 +270,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
           </aside>
 
-          <div className="foresight-gate-text-material" aria-label="Foresight baseline forecast signal">
-            {textMaterialRows.map((row, rowIndex) => (
-              <div key={`signal-row-${rowIndex}`} className="foresight-gate-text-material-row">
-                {row.map((item, itemIndex) => (
-                  <span
-                    key={`${item}-${rowIndex}-${itemIndex}`}
-                    data-weight={(rowIndex + itemIndex) % 3}
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
+          <ForesightTextMaterialCanvas />
         </div>
       </section>
     </div>
