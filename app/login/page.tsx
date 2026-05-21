@@ -58,6 +58,13 @@ const forecastReadinessRows = [
   },
 ] as const;
 
+const textMaterialRows = [
+  ['BASELINE', 'TREND', 'RANGE'],
+  ['MODEL RUN', 'FORECAST'],
+  ['SCENARIO', 'VARIANCE', 'RANGE'],
+  ['BASELINE', 'FORECAST', 'TREND'],
+] as const;
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const nextPath = sanitizeForesightNextPath(params?.next);
@@ -193,80 +200,97 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         </div>
 
-        <aside className="foresight-gate-action">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
-              AdMate Foresight
-            </p>
-            <h2 className="mt-2 text-2xl font-extrabold leading-tight text-slate-950">
-              AdMate 계정으로 로그인
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-stone-500">
-              회사 계정으로 로그인해 Foresight 작업 공간을 이용하세요.
-            </p>
-          </div>
+        <div className="foresight-gate-action-stack">
+          <aside className="foresight-gate-action">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
+                AdMate Foresight
+              </p>
+              <h2 className="mt-2 text-2xl font-extrabold leading-tight text-slate-950">
+                AdMate 계정으로 로그인
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-stone-500">
+                회사 계정으로 로그인해 Foresight 작업 공간을 이용하세요.
+              </p>
+            </div>
 
-          <div className="foresight-gate-account-block" aria-label="Foresight 로그인 정보">
-            <div className="foresight-gate-field">
-              <label htmlFor="foresight-account-preview">이메일</label>
-              <div className="foresight-gate-email-field">
-                <input
-                  id="foresight-account-preview"
-                  type="text"
-                  inputMode="email"
-                  autoComplete="username"
-                  placeholder="name"
-                  aria-describedby="foresight-email-domain foresight-login-helper"
-                />
-                <span id="foresight-email-domain">@nasmedia.co.kr</span>
+            <div className="foresight-gate-account-block" aria-label="Foresight 로그인 정보">
+              <div className="foresight-gate-field">
+                <label htmlFor="foresight-account-preview">이메일</label>
+                <div className="foresight-gate-email-field">
+                  <input
+                    id="foresight-account-preview"
+                    type="text"
+                    inputMode="email"
+                    autoComplete="username"
+                    placeholder="name"
+                    aria-describedby="foresight-email-domain foresight-login-helper"
+                  />
+                  <span id="foresight-email-domain">@nasmedia.co.kr</span>
+                </div>
               </div>
+              <div className="foresight-gate-field">
+                <label htmlFor="foresight-password-preview">비밀번호</label>
+                <input
+                  id="foresight-password-preview"
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder="비밀번호를 입력하세요"
+                  className="foresight-gate-password-field"
+                  aria-describedby="foresight-login-helper"
+                />
+              </div>
+              <p id="foresight-login-helper" className="foresight-gate-login-helper">
+                AdMate 인증 화면에서 회사 계정을 확인합니다.
+              </p>
             </div>
-            <div className="foresight-gate-field">
-              <label htmlFor="foresight-password-preview">비밀번호</label>
-              <input
-                id="foresight-password-preview"
-                type="password"
-                autoComplete="current-password"
-                placeholder="비밀번호를 입력하세요"
-                className="foresight-gate-password-field"
-                aria-describedby="foresight-login-helper"
-              />
+
+            <div className="foresight-gate-desktop-primary-action">
+              <a
+                href={renderedPrimaryActionHref}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
+              >
+                {renderedPrimaryActionLabel}
+              </a>
             </div>
-            <p id="foresight-login-helper" className="foresight-gate-login-helper">
-              AdMate 인증 화면에서 회사 계정을 확인합니다.
-            </p>
-          </div>
 
-          <div className="foresight-gate-desktop-primary-action">
-            <a
-              href={renderedPrimaryActionHref}
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
-            >
-              {renderedPrimaryActionLabel}
-            </a>
-          </div>
+            <div className="space-y-3 rounded-lg border border-stone-200 bg-[#f7f7f2] p-4">
+              <p className="text-sm font-bold text-slate-950">
+                Foresight 이용 권한이 필요하신가요?
+              </p>
+              <p className="text-xs leading-5 text-stone-500">
+                권한이 없거나 처음 이용하는 경우, AdMate에서 Foresight 이용 권한을 요청해주세요.
+              </p>
+              <a
+                href={FORESIGHT_ACCESS_REQUEST_URL}
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
+              >
+                Foresight 이용 권한 요청
+              </a>
+              <a
+                href="https://home.admate.ai.kr"
+                className="inline-flex w-full items-center justify-center text-sm font-semibold text-stone-500 transition-colors hover:text-slate-950"
+              >
+                AdMate 홈페이지로 이동
+              </a>
+            </div>
+          </aside>
 
-          <div className="space-y-3 rounded-lg border border-stone-200 bg-[#f7f7f2] p-4">
-            <p className="text-sm font-bold text-slate-950">
-              Foresight 이용 권한이 필요하신가요?
-            </p>
-            <p className="text-xs leading-5 text-stone-500">
-              권한이 없거나 처음 이용하는 경우, AdMate에서 Foresight 이용 권한을 요청해주세요.
-            </p>
-            <a
-              href={FORESIGHT_ACCESS_REQUEST_URL}
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
-            >
-              Foresight 이용 권한 요청
-            </a>
-            <a
-              href="https://home.admate.ai.kr"
-              className="inline-flex w-full items-center justify-center text-sm font-semibold text-stone-500 transition-colors hover:text-slate-950"
-            >
-              AdMate 홈페이지로 이동
-            </a>
+          <div className="foresight-gate-text-material" aria-label="Foresight baseline forecast signal">
+            {textMaterialRows.map((row, rowIndex) => (
+              <div key={`signal-row-${rowIndex}`} className="foresight-gate-text-material-row">
+                {row.map((item, itemIndex) => (
+                  <span
+                    key={`${item}-${rowIndex}-${itemIndex}`}
+                    data-weight={(rowIndex + itemIndex) % 3}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            ))}
           </div>
-        </aside>
+        </div>
       </section>
     </div>
   );
