@@ -1,6 +1,3 @@
-/* Pretendard — CDN dynamic subset (한글 + 영문 최적화) */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css');
-
 @import "tailwindcss";
 
 :root {
@@ -14,7 +11,8 @@
   --foresight-teal-soft: #d8f3ec;
   --foresight-amber: #b7791f;
   --foresight-amber-soft: #f7e8c7;
-  --font-primary: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+  --foresight-analysis-blue: #315a8c;
+  --font-primary: var(--font-geist-sans, 'Geist', 'Geist Fallback'), 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI',
                   Helvetica, Arial, sans-serif;
 }
 
@@ -595,7 +593,7 @@ h1, h2, h3 {
   flex-direction: column;
   gap: 1.5rem;
   justify-content: flex-start;
-  border-top: 5px solid #B7791F;
+  border-top: 3px solid var(--foresight-analysis-blue);
   padding: clamp(1.5rem, 3vw, 2.5rem);
 }
 

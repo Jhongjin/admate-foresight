@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
+import { Geist } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { hasValidForesightSession } from "@/lib/auth/foresightSession";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+  display: "swap",
+  adjustFontFallback: false,
+});
 
 export const metadata: Metadata = {
   title: "AdMate Foresight — 성과 예측 시뮬레이터",
@@ -21,7 +29,7 @@ export default async function RootLayout({
   const isAuthenticated = await hasValidForesightSession();
 
   return (
-    <html lang="ko" className="h-full antialiased">
+    <html lang="ko" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foresight-ink)]">
         <Navigation isAuthenticated={isAuthenticated} />
         <main className="flex-1 max-w-[1500px] mx-auto w-full px-4 pb-6 pt-24 sm:px-6 lg:px-8">
