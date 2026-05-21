@@ -624,7 +624,7 @@ h1, h2, h3 {
   overflow: hidden;
   border: 1px solid rgba(120, 113, 108, 0.28);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
+  background: #fff;
   transition:
     border-color 220ms cubic-bezier(0.32, 0.72, 0, 1),
     box-shadow 220ms cubic-bezier(0.32, 0.72, 0, 1);
@@ -639,7 +639,7 @@ h1, h2, h3 {
   min-width: 0;
   flex: 1;
   border: 0;
-  background: transparent;
+  background: #fff;
   padding: 0.65rem 0.75rem;
   color: var(--foresight-ink);
   font-size: 0.875rem;
@@ -654,11 +654,11 @@ h1, h2, h3 {
 .foresight-gate-email-field span {
   flex-shrink: 0;
   border-left: 1px solid rgba(120, 113, 108, 0.28);
-  background: rgba(216, 243, 236, 0.58);
+  background: #f8f8f5;
   padding: 0.65rem 0.75rem;
   color: #4b6556;
   font-size: 0.875rem;
-  font-weight: 800;
+  font-weight: 400;
   white-space: nowrap;
 }
 
@@ -666,7 +666,7 @@ h1, h2, h3 {
   width: 100%;
   border: 1px solid rgba(120, 113, 108, 0.28);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
+  background: #fff;
   padding: 0.65rem 0.75rem;
   color: var(--foresight-ink);
   font-size: 0.875rem;
