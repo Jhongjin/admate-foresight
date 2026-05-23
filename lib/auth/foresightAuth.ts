@@ -15,6 +15,7 @@ const FORESIGHT_NEXT_ORIGIN = 'https://foresight.admate.ai.kr';
 const DEFAULT_NEXT_PATH = '/';
 const MAX_NEXT_LENGTH = 512;
 const CORE_PRODUCT_START_PATH = '/auth/product/start';
+const CORE_PRODUCT_LOGIN_PATH = '/auth/product/login';
 
 const ALLOWED_NEXT_PATHS = new Set([
   '/',
@@ -110,6 +111,13 @@ export function buildForesightCoreStartUrl(rawNext: unknown): string | null {
   url.searchParams.set('product', FORESIGHT_PRODUCT_ID);
   url.searchParams.set('next', next);
   return url.toString();
+}
+
+export function buildForesightCoreProductLoginUrl(): string {
+  const coreBaseUrl = getAdMateCoreBaseUrl();
+  if (!coreBaseUrl) return 'https://sentinel.admate.ai.kr/auth/product/login';
+
+  return new URL(CORE_PRODUCT_LOGIN_PATH, coreBaseUrl).toString();
 }
 
 export function getForesightAuthRequiredResponse() {

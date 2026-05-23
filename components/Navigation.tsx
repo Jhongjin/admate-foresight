@@ -123,35 +123,40 @@ const siteItems = [
     active: false,
   },
   {
-    href: 'https://sentinel.admate.ai.kr/auth/product/start?product=compass&next=/',
     label: 'Compass',
     description: '광고 정책 근거 확인',
+    directHref: 'https://compass.admate.ai.kr',
+    handoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=compass&next=/',
     icon: 'compass',
     active: false,
   },
   {
-    href: 'https://sentinel.admate.ai.kr',
     label: 'Sentinel',
     description: '상태 모니터링과 이상 알림',
+    directHref: 'https://sentinel.admate.ai.kr',
     icon: 'sentinel',
     active: false,
   },
   {
-    href: 'https://sentinel.admate.ai.kr/auth/product/start?product=lens&next=/',
     label: 'Lens',
     description: '광고 화면 확인과 기록',
+    directHref: 'https://lens.admate.ai.kr',
+    handoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=lens&next=/',
     icon: 'lens',
     active: false,
   },
   {
-    href: 'https://sentinel.admate.ai.kr/auth/product/start?product=foresight&next=/',
     label: 'Foresight',
     description: '성과 예측과 기준선 관리',
+    directHref: 'https://foresight.admate.ai.kr',
+    handoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=foresight&next=/',
     icon: 'foresight',
     active: true,
   },
 ] satisfies Array<{
-  href: string;
+  href?: string;
+  directHref?: string;
+  handoffHref?: string;
   label: string;
   description: string;
   icon: SiteIconName;
@@ -244,9 +249,14 @@ export default function Navigation({ isAuthenticated = false, sessionProfile = n
                   <p className="px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#68707C]">ADMATE SUITE</p>
                   <div className="mb-1.5 h-px bg-[#D8DEE6]" />
                   {siteItems.map((site) => (
+                    (() => {
+                      const href = showSignedIn && site.handoffHref
+                        ? site.handoffHref
+                        : site.directHref ?? site.href ?? '#';
+                      return (
                     <Link
                       key={site.label}
-                      href={site.href}
+                      href={href}
                       role="menuitem"
                       className="grid min-h-[58px] grid-cols-[40px_minmax(0,1fr)] items-center gap-2.5 rounded-[8px] px-2.5 py-2 transition-colors hover:bg-[#F4F7FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#172033]"
                     >
@@ -261,6 +271,8 @@ export default function Navigation({ isAuthenticated = false, sessionProfile = n
                         <span className="mt-0.5 block text-[12px] font-medium leading-[17px] text-[#68707C]">{site.description}</span>
                       </span>
                     </Link>
+                      );
+                    })()
                   ))}
                 </div>
               ) : null}

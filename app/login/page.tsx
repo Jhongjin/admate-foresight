@@ -4,13 +4,12 @@ import ForesightTextMaterialCanvas from './ForesightTextMaterialCanvas';
 import ReactiveHeadline from '@/components/ReactiveHeadline';
 import { getForesightLoginCopy, resolveForesightLoginState } from '@/lib/auth/foresightAccessCopy';
 import {
-  buildForesightCoreStartUrl,
+  buildForesightCoreProductLoginUrl,
   FORESIGHT_ACCESS_REQUEST_URL,
   sanitizeForesightNextPath,
 } from '@/lib/auth/foresightAuth';
 import {
   hasValidForesightSession,
-  isForesightHandoffConfigured,
 } from '@/lib/auth/foresightSession';
 
 export const metadata: Metadata = {
@@ -68,16 +67,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   const loginState = resolveForesightLoginState(params);
   const loginCopy = getForesightLoginCopy(loginState);
-  const coreStartUrl = isForesightHandoffConfigured()
-    ? buildForesightCoreStartUrl(nextPath)
+  const coreProductLoginUrl = buildForesightCoreProductLoginUrl();
+  const loginError = Array.isArray(params?.login_error) ? params?.login_error[0] : params?.login_error;
+  const loginErrorMessage = loginError
+    ? loginError === 'missing_credentials'
+      ? '이메일과 비밀번호를 입력해주세요.'
+      : '계정 정보를 확인해주세요.'
     : null;
-  const shouldRequestAccess = loginState === 'handoff_disabled' || !coreStartUrl;
-  const renderedPrimaryActionHref = shouldRequestAccess
-    ? FORESIGHT_ACCESS_REQUEST_URL
-    : coreStartUrl ?? FORESIGHT_ACCESS_REQUEST_URL;
-  const renderedPrimaryActionLabel = shouldRequestAccess
-    ? 'AdMate 이용 권한 요청'
-    : loginCopy.primaryAction;
 
   return (
     <div className="foresight-login-stage min-h-[calc(100dvh-9rem)] py-8 sm:py-10">
@@ -115,10 +111,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
           <div className="foresight-gate-mobile-action">
             <a
-              href={renderedPrimaryActionHref}
+              href="#foresight-login-form"
               className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
             >
-              {renderedPrimaryActionLabel}
+              로그인하고 계속
             </a>
             <p>{loginCopy.helper}</p>
           </div>
@@ -224,15 +220,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </div>
             ) : null}
 
+            <form id="foresight-login-form" action={coreProductLoginUrl} method="post" className="space-y-5">
+              <input type="hidden" name="product" value="foresight" />
+              <input type="hidden" name="next" value={nextPath} />
             <div className="foresight-gate-account-block" aria-label="Foresight 로그인 정보">
               <div className="foresight-gate-field">
                 <label htmlFor="foresight-account-preview">이메일</label>
                 <div className="foresight-gate-email-field">
                   <input
                     id="foresight-account-preview"
+                    name="email_local_part"
                     type="text"
                     inputMode="email"
                     autoComplete="username"
+                    required
                     placeholder="name"
                     aria-describedby="foresight-email-domain foresight-login-helper"
                   />
@@ -243,8 +244,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 <label htmlFor="foresight-password-preview">비밀번호</label>
                 <input
                   id="foresight-password-preview"
+                  name="password"
                   type="password"
                   autoComplete="current-password"
+                  required
                   placeholder="비밀번호를 입력하세요"
                   className="foresight-gate-password-field"
                   aria-describedby="foresight-login-helper"
@@ -254,15 +257,21 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 AdMate 인증 화면에서 회사 계정을 확인합니다.
               </p>
             </div>
+            {loginErrorMessage ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">
+                {loginErrorMessage}
+              </div>
+            ) : null}
 
             <div className="foresight-gate-desktop-primary-action">
-              <a
-                href={renderedPrimaryActionHref}
+              <button
+                type="submit"
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
               >
-                {renderedPrimaryActionLabel}
-              </a>
+                로그인하고 계속
+              </button>
             </div>
+            </form>
 
             <div className="space-y-3 rounded-lg border border-stone-200 bg-[#f7f7f2] p-4">
               <p className="text-sm font-bold text-slate-950">
