@@ -11,6 +11,11 @@ interface NavigationProps {
     email: string | null;
     accessLabel: string | null;
   } | null;
+  adminNavigation?: {
+    canManageAccessRequests: boolean;
+    canManageOrganizations: boolean;
+    canManageUsers: boolean;
+  } | null;
 }
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -134,6 +139,7 @@ const siteItems = [
     label: 'Sentinel',
     description: '상태 모니터링과 이상 알림',
     directHref: 'https://sentinel.admate.ai.kr',
+    handoffHref: 'https://sentinel.admate.ai.kr/dashboard',
     icon: 'sentinel',
     active: false,
   },
@@ -164,8 +170,15 @@ const siteItems = [
 }>;
 
 const ACCOUNT_URL = 'https://sentinel.admate.ai.kr/account';
+const ACCESS_REQUESTS_URL = 'https://sentinel.admate.ai.kr/users/access-requests';
+const ORGANIZATIONS_URL = 'https://sentinel.admate.ai.kr/users/organizations';
+const USERS_URL = 'https://sentinel.admate.ai.kr/users';
 
-export default function Navigation({ isAuthenticated = false, sessionProfile = null }: NavigationProps) {
+export default function Navigation({
+  isAuthenticated = false,
+  sessionProfile = null,
+  adminNavigation = null,
+}: NavigationProps) {
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [siteOpen, setSiteOpen] = useState(false);
@@ -177,7 +190,10 @@ export default function Navigation({ isAuthenticated = false, sessionProfile = n
   const displayName = sessionProfile?.displayName || 'AdMate 계정';
   const profileEmail = sessionProfile?.email || '';
   const accessLabel = sessionProfile?.accessLabel || 'Foresight 사용 권한';
-  const initial = displayName.trim().slice(0, 1).toUpperCase() || 'A';
+  const canShowAdminSeparator =
+    Boolean(adminNavigation?.canManageAccessRequests) ||
+    Boolean(adminNavigation?.canManageOrganizations) ||
+    Boolean(adminNavigation?.canManageUsers);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -283,10 +299,9 @@ export default function Navigation({ isAuthenticated = false, sessionProfile = n
                 <button
                   type="button"
                   onClick={() => setProfileOpen((current) => !current)}
-                  className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:h-10"
+                  className="inline-flex h-9 max-w-[190px] items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:h-10"
                 >
-                  <span className="grid h-7 w-7 place-items-center rounded-md bg-[#2764D9] text-xs font-black text-white">{initial}</span>
-                  <span className="hidden max-w-[150px] truncate sm:inline">{displayName}</span>
+                  <span className="max-w-[150px] truncate">{displayName}</span>
                   <ChevronIcon open={profileOpen} />
                 </button>
                 {profileOpen ? (
@@ -297,6 +312,22 @@ export default function Navigation({ isAuthenticated = false, sessionProfile = n
                       <p className="mt-1 truncate text-xs font-bold text-[#2764D9]">{accessLabel}</p>
                     </div>
                     <div className="my-1 h-px bg-slate-100" />
+                    {adminNavigation?.canManageAccessRequests ? (
+                      <Link href={ACCESS_REQUESTS_URL} className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                        권한 요청 관리
+                      </Link>
+                    ) : null}
+                    {adminNavigation?.canManageOrganizations ? (
+                      <Link href={ORGANIZATIONS_URL} className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                        조직 관리
+                      </Link>
+                    ) : null}
+                    {adminNavigation?.canManageUsers ? (
+                      <Link href={USERS_URL} className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                        사용자 관리
+                      </Link>
+                    ) : null}
+                    {canShowAdminSeparator ? <div className="my-1 h-px bg-slate-100" /> : null}
                     <Link href={ACCOUNT_URL} className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
                       내 계정
                     </Link>

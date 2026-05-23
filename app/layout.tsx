@@ -31,7 +31,11 @@ export default async function RootLayout({
   return (
     <html lang="ko" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foresight-ink)]">
-        <Navigation isAuthenticated={session !== null} sessionProfile={session?.profile ?? null} />
+        <Navigation
+          isAuthenticated={session !== null}
+          sessionProfile={session?.profile ?? null}
+          adminNavigation={session?.adminNavigation ?? null}
+        />
         <main className="flex-1 max-w-[1500px] mx-auto w-full px-4 pb-6 pt-24 sm:px-6 lg:px-8">
           {children}
         </main>

@@ -18,6 +18,11 @@ const MAX_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
 const HANDOFF_REDEEM_PATH = '/api/auth/handoff/redeem';
 const HANDOFF_CALLBACK_URL = 'https://foresight.admate.ai.kr/auth/handoff';
 const HANDOFF_CODE_PATTERN = /^[A-Za-z0-9._~-]{16,512}$/;
+const DEFAULT_ADMIN_NAVIGATION: ForesightAdminNavigation = {
+  canManageAccessRequests: false,
+  canManageOrganizations: false,
+  canManageUsers: false,
+};
 
 interface ForesightSessionPayload {
   version: 1;
@@ -25,6 +30,7 @@ interface ForesightSessionPayload {
   subject: string;
   expiresAt: number;
   profile?: ForesightSessionProfile | null;
+  adminNavigation?: ForesightAdminNavigation;
 }
 
 export interface ForesightSessionProfile {
@@ -33,10 +39,17 @@ export interface ForesightSessionProfile {
   accessLabel: string | null;
 }
 
+export interface ForesightAdminNavigation {
+  canManageAccessRequests: boolean;
+  canManageOrganizations: boolean;
+  canManageUsers: boolean;
+}
+
 export interface ForesightSession {
   subject: string;
   expiresAt: number;
   profile: ForesightSessionProfile | null;
+  adminNavigation: ForesightAdminNavigation;
 }
 
 interface RedeemedForesightSession {
@@ -44,6 +57,7 @@ interface RedeemedForesightSession {
   expiresAt: number;
   returnPath: string;
   profile: ForesightSessionProfile | null;
+  adminNavigation: ForesightAdminNavigation;
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -137,6 +151,20 @@ function parseSessionProfile(value: unknown): ForesightSessionProfile | null {
   return { displayName, email, accessLabel };
 }
 
+function parseAdminNavigation(value: unknown): ForesightAdminNavigation {
+  if (!isPlainRecord(value)) return DEFAULT_ADMIN_NAVIGATION;
+
+  return {
+    canManageAccessRequests: Boolean(
+      value.can_manage_access_requests ?? value.canManageAccessRequests,
+    ),
+    canManageOrganizations: Boolean(
+      value.can_manage_organizations ?? value.canManageOrganizations,
+    ),
+    canManageUsers: Boolean(value.can_manage_users ?? value.canManageUsers),
+  };
+}
+
 function hasForesightAccess(payload: JsonRecord): boolean {
   const product = isPlainRecord(payload.product) ? payload.product : null;
   if (product) {
@@ -209,6 +237,7 @@ function parseRedeemPayload(payload: unknown): RedeemedForesightSession | null {
         readString(product.label) ??
         'Foresight 사용 권한',
     },
+    adminNavigation: parseAdminNavigation(payload.admin_navigation ?? payload.adminNavigation),
   };
 }
 
@@ -225,6 +254,7 @@ function createSignedSessionCookie(session: RedeemedForesightSession): string | 
     subject: session.subject,
     expiresAt: session.expiresAt,
     profile: session.profile,
+    adminNavigation: session.adminNavigation,
   };
 
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
@@ -269,6 +299,7 @@ export function readForesightSessionCookie(rawCookie: string | undefined): Fores
       subject,
       expiresAt,
       profile: parseSessionProfile(payload.profile),
+      adminNavigation: parseAdminNavigation(payload.adminNavigation),
     };
   } catch {
     return null;
