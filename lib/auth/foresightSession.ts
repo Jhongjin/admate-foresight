@@ -54,7 +54,9 @@ function getSessionSecret(): string | null {
 }
 
 function getProductSecret(): string | null {
-  const value = process.env.FORESIGHT_HANDOFF_PRODUCT_SECRET?.trim();
+  const value =
+    process.env.FORESIGHT_HANDOFF_PRODUCT_SECRET?.trim() ||
+    process.env.ADMATE_AUTH_HANDOFF_FORESIGHT_KEY?.trim();
   return value || null;
 }
 
