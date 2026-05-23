@@ -6,6 +6,11 @@ import { useEffect, useRef, useState } from 'react';
 
 interface NavigationProps {
   isAuthenticated?: boolean;
+  sessionProfile?: {
+    displayName: string | null;
+    email: string | null;
+    accessLabel: string | null;
+  } | null;
 }
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -153,7 +158,9 @@ const siteItems = [
   active: boolean;
 }>;
 
-export default function Navigation({ isAuthenticated = false }: NavigationProps) {
+const ACCOUNT_URL = 'https://sentinel.admate.ai.kr/account';
+
+export default function Navigation({ isAuthenticated = false, sessionProfile = null }: NavigationProps) {
   const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [siteOpen, setSiteOpen] = useState(false);
@@ -162,6 +169,10 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
   const profileRef = useRef<HTMLDivElement>(null);
   const isAuthRoute = pathname === '/login' || pathname === '/reset-password';
   const showSignedIn = isAuthenticated && !isAuthRoute;
+  const displayName = sessionProfile?.displayName || 'AdMate 계정';
+  const profileEmail = sessionProfile?.email || '';
+  const accessLabel = sessionProfile?.accessLabel || 'Foresight 사용 권한';
+  const initial = displayName.trim().slice(0, 1).toUpperCase() || 'A';
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -262,19 +273,20 @@ export default function Navigation({ isAuthenticated = false }: NavigationProps)
                   onClick={() => setProfileOpen((current) => !current)}
                   className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:h-10"
                 >
-                  <span className="grid h-7 w-7 place-items-center rounded-md bg-slate-950 text-xs font-black text-white">A</span>
-                  <span className="hidden sm:inline">AdMate 계정</span>
+                  <span className="grid h-7 w-7 place-items-center rounded-md bg-[#2764D9] text-xs font-black text-white">{initial}</span>
+                  <span className="hidden max-w-[150px] truncate sm:inline">{displayName}</span>
                   <ChevronIcon open={profileOpen} />
                 </button>
                 {profileOpen ? (
-                  <div className="absolute right-0 mt-2 w-60 max-w-[calc(100vw-1.5rem)] rounded-md border border-slate-200 bg-white p-2 text-slate-900 shadow-xl">
+                  <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-md border border-[#D7DCE3] bg-white p-2 text-[#172033] shadow-xl">
                     <div className="px-3 py-2">
-                      <p className="text-sm font-bold">AdMate 계정</p>
-                      <p className="mt-0.5 text-xs font-medium text-slate-500">로그인됨</p>
+                      <p className="text-sm font-bold">{displayName}</p>
+                      {profileEmail ? <p className="mt-0.5 truncate text-xs font-medium text-slate-500">{profileEmail}</p> : null}
+                      <p className="mt-1 truncate text-xs font-bold text-[#2764D9]">{accessLabel}</p>
                     </div>
                     <div className="my-1 h-px bg-slate-100" />
-                    <Link href="/account" className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
-                      마이페이지
+                    <Link href={ACCOUNT_URL} className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                      내 계정
                     </Link>
                     <button
                       type="button"

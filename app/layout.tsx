@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
-import { hasValidForesightSession } from "@/lib/auth/foresightSession";
+import { getForesightSession } from "@/lib/auth/foresightSession";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,12 +26,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const isAuthenticated = await hasValidForesightSession();
+  const session = await getForesightSession();
 
   return (
     <html lang="ko" className={`${geistSans.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[var(--background)] text-[var(--foresight-ink)]">
-        <Navigation isAuthenticated={isAuthenticated} />
+        <Navigation isAuthenticated={session !== null} sessionProfile={session?.profile ?? null} />
         <main className="flex-1 max-w-[1500px] mx-auto w-full px-4 pb-6 pt-24 sm:px-6 lg:px-8">
           {children}
         </main>

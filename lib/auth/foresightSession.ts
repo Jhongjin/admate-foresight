@@ -23,11 +23,25 @@ interface ForesightSessionPayload {
   product: typeof FORESIGHT_PRODUCT_ID;
   subject: string;
   expiresAt: number;
+  profile?: ForesightSessionProfile | null;
+}
+
+export interface ForesightSessionProfile {
+  displayName: string | null;
+  email: string | null;
+  accessLabel: string | null;
+}
+
+export interface ForesightSession {
+  subject: string;
+  expiresAt: number;
+  profile: ForesightSessionProfile | null;
 }
 
 interface RedeemedForesightSession {
   subject: string;
   expiresAt: number;
+  profile: ForesightSessionProfile | null;
 }
 
 type JsonRecord = Record<string, unknown>;
@@ -108,6 +122,17 @@ function parseExpiry(payload: JsonRecord): number | null {
   return null;
 }
 
+function parseSessionProfile(value: unknown): ForesightSessionProfile | null {
+  if (!isPlainRecord(value)) return null;
+
+  const displayName = readString(value.displayName) ?? readString(value.display_name) ?? null;
+  const email = readString(value.email) ?? null;
+  const accessLabel = readString(value.accessLabel) ?? readString(value.access_label) ?? null;
+
+  if (!displayName && !email && !accessLabel) return null;
+  return { displayName, email, accessLabel };
+}
+
 function hasForesightAccess(payload: JsonRecord): boolean {
   const product = isPlainRecord(payload.product) ? payload.product : null;
   if (product) {
@@ -140,6 +165,7 @@ function parseRedeemPayload(payload: unknown): RedeemedForesightSession | null {
 
   const account = isPlainRecord(payload.account) ? payload.account : {};
   const profile = isPlainRecord(payload.profile) ? payload.profile : {};
+  const product = isPlainRecord(payload.product) ? payload.product : {};
   const user = isPlainRecord(payload.user) ? payload.user : {};
   const subject =
     readString(payload.subject) ??
@@ -156,6 +182,22 @@ function parseRedeemPayload(payload: unknown): RedeemedForesightSession | null {
   return {
     subject,
     expiresAt,
+    profile: {
+      displayName:
+        readString(profile.display_name) ??
+        readString(profile.displayName) ??
+        readString(profile.name) ??
+        readString(account.display_name) ??
+        readString(account.displayName) ??
+        readString(user.name) ??
+        null,
+      email: readString(profile.email) ?? readString(account.email) ?? readString(user.email) ?? null,
+      accessLabel:
+        readString(product.access_label) ??
+        readString(product.accessLabel) ??
+        readString(product.label) ??
+        'Foresight 사용 권한',
+    },
   };
 }
 
@@ -171,6 +213,7 @@ function createSignedSessionCookie(session: RedeemedForesightSession): string | 
     product: FORESIGHT_PRODUCT_ID,
     subject: session.subject,
     expiresAt: session.expiresAt,
+    profile: session.profile,
   };
 
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
@@ -190,34 +233,48 @@ export function isForesightHandoffConfigured(): boolean {
   );
 }
 
-export function verifyForesightSessionCookie(rawCookie: string | undefined): boolean {
+export function readForesightSessionCookie(rawCookie: string | undefined): ForesightSession | null {
   const secret = getSessionSecret();
-  if (!secret || !rawCookie) return false;
+  if (!secret || !rawCookie) return null;
 
   const [encodedPayload, signature, extra] = rawCookie.split('.');
-  if (!encodedPayload || !signature || extra !== undefined) return false;
-  if (!safeEqual(signature, signPayload(encodedPayload, secret))) return false;
+  if (!encodedPayload || !signature || extra !== undefined) return null;
+  if (!safeEqual(signature, signPayload(encodedPayload, secret))) return null;
 
   const decoded = base64UrlDecode(encodedPayload);
-  if (!decoded) return false;
+  if (!decoded) return null;
 
   try {
     const payload = JSON.parse(decoded) as unknown;
-    if (!isPlainRecord(payload)) return false;
-    if (payload.version !== SESSION_VERSION || payload.product !== FORESIGHT_PRODUCT_ID) return false;
-    if (!readString(payload.subject)) return false;
+    if (!isPlainRecord(payload)) return null;
+    if (payload.version !== SESSION_VERSION || payload.product !== FORESIGHT_PRODUCT_ID) return null;
+    const subject = readString(payload.subject);
+    if (!subject) return null;
 
     const expiresAt = readNumber(payload.expiresAt);
-    if (!expiresAt) return false;
-    return expiresAt > Math.floor(Date.now() / 1000);
+    if (!expiresAt || expiresAt <= Math.floor(Date.now() / 1000)) return null;
+
+    return {
+      subject,
+      expiresAt,
+      profile: parseSessionProfile(payload.profile),
+    };
   } catch {
-    return false;
+    return null;
   }
 }
 
-export async function hasValidForesightSession(): Promise<boolean> {
+export function verifyForesightSessionCookie(rawCookie: string | undefined): boolean {
+  return readForesightSessionCookie(rawCookie) !== null;
+}
+
+export async function getForesightSession(): Promise<ForesightSession | null> {
   const cookieStore = await cookies();
-  return verifyForesightSessionCookie(cookieStore.get(FORESIGHT_SESSION_COOKIE_NAME)?.value);
+  return readForesightSessionCookie(cookieStore.get(FORESIGHT_SESSION_COOKIE_NAME)?.value);
+}
+
+export async function hasValidForesightSession(): Promise<boolean> {
+  return (await getForesightSession()) !== null;
 }
 
 export function setForesightSessionCookie(
