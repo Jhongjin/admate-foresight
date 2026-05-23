@@ -7,6 +7,7 @@ import {
   FORESIGHT_PRODUCT_ID,
   getAdMateCoreBaseUrl,
   isForesightHandoffEnabled,
+  sanitizeForesightNextPath,
 } from '@/lib/auth/foresightAuth';
 import { isProductionRuntime } from '@/lib/security';
 
@@ -41,6 +42,7 @@ export interface ForesightSession {
 interface RedeemedForesightSession {
   subject: string;
   expiresAt: number;
+  returnPath: string;
   profile: ForesightSessionProfile | null;
 }
 
@@ -166,6 +168,7 @@ function parseRedeemPayload(payload: unknown): RedeemedForesightSession | null {
   const account = isPlainRecord(payload.account) ? payload.account : {};
   const profile = isPlainRecord(payload.profile) ? payload.profile : {};
   const product = isPlainRecord(payload.product) ? payload.product : {};
+  const session = isPlainRecord(payload.session) ? payload.session : {};
   const user = isPlainRecord(payload.user) ? payload.user : {};
   const subject =
     readString(payload.subject) ??
@@ -182,6 +185,12 @@ function parseRedeemPayload(payload: unknown): RedeemedForesightSession | null {
   return {
     subject,
     expiresAt,
+    returnPath: sanitizeForesightNextPath(
+      readString(payload.return_path) ??
+        readString(payload.returnPath) ??
+        readString(session.return_path) ??
+        readString(session.returnPath),
+    ),
     profile: {
       displayName:
         readString(profile.display_name) ??

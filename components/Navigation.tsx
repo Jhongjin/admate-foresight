@@ -123,7 +123,7 @@ const siteItems = [
     active: false,
   },
   {
-    href: 'https://compass.admate.ai.kr',
+    href: 'https://sentinel.admate.ai.kr/auth/product/start?product=compass&next=/',
     label: 'Compass',
     description: '광고 정책 근거 확인',
     icon: 'compass',
@@ -137,14 +137,14 @@ const siteItems = [
     active: false,
   },
   {
-    href: 'https://lens.admate.ai.kr',
+    href: 'https://sentinel.admate.ai.kr/auth/product/start?product=lens&next=/',
     label: 'Lens',
     description: '광고 화면 확인과 기록',
     icon: 'lens',
     active: false,
   },
   {
-    href: 'https://foresight.admate.ai.kr',
+    href: 'https://sentinel.admate.ai.kr/auth/product/start?product=foresight&next=/',
     label: 'Foresight',
     description: '성과 예측과 기준선 관리',
     icon: 'foresight',

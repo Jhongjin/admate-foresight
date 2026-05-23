@@ -30,26 +30,32 @@ function redirectToLogin(
   return applyHandoffRedirectHeaders(response);
 }
 
+function hasExactlyOneCodeQuery(searchParams: URLSearchParams): boolean {
+  const keys = Array.from(searchParams.keys());
+  return keys.length === 1 && keys[0] === 'code';
+}
+
 export async function GET(request: NextRequest) {
-  const nextPath = sanitizeForesightNextPath(request.nextUrl.searchParams.get('next'));
-  const code = request.nextUrl.searchParams.get('code');
+  const fallbackNextPath = sanitizeForesightNextPath(undefined);
+  const codeValues = request.nextUrl.searchParams.getAll('code');
+  const code = codeValues[0] ?? null;
 
   if (!isForesightHandoffConfigured()) {
-    return redirectToLogin(request, nextPath, 'disabled');
+    return redirectToLogin(request, fallbackNextPath, 'disabled');
   }
 
-  if (!isValidForesightHandoffCode(code)) {
-    return redirectToLogin(request, nextPath, 'invalid');
+  if (codeValues.length !== 1 || !hasExactlyOneCodeQuery(request.nextUrl.searchParams) || !isValidForesightHandoffCode(code)) {
+    return redirectToLogin(request, fallbackNextPath, 'invalid');
   }
 
   const session = await redeemForesightHandoffCode(code);
   if (!session) {
-    return redirectToLogin(request, nextPath, 'expired');
+    return redirectToLogin(request, fallbackNextPath, 'expired');
   }
 
-  const response = NextResponse.redirect(new URL(nextPath, request.url));
+  const response = NextResponse.redirect(new URL(session.returnPath, request.url));
   if (!setForesightSessionCookie(response, session)) {
-    return redirectToLogin(request, nextPath, 'invalid');
+    return redirectToLogin(request, session.returnPath, 'invalid');
   }
 
   return applyHandoffRedirectHeaders(response);

@@ -169,14 +169,25 @@ for (const marker of [
   "handoff=${status}",
   'clearForesightSessionCookie(response)',
   'isForesightHandoffConfigured()',
+  'hasExactlyOneCodeQuery(request.nextUrl.searchParams)',
+  "const codeValues = request.nextUrl.searchParams.getAll('code')",
   'isValidForesightHandoffCode(code)',
   'redeemForesightHandoffCode(code)',
+  'new URL(session.returnPath, request.url)',
   'setForesightSessionCookie(response, session)',
-  "redirectToLogin(request, nextPath, 'disabled')",
-  "redirectToLogin(request, nextPath, 'invalid')",
-  "redirectToLogin(request, nextPath, 'expired')",
+  "redirectToLogin(request, fallbackNextPath, 'disabled')",
+  "redirectToLogin(request, fallbackNextPath, 'invalid')",
+  "redirectToLogin(request, fallbackNextPath, 'expired')",
 ]) {
   assertIncludes(handoffRouteSource, marker, 'handoff route fail-closed/no-store contract')
+}
+
+for (const marker of [
+  'returnPath: string',
+  'sanitizeForesightNextPath',
+  'readString(payload.return_path)',
+]) {
+  assertIncludes(sessionSource, marker, 'session helpers must consume Core-stored return path')
 }
 
 for (const marker of [
@@ -186,7 +197,6 @@ for (const marker of [
   'buildForesightCoreStartUrl(nextPath)',
   'isForesightHandoffConfigured()',
   'FORESIGHT_ACCESS_REQUEST_URL',
-  '로그인 후 이동',
   'AdMate 이용 권한 요청',
   'AdMate 홈페이지로 이동',
 ]) {
