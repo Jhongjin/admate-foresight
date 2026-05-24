@@ -190,10 +190,6 @@ export default function Navigation({
   const displayName = sessionProfile?.displayName || 'AdMate 계정';
   const profileEmail = sessionProfile?.email || '';
   const accessLabel = sessionProfile?.accessLabel || 'Foresight 사용 권한';
-  const canShowAdminSeparator =
-    Boolean(adminNavigation?.canManageAccessRequests) ||
-    Boolean(adminNavigation?.canManageOrganizations) ||
-    Boolean(adminNavigation?.canManageUsers);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -296,6 +292,8 @@ export default function Navigation({
               <div className="relative" ref={profileRef}>
                 <button
                   type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
                   onClick={() => setProfileOpen((current) => !current)}
                   className="inline-flex h-9 max-w-[190px] items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:h-10"
                 >
@@ -303,39 +301,38 @@ export default function Navigation({
                   <ChevronIcon open={profileOpen} />
                 </button>
                 {profileOpen ? (
-                  <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-md border border-[#D7DCE3] bg-white p-2 text-[#172033] shadow-xl">
+                  <div role="menu" className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-md border border-[#D7DCE3] bg-white p-2 text-[#172033] shadow-xl">
                     <div className="px-3 py-2">
                       <p className="text-sm font-bold">{displayName}</p>
                       {profileEmail ? <p className="mt-0.5 truncate text-xs font-medium text-slate-500">{profileEmail}</p> : null}
                       <p className="mt-1 truncate text-xs font-bold text-[#2764D9]">{accessLabel}</p>
                     </div>
-                    <div className="my-1 h-px bg-slate-100" />
                     {adminNavigation?.canManageAccessRequests ? (
-                      <Link href={ACCESS_REQUESTS_URL} className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                      <Link href={ACCESS_REQUESTS_URL} role="menuitem" className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
                         권한 요청 관리
                       </Link>
                     ) : null}
                     {adminNavigation?.canManageOrganizations ? (
-                      <Link href={ORGANIZATIONS_URL} className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                      <Link href={ORGANIZATIONS_URL} role="menuitem" className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
                         조직 관리
                       </Link>
                     ) : null}
                     {adminNavigation?.canManageUsers ? (
-                      <Link href={USERS_URL} className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                      <Link href={USERS_URL} role="menuitem" className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
                         사용자 관리
                       </Link>
                     ) : null}
-                    {canShowAdminSeparator ? <div className="my-1 h-px bg-slate-100" /> : null}
-                    <Link href={ACCOUNT_URL} className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                    <Link href={ACCOUNT_URL} role="menuitem" className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-slate-50">
                       내 계정
                     </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
                       disabled={isLoggingOut}
-                      className="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60"
+                      role="menuitem"
+                      className="block w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60"
                     >
-                      {isLoggingOut ? '로그아웃 중' : '로그아웃'}
+                      {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
                     </button>
                   </div>
                 ) : null}
