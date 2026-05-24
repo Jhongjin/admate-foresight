@@ -173,6 +173,13 @@ const ACCOUNT_URL = 'https://sentinel.admate.ai.kr/account';
 const ACCESS_REQUESTS_URL = 'https://sentinel.admate.ai.kr/users/access-requests';
 const ORGANIZATIONS_URL = 'https://sentinel.admate.ai.kr/users/organizations';
 const USERS_URL = 'https://sentinel.admate.ai.kr/users';
+const FORESIGHT_LOGOUT_NEXT_URL = 'https://foresight.admate.ai.kr/login?logout=complete';
+const SENTINEL_LOGOUT_URL = 'https://sentinel.admate.ai.kr/auth/logout';
+
+function buildSentinelLogoutUrl(nextUrl: string) {
+  const params = new URLSearchParams({ next: nextUrl });
+  return `${SENTINEL_LOGOUT_URL}?${params.toString()}`;
+}
 
 export default function Navigation({
   isAuthenticated = false,
@@ -210,9 +217,10 @@ export default function Navigation({
       await fetch('/api/auth/logout', {
         method: 'POST',
         cache: 'no-store',
+        credentials: 'same-origin',
       });
     } finally {
-      window.location.assign('/login?logout=complete');
+      window.location.assign(buildSentinelLogoutUrl(FORESIGHT_LOGOUT_NEXT_URL));
     }
   }
 
