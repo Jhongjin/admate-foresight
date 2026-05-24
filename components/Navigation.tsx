@@ -131,7 +131,7 @@ const siteItems = [
     label: 'Compass',
     description: '광고 정책 근거 확인',
     directHref: 'https://compass.admate.ai.kr',
-    handoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=compass&next=/',
+    handoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=compass&next=/desk',
     icon: 'compass',
     active: false,
   },
@@ -266,9 +266,7 @@ export default function Navigation({
                   <div className="mb-1.5 h-px bg-[#D8DEE6]" />
                   {siteItems.map((site) => (
                     (() => {
-                      const href = showSignedIn && site.handoffHref
-                        ? site.handoffHref
-                        : site.directHref ?? site.href ?? '#';
+                      const href = site.handoffHref ?? site.directHref ?? site.href ?? '#';
                       return (
                     <Link
                       key={site.label}
