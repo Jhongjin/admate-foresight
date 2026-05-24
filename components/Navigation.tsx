@@ -139,7 +139,7 @@ const siteItems = [
     label: 'Sentinel',
     description: '상태 모니터링과 이상 알림',
     directHref: 'https://sentinel.admate.ai.kr',
-    handoffHref: 'https://sentinel.admate.ai.kr/dashboard',
+    handoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=sentinel&next=/dashboard',
     icon: 'sentinel',
     active: false,
   },
