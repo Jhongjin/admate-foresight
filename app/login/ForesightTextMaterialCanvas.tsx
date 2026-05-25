@@ -16,6 +16,11 @@ const SOURCE_TEXT =
   'BASELINE FORECAST RANGE VARIANCE TREND MODEL SCENARIO DATA SAMPLE CONFIDENCE BUDGET PERIOD KPI';
 
 const GLYPHS = SOURCE_TEXT.replace(/\s/g, '').split('');
+const MIN_RENDER_SIZE = 48;
+const MAX_DEVICE_PIXEL_RATIO = 1.5;
+const MAX_PARTICLE_COUNT = 900;
+const MAX_REDUCED_MOTION_PARTICLE_COUNT = 520;
+const COLLISION_LOOKBACK = 72;
 
 function createParticle(width: number, fontSize: number, index: number): TextParticle {
   return {
@@ -73,22 +78,42 @@ export default function ForesightTextMaterialCanvas() {
     let width = 1;
     let height = 1;
     let fontSize = 12;
-    let maxParticles = 900;
+    let maxParticles = 0;
     let spawnAccumulator = 0;
+    let isCanvasVisible = false;
+
+    const cancelAnimation = () => {
+      if (animationFrame) {
+        window.cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+      }
+    };
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
       width = Math.max(1, Math.floor(rect.width));
       height = Math.max(1, Math.floor(rect.height));
+      isCanvasVisible = width >= MIN_RENDER_SIZE && height >= MIN_RENDER_SIZE;
       fontSize = Math.max(9, Math.min(13, Math.floor(width / 34)));
-      maxParticles = Math.min(2600, Math.max(900, Math.floor((width * height) / 95)));
+      maxParticles = isCanvasVisible
+        ? Math.min(
+            reducedMotionQuery.matches ? MAX_REDUCED_MOTION_PARTICLE_COUNT : MAX_PARTICLE_COUNT,
+            Math.max(260, Math.floor((width * height) / (reducedMotionQuery.matches ? 260 : 180))),
+          )
+        : 0;
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       context.textBaseline = 'middle';
       context.textAlign = 'center';
       context.font = `${fontSize}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+
+      if (!isCanvasVisible) {
+        particles = [];
+        context.clearRect(0, 0, width, height);
+        return;
+      }
 
       particles = particles
         .filter((particle) => particle.y < height + 40)
@@ -131,14 +156,29 @@ export default function ForesightTextMaterialCanvas() {
       }
     };
 
+    const shouldPauseAnimation = () => document.visibilityState !== 'visible' || !isCanvasVisible;
+
+    const requestNextFrame = (callback: FrameRequestCallback) => {
+      if (!animationFrame && !shouldPauseAnimation()) {
+        animationFrame = window.requestAnimationFrame(callback);
+      }
+    };
+
     const tick = (time: number) => {
+      animationFrame = 0;
+
+      if (shouldPauseAnimation()) {
+        lastTime = 0;
+        return;
+      }
+
       const motionScale = reducedMotionQuery.matches ? 0.34 : 1;
       const delta = Math.min(1 / 28, (lastTime ? time - lastTime : 16) / 1000) * motionScale;
       lastTime = time;
-      spawnAccumulator += delta * (reducedMotionQuery.matches ? 24 : 52);
+      spawnAccumulator += delta * (reducedMotionQuery.matches ? 12 : 34);
 
       if (spawnAccumulator >= 1) {
-        const spawnCount = Math.min(8, Math.floor(spawnAccumulator));
+        const spawnCount = Math.min(5, Math.floor(spawnAccumulator));
         spawnParticles(spawnCount);
         spawnAccumulator -= spawnCount;
       }
@@ -203,7 +243,11 @@ export default function ForesightTextMaterialCanvas() {
           particle.vx *= -0.34;
         }
 
-        for (let otherIndex = Math.max(0, index - 120); otherIndex < index; otherIndex += 1) {
+        for (
+          let otherIndex = Math.max(0, index - COLLISION_LOOKBACK);
+          otherIndex < index;
+          otherIndex += 1
+        ) {
           const other = particles[otherIndex];
           const dx = particle.x - other.x;
           const dy = particle.y - other.y;
@@ -249,24 +293,32 @@ export default function ForesightTextMaterialCanvas() {
       }
 
       draw();
-      animationFrame = window.requestAnimationFrame(tick);
+      requestNextFrame(tick);
     };
 
     const restart = () => {
-      window.cancelAnimationFrame(animationFrame);
+      cancelAnimation();
       lastTime = 0;
       resize();
 
-      if (particles.length === 0) {
-        spawnParticles(Math.min(160, Math.floor(maxParticles * 0.18)));
+      if (shouldPauseAnimation()) {
+        return;
       }
 
-      animationFrame = window.requestAnimationFrame(tick);
+      if (particles.length === 0) {
+        spawnParticles(Math.min(90, Math.floor(maxParticles * 0.18)));
+      }
+
+      draw();
+      requestNextFrame(tick);
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         restart();
+      } else {
+        cancelAnimation();
+        lastTime = 0;
       }
     };
 
@@ -287,6 +339,7 @@ export default function ForesightTextMaterialCanvas() {
     canvas.addEventListener('pointerleave', handlePointerLeave);
     reducedMotionQuery.addEventListener('change', restart);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('resize', restart);
     restart();
 
     return () => {
@@ -295,7 +348,8 @@ export default function ForesightTextMaterialCanvas() {
       canvas.removeEventListener('pointerleave', handlePointerLeave);
       reducedMotionQuery.removeEventListener('change', restart);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener('resize', restart);
+      cancelAnimation();
     };
   }, []);
 

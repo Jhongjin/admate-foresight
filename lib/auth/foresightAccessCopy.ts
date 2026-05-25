@@ -40,13 +40,13 @@ const loginCopy = {
   missing_session: {
     title: 'AdMate Foresight 성과 예측',
     body: '성과 예측과 비교 기준 데이터를 확인하고, 데이터가 부족한 경우를 구분하려면 AdMate 계정으로 로그인하세요.',
-    primaryAction: '로그인하고 계속',
+    primaryAction: 'AdMate로 로그인',
     helper: 'AdMate 로그인 후 요청한 Foresight 화면으로 돌아갑니다.',
   },
   session_expired: {
     title: '로그인이 만료되었습니다',
     body: '보안을 위해 Foresight 접속이 종료되었습니다. 다시 로그인하면 요청한 분석 화면으로 돌아갑니다.',
-    primaryAction: '다시 로그인',
+    primaryAction: 'AdMate로 로그인',
     helper: '다시 로그인한 뒤 요청한 Foresight 화면으로 돌아갑니다.',
     notice: '보안을 위해 다시 로그인이 필요합니다.',
     noticeTone: 'danger',
@@ -54,7 +54,7 @@ const loginCopy = {
   session_invalid: {
     title: '다시 로그인이 필요합니다',
     body: '현재 Foresight 접속 상태를 확인할 수 없습니다. AdMate 계정으로 다시 로그인해 주세요.',
-    primaryAction: '다시 로그인',
+    primaryAction: 'AdMate로 로그인',
     helper: '다시 로그인한 뒤 요청한 Foresight 화면으로 돌아갑니다.',
     notice: '접속 상태를 확인할 수 없습니다.',
     noticeTone: 'danger',
@@ -62,15 +62,15 @@ const loginCopy = {
   handoff_expired: {
     title: '로그인 확인이 만료되었습니다',
     body: '보안을 위해 로그인 확인 시간이 지났습니다. AdMate에서 Foresight를 다시 열어 주세요.',
-    primaryAction: '로그인하고 계속',
+    primaryAction: 'AdMate로 로그인',
     helper: 'AdMate에서 Foresight를 다시 열면 요청한 화면으로 돌아갑니다.',
     notice: '로그인 확인 시간이 지났습니다.',
     noticeTone: 'danger',
   },
   handoff_invalid: {
     title: 'Foresight 로그인 상태를 확인할 수 없습니다',
-    body: '로그인을 완료하지 못했습니다. AdMate에서 다시 시작하거나 사용 권한을 문의해 주세요.',
-    primaryAction: '로그인하고 계속',
+    body: '로그인을 완료하지 못했습니다. AdMate에서 다시 시작하거나 이용 권한을 문의해 주세요.',
+    primaryAction: 'AdMate로 로그인',
     helper: 'AdMate에서 다시 시작한 뒤 요청한 Foresight 화면으로 돌아갑니다.',
     notice: '로그인 요청을 완료할 수 없습니다.',
     noticeTone: 'danger',
@@ -86,7 +86,7 @@ const loginCopy = {
   logout_complete: {
     title: 'AdMate Foresight 성과 예측',
     body: '로그아웃되었습니다. 성과 예측과 비교 기준 데이터를 다시 보려면 AdMate 계정으로 로그인하세요.',
-    primaryAction: '로그인하고 계속',
+    primaryAction: 'AdMate로 로그인',
     helper: 'AdMate 로그인 후 요청한 Foresight 화면으로 돌아갑니다.',
     notice: '로그아웃되었습니다.',
     noticeTone: 'neutral',
@@ -102,7 +102,7 @@ export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
     roleSummary: '역할 정보 없음',
     workspaceSummary: '표시 가능한 이름 없음',
     primaryAction: '성과 예측으로 돌아가기',
-    secondaryAction: '사용 권한 문의',
+    secondaryAction: '이용 권한 문의',
   },
   access_denied: {
     title: 'Foresight 사용 권한이 없습니다',
@@ -110,7 +110,7 @@ export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
     statusLabel: '사용 제한',
     productSummary: 'Foresight 사용 권한 필요',
     roleSummary: '사용 가능한 역할 없음',
-    workspaceSummary: '사용 권한 확인 필요',
+    workspaceSummary: '이용 권한 확인 필요',
     primaryAction: 'AdMate 이용 권한 요청',
     secondaryAction: 'AdMate로 돌아가기',
   },
@@ -121,7 +121,7 @@ export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
     productSummary: 'Foresight 비활성화',
     roleSummary: '역할 확인 필요',
     workspaceSummary: '사용 환경 설정 확인 필요',
-    primaryAction: '사용 상태 문의',
+    primaryAction: '이용 상태 문의',
     secondaryAction: 'AdMate로 돌아가기',
   },
   role_pending: {
@@ -136,7 +136,7 @@ export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
   },
   workspace_unavailable: {
     title: '사용 환경을 확인할 수 없습니다',
-    body: '현재 표시 가능한 사용 환경 정보를 확인할 수 없습니다. 다시 로그인하거나 사용 상태를 문의해 주세요.',
+    body: '현재 표시 가능한 사용 환경 정보를 확인할 수 없습니다. 다시 로그인하거나 이용 상태를 문의해 주세요.',
     statusLabel: '사용 환경 확인 필요',
     productSummary: 'Foresight 사용 상태 확인 필요',
     roleSummary: '역할 표시 불가',

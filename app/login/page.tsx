@@ -5,11 +5,13 @@ import ReactiveHeadline from '@/components/ReactiveHeadline';
 import { getForesightLoginCopy, resolveForesightLoginState } from '@/lib/auth/foresightAccessCopy';
 import {
   buildForesightCoreProductLoginUrl,
+  buildForesightCoreStartUrl,
   FORESIGHT_ACCESS_REQUEST_URL,
   sanitizeForesightNextPath,
 } from '@/lib/auth/foresightAuth';
 import {
   hasValidForesightSession,
+  isForesightHandoffConfigured,
 } from '@/lib/auth/foresightSession';
 
 export const metadata: Metadata = {
@@ -59,7 +61,7 @@ const forecastReadinessRows = [
 ] as const;
 
 const loginErrorMessages: Record<string, string> = {
-  account_not_allowed: '요청한 제품 접근 권한을 확인할 수 없습니다.',
+  account_not_allowed: '요청한 제품 이용 권한을 확인할 수 없습니다.',
   handoff_disabled: 'AdMate 로그인 연결이 아직 활성화되지 않았습니다. 담당자에게 문의해주세요.',
   handoff_unavailable: '로그인 연결을 준비할 수 없습니다. 잠시 후 다시 시도해주세요.',
   invalid_credentials: '계정 정보를 확인해주세요.',
@@ -78,6 +80,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const loginState = resolveForesightLoginState(params);
   const loginCopy = getForesightLoginCopy(loginState);
   const coreProductLoginUrl = buildForesightCoreProductLoginUrl();
+  const coreStartUrl = buildForesightCoreStartUrl(nextPath);
+  const handoffConfigured = isForesightHandoffConfigured();
   const loginError = Array.isArray(params?.login_error) ? params?.login_error[0] : params?.login_error;
   const loginErrorMessage = loginError
     ? loginErrorMessages[loginError] ?? '계정 정보를 확인해주세요.'
@@ -122,7 +126,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               href="#foresight-login-form"
               className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
             >
-              로그인하고 계속
+              {loginCopy.primaryAction}
             </a>
             <p>{loginCopy.helper}</p>
           </div>
@@ -262,7 +266,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 />
               </div>
               <p id="foresight-login-helper" className="foresight-gate-login-helper">
-                AdMate 인증 화면에서 회사 계정을 확인합니다.
+                AdMate 계정으로 로그인하면 회사 계정을 확인합니다.
               </p>
             </div>
             {loginErrorMessage ? (
@@ -276,10 +280,22 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 type="submit"
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
               >
-                로그인하고 계속
+                {loginCopy.primaryAction}
               </button>
             </div>
             </form>
+
+            {handoffConfigured && coreStartUrl ? (
+              <p className="text-center text-xs leading-5 text-stone-500">
+                이미 AdMate에 로그인되어 있다면{' '}
+                <a
+                  href={coreStartUrl}
+                  className="font-bold text-slate-700 underline decoration-stone-300 underline-offset-4 transition-colors hover:text-slate-950"
+                >
+                  AdMate에서 Foresight 열기
+                </a>
+              </p>
+            ) : null}
 
             <div className="space-y-3 rounded-lg border border-stone-200 bg-[#f7f7f2] p-4">
               <p className="text-sm font-bold text-slate-950">

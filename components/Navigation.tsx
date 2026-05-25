@@ -173,12 +173,15 @@ const ACCOUNT_URL = 'https://sentinel.admate.ai.kr/account';
 const ACCESS_REQUESTS_URL = 'https://sentinel.admate.ai.kr/users/access-requests';
 const ORGANIZATIONS_URL = 'https://sentinel.admate.ai.kr/users/organizations';
 const USERS_URL = 'https://sentinel.admate.ai.kr/users';
-const FORESIGHT_LOGOUT_NEXT_URL = 'https://foresight.admate.ai.kr/';
 const SENTINEL_LOGOUT_URL = 'https://sentinel.admate.ai.kr/auth/logout';
 
 function buildSentinelLogoutUrl(nextUrl: string) {
   const params = new URLSearchParams({ next: nextUrl });
   return `${SENTINEL_LOGOUT_URL}?${params.toString()}`;
+}
+
+function getForesightLogoutNextUrl() {
+  return new URL('/', window.location.origin).toString();
 }
 
 export default function Navigation({
@@ -196,7 +199,7 @@ export default function Navigation({
   const showSignedIn = isAuthenticated && !isAuthRoute;
   const displayName = sessionProfile?.displayName || 'AdMate 계정';
   const profileEmail = sessionProfile?.email || '';
-  const accessLabel = sessionProfile?.accessLabel || 'Foresight 사용 권한';
+  const accessLabel = sessionProfile?.accessLabel || 'Foresight 이용 권한';
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -209,6 +212,27 @@ export default function Navigation({
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setSiteOpen(false);
+      setProfileOpen(false);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const toggleSiteMenu = () => {
+    setSiteOpen((current) => !current);
+    setProfileOpen(false);
+  };
+
+  const toggleProfileMenu = () => {
+    setProfileOpen((current) => !current);
+    setSiteOpen(false);
+  };
+
   async function handleLogout() {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
@@ -220,7 +244,7 @@ export default function Navigation({
         credentials: 'same-origin',
       });
     } finally {
-      window.location.assign(buildSentinelLogoutUrl(FORESIGHT_LOGOUT_NEXT_URL));
+      window.location.assign(buildSentinelLogoutUrl(getForesightLogoutNextUrl()));
     }
   }
 
@@ -253,7 +277,7 @@ export default function Navigation({
                 aria-label="사이트 이동"
                 aria-haspopup="menu"
                 aria-expanded={siteOpen}
-                onClick={() => setSiteOpen((current) => !current)}
+                onClick={toggleSiteMenu}
                 className="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-[#D7DCE3] bg-white/90 px-2 text-sm font-semibold text-[#25314A] shadow-[0_10px_24px_rgba(16,24,32,0.08)] transition duration-300 hover:border-[#C4CEDA] hover:bg-[#F8F6F1] hover:text-[#172033] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#172033] focus-visible:ring-offset-2 sm:h-10 sm:min-w-[124px] sm:gap-2 sm:px-3"
               >
                 <SparkleIcon />
@@ -302,7 +326,7 @@ export default function Navigation({
                   type="button"
                   aria-haspopup="menu"
                   aria-expanded={profileOpen}
-                  onClick={() => setProfileOpen((current) => !current)}
+                  onClick={toggleProfileMenu}
                   className="inline-flex h-9 max-w-[190px] items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:h-10"
                 >
                   <span className="max-w-[150px] truncate">{displayName}</span>
