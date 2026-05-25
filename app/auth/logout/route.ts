@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAdMateCoreBaseUrl, sanitizeForesightNextPath } from '@/lib/auth/foresightAuth';
 import { clearForesightSessionCookie } from '@/lib/auth/foresightSession';
 
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_LOGOUT_REDIRECT = '/';
+const DEFAULT_CORE_LOGOUT_URL = 'https://sentinel.admate.ai.kr/auth/logout';
 
-const ALLOWED_ABSOLUTE_HOSTS = new Set([
+const ALLOWED_LOCAL_LOGOUT_NEXT_HOSTS = new Set([
   'compass.admate.ai.kr',
   'lens.admate.ai.kr',
   'foresight.admate.ai.kr',
@@ -21,31 +22,70 @@ const NO_STORE_HEADERS = {
   Vary: 'Cookie',
 };
 
-function isSafeRelativePath(value: string) {
-  return value.startsWith('/') && !value.startsWith('//') && !value.includes('\\');
+function resolveProductRedirect(request: NextRequest) {
+  const next = request.nextUrl.searchParams.get('next')?.trim();
+  return new URL(sanitizeForesightNextPath(next), request.nextUrl.origin);
 }
 
-function resolveLogoutRedirect(request: NextRequest) {
-  const next = request.nextUrl.searchParams.get('next')?.trim();
-
-  if (!next || next.includes('\\')) {
-    return new URL(DEFAULT_LOGOUT_REDIRECT, request.nextUrl.origin);
+function isSafeLocalProtocol(url: URL) {
+  if (process.env.NODE_ENV === 'production') {
+    return url.protocol === 'https:';
   }
 
-  if (isSafeRelativePath(next)) {
-    return new URL(next, request.nextUrl.origin);
+  return url.protocol === 'https:' || url.protocol === 'http:';
+}
+
+function isSelfLogoutRedirect(url: URL, request: NextRequest) {
+  return url.host === request.nextUrl.host && url.pathname === '/auth/logout';
+}
+
+function resolveLocalScopeRedirect(request: NextRequest) {
+  const next = request.nextUrl.searchParams.get('next')?.trim();
+  const fallback = new URL('/', request.nextUrl.origin);
+
+  if (!next || next.includes('\\') || /^javascript:/i.test(next)) {
+    return fallback;
+  }
+
+  if (next.startsWith('/') && !next.startsWith('//')) {
+    return resolveProductRedirect(request);
   }
 
   try {
     const url = new URL(next);
-    if (url.protocol === 'https:' && ALLOWED_ABSOLUTE_HOSTS.has(url.host)) {
+    if (
+      isSafeLocalProtocol(url) &&
+      ALLOWED_LOCAL_LOGOUT_NEXT_HOSTS.has(url.host) &&
+      !isSelfLogoutRedirect(url, request)
+    ) {
       return url;
     }
   } catch {
-    // Fall through to the default logout target.
+    // Fall through to the product root.
   }
 
-  return new URL(DEFAULT_LOGOUT_REDIRECT, request.nextUrl.origin);
+  return fallback;
+}
+
+function getCoreLogoutUrl() {
+  const coreBaseUrl = getAdMateCoreBaseUrl();
+  if (coreBaseUrl) {
+    return new URL('/auth/logout', coreBaseUrl);
+  }
+
+  return new URL(DEFAULT_CORE_LOGOUT_URL);
+}
+
+function resolveLogoutRedirect(request: NextRequest) {
+  const productRedirect = resolveProductRedirect(request);
+
+  if (request.nextUrl.searchParams.get('scope') === 'local') {
+    return resolveLocalScopeRedirect(request);
+  }
+
+  const coreLogoutUrl = getCoreLogoutUrl();
+  coreLogoutUrl.searchParams.set('next', productRedirect.toString());
+  return coreLogoutUrl;
 }
 
 export function GET(request: NextRequest) {
