@@ -62,7 +62,7 @@ const forecastReadinessRows = [
 
 const loginErrorMessages: Record<string, string> = {
   account_not_allowed: '요청한 제품 이용 권한을 확인할 수 없습니다.',
-  handoff_disabled: 'AdMate 로그인 연결이 아직 활성화되지 않았습니다. 담당자에게 문의해주세요.',
+  handoff_disabled: 'Foresight 사용 권한을 확인할 수 없습니다. AdMate 계정으로 다시 로그인하거나 이용 권한을 요청해주세요.',
   handoff_unavailable: '로그인 연결을 준비할 수 없습니다. 잠시 후 다시 시도해주세요.',
   invalid_credentials: '계정 정보를 확인해주세요.',
   missing_credentials: '이메일과 비밀번호를 입력해주세요.',
@@ -86,12 +86,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const loginErrorMessage = loginError
     ? loginErrorMessages[loginError] ?? '계정 정보를 확인해주세요.'
     : null;
-  const loginSubmitDisabled = loginState === 'handoff_disabled';
-  const mobilePrimaryHref = loginSubmitDisabled ? FORESIGHT_ACCESS_REQUEST_URL : '#foresight-login-form';
-  const loginSubmitLabel = loginSubmitDisabled ? '아이디/비밀번호 로그인 대기 중' : loginCopy.primaryAction;
-  const loginHelper = loginSubmitDisabled
-    ? '권한 확인 전에는 아이디/비밀번호 로그인을 진행할 수 없습니다. 아래 이용 권한 요청을 이용해주세요.'
-    : 'AdMate 계정으로 로그인하면 회사 계정을 확인합니다.';
+  const mobilePrimaryHref = '#foresight-login-form';
+  const loginSubmitLabel = loginCopy.primaryAction;
+  const loginHelper = 'AdMate 계정으로 로그인하면 회사 계정과 Foresight 권한 상태를 확인합니다.';
 
   return (
     <div className="foresight-login-stage min-h-[calc(100dvh-9rem)] py-8 sm:py-10">
@@ -244,7 +241,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <div className="foresight-gate-account-block" aria-label="Foresight 로그인 정보">
               <div className="foresight-gate-field">
                 <label htmlFor="foresight-account-preview">이메일</label>
-                <div className={`foresight-gate-email-field ${loginSubmitDisabled ? 'foresight-gate-field-disabled' : ''}`}>
+                <div className="foresight-gate-email-field">
                   <input
                     id="foresight-account-preview"
                     name="email_local_part"
@@ -252,7 +249,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                     inputMode="email"
                     autoComplete="username"
                     required
-                    disabled={loginSubmitDisabled}
                     placeholder="name"
                     aria-describedby="foresight-email-domain foresight-login-helper"
                   />
@@ -267,7 +263,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                   type="password"
                   autoComplete="current-password"
                   required
-                  disabled={loginSubmitDisabled}
                   placeholder="비밀번호를 입력하세요"
                   className="foresight-gate-password-field"
                   aria-describedby="foresight-login-helper"
@@ -286,13 +281,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <div className="foresight-gate-desktop-primary-action">
               <button
                 type="submit"
-                disabled={loginSubmitDisabled}
-                aria-disabled={loginSubmitDisabled}
-                className={`inline-flex min-h-12 w-full items-center justify-center rounded-lg px-5 py-3 text-sm font-bold transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                  loginSubmitDisabled
-                    ? 'cursor-not-allowed border border-stone-200 bg-stone-100 text-stone-500'
-                    : 'bg-slate-950 text-white hover:bg-teal-950 active:scale-[0.98]'
-                }`}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-950 px-5 py-3 text-sm font-bold text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-teal-950 active:scale-[0.98]"
               >
                 {loginSubmitLabel}
               </button>

@@ -16,7 +16,8 @@ export const FORESIGHT_SESSION_COOKIE_NAME = 'admate_foresight_session';
 const SESSION_VERSION = 1;
 const MAX_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
 const HANDOFF_REDEEM_PATH = '/api/auth/handoff/redeem';
-const HANDOFF_CALLBACK_URL = 'https://foresight.admate.ai.kr/auth/handoff';
+const HANDOFF_CALLBACK_PATH = '/auth/handoff';
+const DEFAULT_HANDOFF_CALLBACK_URL = 'https://foresight.admate.ai.kr/auth/handoff';
 const HANDOFF_CODE_PATTERN = /^[A-Za-z0-9._~-]{16,512}$/;
 const DEFAULT_ADMIN_NAVIGATION: ForesightAdminNavigation = {
   canManageAccessRequests: false,
@@ -72,6 +73,38 @@ function getProductSecret(): string | null {
     process.env.FORESIGHT_HANDOFF_PRODUCT_SECRET?.trim() ||
     process.env.ADMATE_AUTH_HANDOFF_FORESIGHT_KEY?.trim();
   return value || null;
+}
+
+function hasSafeHandoffCallbackProtocol(url: URL): boolean {
+  if (isProductionRuntime()) return url.protocol === 'https:';
+  return url.protocol === 'https:' || url.protocol === 'http:';
+}
+
+function buildHandoffCallbackUrl(rawValue: string | undefined): string | null {
+  const value = rawValue?.trim();
+  if (!value) return null;
+
+  try {
+    const url = new URL(value);
+    if (!hasSafeHandoffCallbackProtocol(url)) return null;
+
+    url.username = '';
+    url.password = '';
+    url.pathname = HANDOFF_CALLBACK_PATH;
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function getHandoffCallbackUrl(): string {
+  return (
+    buildHandoffCallbackUrl(process.env.FORESIGHT_HANDOFF_CALLBACK_URL) ??
+    buildHandoffCallbackUrl(process.env.NEXT_PUBLIC_FORESIGHT_BASE_URL) ??
+    DEFAULT_HANDOFF_CALLBACK_URL
+  );
 }
 
 function base64UrlEncode(value: string): string {
@@ -368,7 +401,7 @@ export async function redeemForesightHandoffCode(
       body: JSON.stringify({
         product_slug: FORESIGHT_PRODUCT_ID,
         code,
-        callback_url: HANDOFF_CALLBACK_URL,
+        callback_url: getHandoffCallbackUrl(),
       }),
       cache: 'no-store',
     });

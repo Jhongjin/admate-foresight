@@ -43,9 +43,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const returnLabel =
     returnPath === '/' ? accountCopy.primaryAction : describeReturnTarget(returnPath);
   const accessLedger = [
-    { label: '접근 상태', value: accountCopy.productSummary, detail: '성과 예측과 기준 데이터 조회 가능' },
-    { label: '이용 권한', value: accountCopy.roleSummary, detail: '시뮬레이션, 트렌드, 시즌 판단 확인' },
-    { label: '계정 표시', value: accountCopy.workspaceSummary, detail: 'Foresight 매체 계획 계정 정보' },
+    { label: '제품 접근', value: accountCopy.productSummary, detail: '성과 예측과 기준 데이터 조회 가능' },
+    { label: '역할', value: accountCopy.roleSummary, detail: '시뮬레이션, 트렌드, 시즌 판단 확인' },
+    { label: '작업 공간', value: accountCopy.workspaceSummary, detail: 'Foresight 매체 계획 계정 정보' },
   ];
 
   return (

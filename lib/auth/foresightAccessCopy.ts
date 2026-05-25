@@ -78,9 +78,9 @@ const loginCopy = {
   handoff_disabled: {
     title: 'AdMate 이용 권한 확인이 필요합니다',
     body: '현재 계정에는 Foresight 사용 권한이 아직 확인되지 않았습니다. AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.',
-    primaryAction: 'AdMate 이용 권한 요청',
-    helper: 'AdMate 이용 권한 요청에서 Foresight 사용 권한을 신청할 수 있습니다.',
-    notice: '권한 확인 후 Foresight를 이용할 수 있습니다.',
+    primaryAction: 'AdMate로 로그인',
+    helper: 'AdMate 계정으로 로그인하면 Foresight 권한 상태를 다시 확인합니다.',
+    notice: 'Foresight 사용 권한 확인이 필요합니다.',
     noticeTone: 'danger',
   },
   logout_complete: {
@@ -95,7 +95,7 @@ const loginCopy = {
 
 export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
   active: {
-    title: '계정 정보 확인',
+    title: '계정 및 사용 상태',
     body: '현재 Foresight 접근 상태가 확인되었습니다. 성과 예측 화면으로 돌아가거나 필요한 계획 화면을 열 수 있습니다.',
     statusLabel: '조회 가능',
     productSummary: '성과 예측 화면 접근',
@@ -105,7 +105,7 @@ export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
     secondaryAction: '이용 권한 문의',
   },
   access_denied: {
-    title: '이용 권한 확인 필요',
+    title: 'Foresight 사용 권한이 없습니다',
     body: 'AdMate 계정은 확인되었지만 현재 계정에서 Foresight 성과 예측 화면 접근이 아직 확인되지 않았습니다.',
     statusLabel: '접근 제한',
     productSummary: '성과 예측 화면 접근 필요',
@@ -115,7 +115,7 @@ export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
     secondaryAction: 'AdMate로 돌아가기',
   },
   entitlement_disabled: {
-    title: 'Foresight 이용 권한 확인 필요',
+    title: 'Foresight 사용이 비활성화되어 있습니다',
     body: '현재 계정에서 Foresight 성과 예측 화면 접근이 보류되어 있습니다. 이용을 재개하려면 AdMate 관리자에게 문의해 주세요.',
     statusLabel: '접근 보류',
     productSummary: '성과 예측 화면 접근 보류',
@@ -125,7 +125,7 @@ export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
     secondaryAction: 'AdMate로 돌아가기',
   },
   role_pending: {
-    title: '이용 권한 확인 필요',
+    title: '역할 확인이 필요합니다',
     body: 'Foresight 성과 예측 화면을 이용할 권한 확인이 아직 완료되지 않았습니다. AdMate 관리자에게 확인을 요청해 주세요.',
     statusLabel: '권한 확인 필요',
     productSummary: '성과 예측 화면 접근 필요',
@@ -135,7 +135,7 @@ export const FORESIGHT_ACCOUNT_ACCESS_COPY = {
     secondaryAction: 'AdMate로 돌아가기',
   },
   workspace_unavailable: {
-    title: '계정 정보 확인 필요',
+    title: '사용 환경을 확인할 수 없습니다',
     body: '현재 계정 표시 정보를 확인할 수 없습니다. 다시 로그인하거나 이용 상태를 문의해 주세요.',
     statusLabel: '계정 확인 필요',
     productSummary: 'Foresight 접근 상태 확인 필요',
