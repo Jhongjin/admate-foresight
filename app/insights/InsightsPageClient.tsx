@@ -272,7 +272,7 @@ function SeasonEmptyPanel({ selectedCount }: { selectedCount: number }) {
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-stone-500">시즌 기준선 대기</p>
           <h3 className="mt-2 text-lg font-bold text-slate-950">집행 압력 판단을 보류한 상태입니다</h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            이벤트 전후 비교 행이 충분히 열리면 CPM/CPC 압력과 CTR/VTR 반응을 같은 창에서 판독합니다.
+            이벤트 전후 비교 행이 충분히 열리면 CPM/CPC 압력과 CTR/VTR 반응을 같은 창에서 확인합니다.
           </p>
           <div className="mt-4 overflow-hidden rounded-md border border-stone-300 bg-white/75">
             <div className="border-b border-stone-200 px-3 py-2">
@@ -294,7 +294,7 @@ function SeasonEmptyPanel({ selectedCount }: { selectedCount: number }) {
         </div>
         <div className="rounded-md border border-stone-300 bg-white/80 p-3">
           <div className="flex items-center justify-between border-b border-stone-200 pb-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">판독 장부</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">확인 장부</p>
             <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-800">행 대기</span>
           </div>
           <div className="mt-3 grid gap-2">
@@ -430,7 +430,7 @@ export default function InsightsPage() {
         <p className="inline-flex rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-800">
           시즌 압력 관제
         </p>
-        <h1 className="mt-4 text-2xl font-bold text-slate-950 sm:text-3xl">시즌 압력 플래너</h1>
+        <h1 className="mt-4 text-2xl font-bold text-slate-950 sm:text-3xl">시즌 압력 분석</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
           이벤트 전·중·후 CPM, CPC, CTR, VTR 변화를 같은 기간 창으로 묶어 예산 압력과 집행 타이밍을 점검합니다.
         </p>
@@ -440,7 +440,7 @@ export default function InsightsPage() {
         <div className="grid gap-0 lg:grid-cols-[260px_minmax(0,1fr)]">
           <div className="border-b border-stone-200 bg-[#fbfaf7] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Season protocol</p>
-            <h2 className="mt-2 text-base font-bold text-slate-950">시즌 집행 판독법</h2>
+            <h2 className="mt-2 text-base font-bold text-slate-950">시즌 집행 확인법</h2>
             <p className="mt-2 text-xs leading-5 text-slate-500">
               비용 압력과 반응 신호를 같은 이벤트 창 안에서 분리해 읽습니다.
             </p>

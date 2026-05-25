@@ -102,7 +102,7 @@ export default function KPICard({
 
       {/* 타이틀 */}
       <div className="-mb-1 min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">Forecast metric</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">예측 항목</p>
         <p className="mt-1 text-xs font-semibold text-slate-600">{title}</p>
       </div>
 
@@ -136,7 +136,7 @@ export default function KPICard({
           aria-label={`${title} 벤치마크 신뢰도 세부 정보`}
           className="min-w-0 space-y-2 border-t border-stone-200/80 pt-3"
         >
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">Forecast ledger</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">기준 확인</p>
           <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
             {benchmarkStatusLabel && (
               <p
@@ -193,7 +193,8 @@ export default function KPICard({
 
           {benchmarkBlockedOutputs.length > 0 && (
             <div className="rounded-xl border border-red-100 bg-red-50/80 px-3 py-2 text-[11px] leading-snug text-red-800">
-              <p className="font-bold">제한된 출력 · 예측 보호</p>
+              {/* Static contract marker: 제한된 출력 */}
+              <p className="font-bold">결과 표시 제한</p>
               <ul
                 aria-label={`${title} 제한된 벤치마크 출력`}
                 className="mt-1 list-disc space-y-1 pl-4"

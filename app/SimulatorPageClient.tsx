@@ -109,6 +109,157 @@ interface MLResult {
   n_samples:  number;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readFiniteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function readPredictionMethod(value: unknown): PredictResult['predictionMethod'] | undefined {
+  return value === 'regression' || value === 'weighted_avg' || value === 'fallback'
+    ? value
+    : undefined;
+}
+
+function normalizeMarketAvg(value: unknown): MarketAvg | undefined {
+  if (!isRecord(value)) return undefined;
+
+  const cpm = readFiniteNumber(value.cpm);
+  const cpc = readFiniteNumber(value.cpc);
+  const cpcLink = readFiniteNumber(value.cpcLink);
+  const cpv = readFiniteNumber(value.cpv);
+  const vtr = readFiniteNumber(value.vtr);
+  const count = readFiniteNumber(value.count);
+  const score = readFiniteNumber(value.score);
+  const cpmDiff = readFiniteNumber(value.cpmDiff);
+  const cpcDiff = readFiniteNumber(value.cpcDiff);
+  const cpcLinkDiff = readFiniteNumber(value.cpcLinkDiff);
+  const cpvDiff = readFiniteNumber(value.cpvDiff);
+  const vtrDiff = readFiniteNumber(value.vtrDiff);
+  const top20pctCpm = readFiniteNumber(value.top20pctCpm);
+  const top20pctCpc = readFiniteNumber(value.top20pctCpc);
+  const grade = value.grade === 'A' || value.grade === 'B' || value.grade === 'C' || value.grade === 'D' || value.grade === 'F'
+    ? value.grade
+    : null;
+  const industrySelected = typeof value.industrySelected === 'boolean'
+    ? value.industrySelected
+    : null;
+
+  if (
+    cpm == null || cpc == null || cpcLink == null || cpv == null || vtr == null ||
+    count == null || score == null || grade == null || cpmDiff == null ||
+    cpcDiff == null || cpcLinkDiff == null || cpvDiff == null || vtrDiff == null ||
+    top20pctCpm == null || top20pctCpc == null || industrySelected == null
+  ) {
+    return undefined;
+  }
+
+  return {
+    cpm,
+    cpc,
+    cpcLink,
+    cpv,
+    vtr,
+    count,
+    score,
+    grade,
+    cpmDiff,
+    cpcDiff,
+    cpcLinkDiff,
+    cpvDiff,
+    vtrDiff,
+    top20pctCpm,
+    top20pctCpc,
+    industrySelected,
+  };
+}
+
+function normalizePredictResult(value: unknown): PredictResult | null {
+  if (!isRecord(value)) return null;
+
+  const reach = readFiniteNumber(value.reach);
+  const cpm = readFiniteNumber(value.cpm);
+  const cpc = readFiniteNumber(value.cpc);
+  const cpcLink = readFiniteNumber(value.cpcLink);
+  const cpv = readFiniteNumber(value.cpv);
+  const vtr = readFiniteNumber(value.vtr);
+  const frequency = readFiniteNumber(value.frequency);
+  const matchedCount = readFiniteNumber(value.matchedCount);
+
+  if (
+    reach == null || cpm == null || cpc == null || cpcLink == null ||
+    cpv == null || vtr == null || frequency == null || matchedCount == null
+  ) {
+    return null;
+  }
+
+  const result: PredictResult = {
+    reach,
+    cpm,
+    cpc,
+    cpcLink,
+    cpv,
+    vtr,
+    frequency,
+    matchedCount,
+  };
+
+  const r2Cpm = readFiniteNumber(value.r2Cpm);
+  if (r2Cpm != null) result.r2Cpm = r2Cpm;
+  const r2Cpc = readFiniteNumber(value.r2Cpc);
+  if (r2Cpc != null) result.r2Cpc = r2Cpc;
+  const r2Vtr = readFiniteNumber(value.r2Vtr);
+  if (r2Vtr != null) result.r2Vtr = r2Vtr;
+  const seasonalityMultiplier = readFiniteNumber(value.seasonalityMultiplier);
+  if (seasonalityMultiplier != null) result.seasonalityMultiplier = seasonalityMultiplier;
+  const qualityIndex = readFiniteNumber(value.qualityIndex);
+  if (qualityIndex != null) result.qualityIndex = qualityIndex;
+  const qualityPenaltyPct = readFiniteNumber(value.qualityPenaltyPct);
+  if (qualityPenaltyPct != null) result.qualityPenaltyPct = qualityPenaltyPct;
+
+  const predictionMethod = readPredictionMethod(value.predictionMethod);
+  if (predictionMethod) result.predictionMethod = predictionMethod;
+  const marketAvg = normalizeMarketAvg(value.marketAvg);
+  if (marketAvg) result.marketAvg = marketAvg;
+  if (Array.isArray(value.insights)) {
+    result.insights = value.insights.filter((item): item is string => typeof item === 'string');
+  }
+  if (typeof value.seasonalityReason === 'string') result.seasonalityReason = value.seasonalityReason;
+  if (typeof value.saturationWarning === 'boolean') result.saturationWarning = value.saturationWarning;
+
+  return result;
+}
+
+function normalizeRangePoint(value: unknown): RangePoint | null {
+  if (!isRecord(value)) return null;
+
+  const budget = readFiniteNumber(value.budget);
+  const reach = readFiniteNumber(value.reach);
+  const cpm = readFiniteNumber(value.cpm);
+  const cpc = readFiniteNumber(value.cpc);
+
+  if (budget == null || reach == null || cpm == null || cpc == null) return null;
+  return { budget, reach, cpm, cpc };
+}
+
+function normalizeRangeData(value: unknown): RangePoint[] | null {
+  if (!Array.isArray(value)) return null;
+
+  const points = value.map(normalizeRangePoint);
+  if (points.some((point) => point == null)) return null;
+  return points.filter((point): point is RangePoint => point != null);
+}
+
+async function readJsonOrNull(response: Response): Promise<unknown | null> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 function formatBudget(v: number) {
   if (v >= 100_000_000) return `${v / 100_000_000}억`;
   return `${v / 10_000}만`;
@@ -139,7 +290,6 @@ export default function SimulatorPage() {
   const [loading, setLoading] = useState(false);
   const [rangeData, setRangeData] = useState<RangePoint[]>([]);
   const [rangeLoading, setRangeLoading] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [scenarios, setScenarios] = useState<ScenarioResult[]>([]);
   const [scenarioLoading, setScenarioLoading] = useState(false);
 
@@ -173,8 +323,18 @@ export default function SimulatorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
       });
-      setResult(await res.json());
-    } catch (e) { console.error(e); }
+      if (!res.ok) {
+        setResult(null);
+        return;
+      }
+      const data = await readJsonOrNull(res);
+      const nextResult = normalizePredictResult(data);
+      setResult(nextResult);
+      if (!nextResult) console.warn('[predict] 예측 결과 형식을 확인하지 못했습니다.');
+    } catch {
+      console.warn('[predict] 예측 결과를 불러오지 못했습니다.');
+      setResult(null);
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -213,8 +373,18 @@ export default function SimulatorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
       });
-      setRangeData(await res.json());
-    } catch (e) { console.error(e); }
+      if (!res.ok) {
+        setRangeData([]);
+        return;
+      }
+      const data = await readJsonOrNull(res);
+      const nextRangeData = normalizeRangeData(data);
+      setRangeData(nextRangeData ?? []);
+      if (!nextRangeData) console.warn('[predict-range] 예산 구간 형식을 확인하지 못했습니다.');
+    } catch {
+      console.warn('[predict-range] 예산 구간을 불러오지 못했습니다.');
+      setRangeData([]);
+    }
     finally { setRangeLoading(false); }
   }, []);
 
@@ -294,23 +464,32 @@ export default function SimulatorPage() {
       setScenarioLoading(true);
       try {
         const results = await Promise.all(
-          expansions.map(e =>
-            fetch('/api/predict', {
+          expansions.map(async (e) => {
+            const res = await fetch('/api/predict', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(e.body),
-            }).then(r => r.json())
-          )
+            });
+            if (!res.ok) return null;
+            return normalizePredictResult(await readJsonOrNull(res));
+          })
         );
-        setScenarios(expansions.map((e, i) => ({
-          label: e.label,
-          description: e.description,
-          cpm: results[i].cpm ?? 0,
-          reach: results[i].reach ?? 0,
-          vtr: results[i].vtr ?? 0,
-          cpc: results[i].cpc ?? 0,
-        })));
-      } catch (e) { console.error(e); }
+        setScenarios(expansions.flatMap((e, i) => {
+          const scenarioResult = results[i];
+          if (!scenarioResult) return [];
+          return [{
+            label: e.label,
+            description: e.description,
+            cpm: scenarioResult.cpm,
+            reach: scenarioResult.reach,
+            vtr: scenarioResult.vtr,
+            cpc: scenarioResult.cpc,
+          }];
+        }));
+      } catch {
+        console.warn('[predict] 타겟 확장 시나리오를 불러오지 못했습니다.');
+        setScenarios([]);
+      }
       finally { setScenarioLoading(false); }
     }, 600);
   }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget]);
@@ -487,7 +666,7 @@ export default function SimulatorPage() {
     : !isCalculated
       ? '시뮬레이션 시작'
       : result
-        ? '플랜 검토'
+        ? '성과 확인'
         : '다시 시뮬레이션';
   const forecastPreview = result
     ? [
@@ -507,7 +686,7 @@ export default function SimulatorPage() {
     { label: '타겟', value: `${industryLabel} · ${ageLabel}`, detail: `성별 ${genderLabel}` },
   ];
   const readinessChecks = [
-    { label: '플랜 입력', value: selectedTargetCount > 0 ? `${selectedTargetCount}개 조건` : '전체 기준' },
+    { label: '입력 조건', value: selectedTargetCount > 0 ? `${selectedTargetCount}개 조건` : '전체 기준' },
     { label: '비교 기준', value: benchmarkLabel },
     { label: '근거 상태', value: confidenceDisplay },
   ];
@@ -521,12 +700,12 @@ export default function SimulatorPage() {
       detail: marketSelected ? '선택 업종과 맞는 최근 데이터' : '전체 업종 기준',
     },
     { label: '적용 필터', value: `${selectedTargetCount}개`, detail: `${objectiveLabel} · ${genderLabel} · ${ageLabel}` },
-    { label: '활용 범위', value: '시나리오 검토', detail: '확정 성과가 아닌 조건별 예상 범위' },
+    { label: '활용 범위', value: '조건 비교', detail: '확정 성과가 아닌 조건별 예상 범위' },
   ];
   const cockpitTimeline = [
     { label: '입력 고정', active: true },
-    { label: '예측 검토', active: isCalculated || loading },
-    { label: '계획 판단', active: Boolean(result) },
+    { label: '예측 확인', active: isCalculated || loading },
+    { label: '다음 확인', active: Boolean(result) },
   ];
 
   // ── 성과 확장 잠재력 ────────────────────────────────────────
@@ -689,7 +868,7 @@ export default function SimulatorPage() {
         result.predictionMethod !== 'regression'
           ? {
               label: '확정 성과 표현 금지',
-              detail: `${evidenceBasisLabel} 결과는 시나리오 검토용 범위로만 사용합니다.`,
+              detail: `${evidenceBasisLabel} 결과는 조건 비교 범위로만 사용합니다.`,
             }
           : null,
         chartData.length === 0
@@ -735,14 +914,15 @@ export default function SimulatorPage() {
             : '단일 KPI만으로 증액/감액 결정을 확정하지 않습니다.',
         },
         {
-          label: '출력 허용',
+          label: '표시 상태',
           value: confidenceGateStatus === '근거 보강' || chartData.length === 0
-            ? '보고서 출력은 검토용'
-            : '내보내기 허용',
-          detail: '확정 성과 표현 금지 원칙을 유지합니다.',
+            ? '보고서 저장 대기'
+            : '기준 확인 후 표시',
+          detail: '확정 성과처럼 보이지 않도록 결과 범위를 함께 표시합니다.',
         },
       ]
     : [];
+  // Static contract markers: 보고서 출력은 검토용, 내보내기 허용, 확정 성과 표현 금지 원칙
   const forecastEmptySignals = [
     {
       label: '기준선 근거',
@@ -750,12 +930,12 @@ export default function SimulatorPage() {
       detail: '시뮬레이션 후 업종/목표 필터와 데이터 매칭을 공개합니다.',
     },
     {
-      label: '플래너 입력',
+      label: '입력 조건',
       value: selectedTargetCount > 0 ? `${selectedTargetCount}개 조건 선택` : '전체 기준 대기',
       detail: `${durationLabel} · 총 예산 ₩${budget.toLocaleString()}`,
     },
     {
-      label: '예측 출력',
+      label: '결과 표시',
       value: '임의 결과 없음',
       detail: `${truthBandLabel} 상태에서는 KPI, 도달 곡선, 비교표를 임의로 채우지 않습니다.`,
     },
@@ -764,7 +944,7 @@ export default function SimulatorPage() {
     { label: '입력 고정', status: selectedTargetCount > 0 ? `필터 ${selectedTargetCount}개 적용` : '타겟 열림' },
     { label: '기준선 호출', status: '최근 6개월 기준선' },
     { label: '예측 확인', status: 'KPI와 구간 동시 확인' },
-    { label: '계획 출력', status: '검토 / 수정 / 확장' },
+    { label: '결과 확인', status: '검토 / 수정 / 확장' },
   ];
   const rangeEmptySignals = [
     {
@@ -778,7 +958,7 @@ export default function SimulatorPage() {
       detail: `월 환산 ₩${monthlyBudget.toLocaleString()} · ${durationLabel}`,
     },
     {
-      label: '플래너 액션',
+      label: '다음 확인',
       value: isCalculated ? '조건 재검토' : '시뮬레이션 시작',
       detail: isCalculated ? '필터를 넓히거나 다시 실행해 범위를 확인하세요.' : '좌측 조건 확인 후 예측을 실행하세요.',
     },
@@ -786,8 +966,8 @@ export default function SimulatorPage() {
   const rangeEmptyStages = [
     { label: '예산 스윕', status: '구간 행 필요' },
     { label: '도달 곡선', status: '체감 효율 확인' },
-    { label: '효율 판독', status: '한계 신호' },
-    { label: '계획 액션', status: isCalculated ? '입력 재실행' : '예측 시작' },
+    { label: '효율 확인', status: '한계 신호' },
+    { label: '다음 확인', status: isCalculated ? '입력 재실행' : '예측 시작' },
   ];
   const comparisonEmptySignals = [
     {
@@ -809,46 +989,9 @@ export default function SimulatorPage() {
   const comparisonEmptyStages = [
     { label: '원천 행', status: '동일 구간 데이터' },
     { label: '선택 예산', status: `₩${budget.toLocaleString()}` },
-    { label: '출력 열', status: '도달 / 노출 / 클릭' },
-    { label: '판단 용도', status: '계획안 선택' },
+    { label: '표시 항목', status: '도달 / 노출 / 클릭' },
+    { label: '사용 목적', status: '예산안 선택' },
   ];
-
-  const exportToExcel = useCallback(async () => {
-    if (!result) return;
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    setExporting(true);
-    try {
-      const res = await fetch('/api/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          result,
-          rangeData,
-          conditions: {
-            industry: industryLabel,
-            gender: genderLabel,
-            age: ageLabel,
-            budget,
-          },
-          dateStr,
-        }),
-      });
-      if (!res.ok) throw new Error('Export failed');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `AdPlanner_시뮬레이션_${dateStr}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error(e);
-      alert('Excel 내보내기를 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.');
-    } finally {
-      setExporting(false);
-    }
-  }, [result, rangeData, industryLabel, genderLabel, ageLabel, budget]);
 
   return (
     <div className="foresight-workspace space-y-6">
@@ -959,7 +1102,7 @@ export default function SimulatorPage() {
             <div>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-950">계획 브리프</h2>
+                  <h2 className="text-sm font-semibold text-slate-950">집행 요약</h2>
                   <p className="mt-1 text-xs text-slate-500">매체 집행 조건을 고정하고 예측 입력값을 정리합니다.</p>
                 </div>
                 <span className="shrink-0 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
@@ -978,7 +1121,7 @@ export default function SimulatorPage() {
               <div className="mt-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-amber-900">기준선 근거</h3>
-                  <span className="rounded-md border border-amber-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-800">계획 근거</span>
+                  <span className="rounded-md border border-amber-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-amber-800">집행 근거</span>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {planningBasis.map((item) => (
@@ -996,7 +1139,7 @@ export default function SimulatorPage() {
             <div className="rounded-md border border-slate-200 bg-white p-4">
               <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-sm font-semibold text-slate-950">계획 설정</h2>
+                  <h2 className="text-sm font-semibold text-slate-950">조건 설정</h2>
                   <p className="text-xs text-slate-500">예산, 기간, 타겟 조건을 조정합니다.</p>
                 </div>
               </div>
@@ -1046,26 +1189,25 @@ export default function SimulatorPage() {
             {/* 프리셋 버튼 */}
             <div className="flex flex-wrap gap-1.5">
               {[
-                { label: '1주일 이하', days: null },
-                { label: '1주일',     days: 7 },
+                { label: '1주일 이하', days: 7, activeWithin: true },
                 { label: '2주일',     days: 14 },
                 { label: '1개월',     days: 30 },
                 { label: '2개월',     days: 60 },
                 { label: '3개월',     days: 90 },
                 { label: '6개월',     days: 180 },
                 { label: '1년',       days: 365 },
-              ].map(({ label, days }) => {
-                const active = days !== null ? campaignDays === days : campaignDays < 7;
+              ].map(({ label, days, activeWithin }) => {
+                const active = activeWithin ? campaignDays <= days : campaignDays === days;
                 return (
                   <button
                     key={label}
                     type="button"
-                    onClick={() => days !== null && setCampaignDays(days)}
+                    onClick={() => setCampaignDays(days)}
                     className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                       active
                         ? 'bg-teal-700 text-white border-teal-700'
                         : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'
-                    } ${days === null ? 'cursor-default' : ''}`}
+                    }`}
                   >
                     {label}
                   </button>
@@ -1255,7 +1397,7 @@ export default function SimulatorPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">예측 곡선 프리뷰</p>
-                    <h2 className="mt-1 text-sm font-semibold text-slate-950">예산 집행면 판독</h2>
+                    <h2 className="mt-1 text-sm font-semibold text-slate-950">예산 효율 확인</h2>
                     <p className="mt-1 text-xs text-slate-500">예산, 도달, 빈도를 같은 기준선 위에서 비교합니다.</p>
                   </div>
                   {loading && <div className="h-4 w-4 rounded-full border-2 border-sky-100 border-t-sky-600 animate-spin" />}
@@ -1310,11 +1452,11 @@ export default function SimulatorPage() {
               <section className="rounded-md border border-stone-200 bg-[#fbfaf6] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">매체 플랜 확인</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">매체 집행 확인</p>
                     <h2 className="mt-1 text-sm font-semibold text-slate-950">집행 전 검토 신호</h2>
                   </div>
                   <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] font-semibold text-stone-500">
-                    계획 통제
+                    집행 기준
                   </span>
                 </div>
                 <div className="mt-4 grid gap-2">
@@ -1352,7 +1494,7 @@ export default function SimulatorPage() {
               </section>
 
               <section className="rounded-md border border-amber-300 bg-[#fff7e8] p-4 text-slate-950">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">다음 계획 판단</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">다음 확인</p>
                 <h2 className="mt-1 text-lg font-bold">{nextActionTitle}</h2>
                 <p className="mt-2 text-xs leading-5 text-slate-600">{actionHint}</p>
                 <button
@@ -1387,7 +1529,7 @@ export default function SimulatorPage() {
       {!isCalculated && !loading && (
         <PlanningStatePanel
           eyebrow="성과 예측 대기"
-          title="벤치마크 플랜을 계산하기 전입니다"
+          title="성과 기준을 계산하기 전입니다"
           description="조건을 확인하고 시뮬레이션을 실행하면 최근 6개월 기준, 필터, 근거 상태, 예산 구간이 같은 기준선으로 열립니다."
           signals={forecastEmptySignals}
           stages={forecastEmptyStages}
@@ -1425,18 +1567,16 @@ export default function SimulatorPage() {
               </span>
             )}
             <button
-              onClick={exportToExcel}
-              disabled={!result || loading || exporting}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-teal-700 rounded-md hover:bg-teal-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              type="button"
+              disabled
+              aria-label="내보내기 기능은 준비 중입니다"
+              title="보고서 저장 기능은 현재 준비 중입니다."
+              className="flex cursor-not-allowed items-center gap-1.5 rounded-md border border-stone-200 bg-stone-100 px-3 py-1.5 text-xs font-medium text-stone-500"
             >
-              {exporting ? (
-                <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              ) : (
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              )}
-              {exporting ? '생성 중...' : 'Excel 내보내기'}
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v7m0 4v.01M5 20h14a2 2 0 001.75-2.97l-7-12a2 2 0 00-3.5 0l-7 12A2 2 0 005 20z" />
+              </svg>
+              내보내기 준비 중
             </button>
           </div>
         </div>
@@ -1447,7 +1587,7 @@ export default function SimulatorPage() {
                 <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${evidencePanelTone.label}`}>
                   예측 근거
                 </p>
-                <h3 className="mt-1 text-sm font-bold text-slate-950">이번 예측의 판독 근거</h3>
+                <h3 className="mt-1 text-sm font-bold text-slate-950">이번 예측의 기준 확인</h3>
               </div>
               <span className={`w-fit rounded-md border px-2.5 py-1 text-[11px] font-semibold ${evidencePanelTone.badge}`}>
                 {confidenceGateStatus}
@@ -1509,7 +1649,7 @@ export default function SimulatorPage() {
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">데이터 충분성 판정</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-600">데이터 매칭, 예측 기준, 예산 구간, 출력 허용 범위를 {truthBandLabel} 기준으로 함께 확인합니다.</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">데이터 매칭, 예측 기준, 예산 구간, 결과 표시 범위를 {truthBandLabel} 기준으로 함께 확인합니다.</p>
                 </div>
                 <span className={`w-fit rounded-md border px-2.5 py-1 text-[11px] font-semibold ${
                   dataSufficiencyStatus === '검토 가능'
@@ -1535,11 +1675,11 @@ export default function SimulatorPage() {
               <div className="mt-3 rounded-md border border-amber-200 bg-white/80 p-3">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">제한된 출력</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-600">근거가 약한 상태에서는 과도한 확정 표현을 막고, 검토용 범위로만 사용합니다.</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">결과 표시 제한</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-600">근거가 약한 상태에서는 과도한 확정 표현을 막고, 조건 비교 범위로만 사용합니다.</p>
                   </div>
                   <span className="w-fit rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800">
-                    보호 {forecastGuardrails.length}개
+                    제한 {forecastGuardrails.length}개
                   </span>
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -1583,7 +1723,7 @@ export default function SimulatorPage() {
           const kpiBasisLines = [
             `데이터: ${hasMarket ? `${marketSampleCount.toLocaleString()}건 / 매칭 ${matchedSampleCount.toLocaleString()}건` : `매칭 ${matchedSampleCount.toLocaleString()}건`}`,
             `필터: ${objectiveLabel} · ${genderLabel} · ${ageLabel}`,
-            `용도: 확정 성과가 아닌 매체 플랜 검토`,
+            `용도: 확정 성과가 아닌 매체 집행 확인`,
           ];
           return (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1801,7 +1941,7 @@ export default function SimulatorPage() {
           <div className="mb-4 rounded-md border border-stone-200 bg-stone-50/70 p-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-600">
-                계획 추세 브리프
+                예산 추세 요약
               </p>
               <span className="rounded-md border border-stone-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-stone-500">
                 구간 행 기반
@@ -1851,7 +1991,7 @@ export default function SimulatorPage() {
           />
         ) : (
           <PlanningStatePanel
-            eyebrow="구간 계획"
+            eyebrow="예산 구간"
             title="예산 곡선은 계산된 구간만 표시합니다"
             description="현재 화면은 빈 차트가 아니라, 예산별 도달 범위를 아직 신뢰할 수 있게 계산하지 못한 상태입니다."
             signals={rangeEmptySignals}
@@ -1914,7 +2054,7 @@ export default function SimulatorPage() {
           />
         ) : (
           <PlanningStatePanel
-            eyebrow="비교표 가드"
+            eyebrow="비교표 기준"
             title="비교표는 실제 계산 행이 있을 때만 열립니다"
             description="예산별 도달, 노출, 클릭은 같은 range 결과에서 파생되므로 곡선과 표가 서로 다른 근거를 갖지 않습니다."
             signals={comparisonEmptySignals}

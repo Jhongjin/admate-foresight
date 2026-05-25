@@ -265,7 +265,7 @@ function ForecastEmptyPanel({
           <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
             <div className="overflow-hidden rounded-md border border-stone-300 bg-[#fbfaf7]">
               <div className="border-b border-stone-200 px-3 py-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">판독 순서</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">확인 순서</p>
               </div>
               <div className="divide-y divide-stone-200">
                 {planningProtocol.map((item, index) => (
@@ -859,7 +859,7 @@ export default function TrendsPage() {
           <div className="space-y-4">
             <div className="overflow-hidden rounded-md border border-stone-200 bg-[#fbfaf7]">
               <div className="border-b border-stone-200 px-3 py-2 sm:px-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">월별 예측 판독</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">월별 예측 흐름</p>
               </div>
               <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
                 {trendEvidenceLedger.map((item) => (

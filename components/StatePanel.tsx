@@ -36,10 +36,10 @@ export default function StatePanel({
   const isRich = ledger.length > 0 || nextActions.length > 0;
   const stateEyebrow = eyebrow ?? (isError ? '운영 확인 필요' : isLoading ? '분석 준비 중' : '기준선 대기');
   const displayChecks = checks ?? (isError
-    ? ['연결 확인', '화면 보호', '재시도']
+    ? ['연결 확인', '화면 확인', '재시도']
     : isLoading
       ? ['입력 확인', '집계 대기', '기준선 구성']
-      : ['입력 범위', '벤치마크', '판독 보류']);
+      : ['입력 범위', '벤치마크', '확인 보류']);
   const ledgerTone = (tone: StatePanelTone = 'neutral') => ({
     neutral: 'border-stone-200 bg-[#fbfaf7] text-slate-700',
     ready: 'border-teal-200 bg-teal-50 text-teal-900',
@@ -122,7 +122,7 @@ export default function StatePanel({
             {ledger.length > 0 && (
               <div>
                 <div className={`flex items-center justify-between gap-3 border-b pb-2 ${isError ? 'border-red-100' : 'border-stone-200'}`}>
-                  <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${isError ? 'text-red-500' : 'text-stone-500'}`}>판독 장부</p>
+                  <p className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${isError ? 'text-red-500' : 'text-stone-500'}`}>확인 장부</p>
                   <span className={`rounded-md border px-2 py-1 text-[10px] font-semibold ${isError ? 'border-red-100 bg-red-50 text-red-600' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
                     {isError ? '확인 필요' : '기준선 대기'}
                   </span>

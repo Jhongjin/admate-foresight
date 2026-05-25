@@ -156,7 +156,7 @@ export default function CompetitorPage() {
       detail: searchTerm ? 'Meta 검색어 기준' : '업종/브랜드 신호 기준',
     },
     {
-      label: '판독 상태',
+      label: '확인 상태',
       value: loading ? '수집 중' : ads.length > 0 ? `${ads.length}개 소재 확보` : error ? '보류' : '관찰 행 대기',
       detail: ads.length > 0 ? '카피, CTA, 시작일 비교 가능' : '검색 범위를 조정해 증거를 확보',
     },
@@ -242,7 +242,7 @@ export default function CompetitorPage() {
         <div className="grid gap-0 lg:grid-cols-[240px_minmax(0,1fr)]">
           <div className="border-b border-stone-200 bg-[#f6f4ee] px-4 py-4 sm:px-5 lg:border-b-0 lg:border-r">
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">소재 캡처 준비도</p>
-            <h2 className="mt-2 text-base font-bold text-slate-950">시장 증거 판독 장부</h2>
+            <h2 className="mt-2 text-base font-bold text-slate-950">시장 증거 확인 장부</h2>
             <p className="mt-2 text-xs leading-5 text-slate-500">
               검색 조건이 어떤 소재 증거로 이어지는지 먼저 고정합니다.
             </p>
@@ -317,7 +317,7 @@ export default function CompetitorPage() {
           checks={competitorStateChecks}
           ledger={captureLedger.map((item) => ({
             ...item,
-            tone: item.label === '판독 상태' ? ('watch' as const) : ('neutral' as const),
+            tone: item.label === '확인 상태' ? ('watch' as const) : ('neutral' as const),
           }))}
           nextActions={emptyActions}
           className="min-h-64"
@@ -331,10 +331,10 @@ export default function CompetitorPage() {
           title="소재 수집 연결 상태를 확인하고 있습니다"
           description={PRODUCT_SAFE_ERROR}
           eyebrow="소재 수집 보류"
-          checks={['연결 확인', '화면 보호', '재시도']}
+          checks={['연결 확인', '화면 확인', '재시도']}
           ledger={captureLedger.map((item) => ({
             ...item,
-            tone: item.label === '판독 상태' ? ('risk' as const) : ('watch' as const),
+            tone: item.label === '확인 상태' ? ('risk' as const) : ('watch' as const),
           }))}
           nextActions={errorActions}
           className="min-h-64"

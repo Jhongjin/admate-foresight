@@ -43,9 +43,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const returnLabel =
     returnPath === '/' ? accountCopy.primaryAction : describeReturnTarget(returnPath);
   const accessLedger = [
-    { label: '제품 접근', value: accountCopy.productSummary, detail: '성과 예측과 기준 데이터 화면 접근 가능' },
-    { label: '운영 역할', value: accountCopy.roleSummary, detail: '시뮬레이션, 트렌드, 시즌 판단 검토' },
-    { label: '작업 공간', value: accountCopy.workspaceSummary, detail: 'Foresight 매체 계획 작업 공간' },
+    { label: '접근 상태', value: accountCopy.productSummary, detail: '성과 예측과 기준 데이터 조회 가능' },
+    { label: '이용 권한', value: accountCopy.roleSummary, detail: '시뮬레이션, 트렌드, 시즌 판단 확인' },
+    { label: '계정 표시', value: accountCopy.workspaceSummary, detail: 'Foresight 매체 계획 계정 정보' },
   ];
 
   return (
@@ -119,7 +119,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               ))}
             </div>
             <p className="mt-5 border-t border-stone-200 pt-4 text-xs leading-5 text-stone-500">
-              이 화면은 접근 상태만 확인합니다. 예측, 트렌드, 시즌 데이터는 각 계획 화면에서 다시 판독합니다.
+              이 화면은 접근 상태만 확인합니다. 예측, 트렌드, 시즌 데이터는 각 계획 화면에서 다시 조회합니다.
             </p>
           </aside>
         </div>

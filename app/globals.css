@@ -650,6 +650,13 @@ h1, h2, h3 {
   box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.1);
 }
 
+.foresight-gate-email-field.foresight-gate-field-disabled,
+.foresight-gate-password-field:disabled {
+  border-color: rgba(120, 113, 108, 0.22);
+  background: #f4f4ef;
+  box-shadow: none;
+}
+
 .foresight-gate-email-field input {
   min-width: 0;
   width: 100%;
@@ -660,6 +667,13 @@ h1, h2, h3 {
   color: var(--foresight-ink);
   font-size: 0.875rem;
   outline: 0;
+}
+
+.foresight-gate-email-field input:disabled,
+.foresight-gate-password-field:disabled {
+  cursor: not-allowed;
+  color: #8a8f88;
+  background: #f4f4ef;
 }
 
 .foresight-gate-email-field input::placeholder,
@@ -788,7 +802,9 @@ h1, h2, h3 {
   }
 
   .foresight-gate-mobile-action {
-    display: none;
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
   }
 
   .foresight-gate-mobile-action p {
