@@ -4,7 +4,7 @@
  * Ridge OLS 회귀 모델 (CPM / CPC / VTR)
  *
  * 설계:
- *  - 더미 변수: 업종, 성별, 연령, 월(YYYY-MM), 시즌(설명절±14d, 밸런타인±14d)
+ *  - 더미 변수: 업종, 목표, 성별, 연령, 월(YYYY-MM), 시즌(설명절±14d, 밸런타인±14d)
  *  - 종속변수: log(CPM), log(CPC), log(VTR%)  → exp() 로 역변환
  *  - 가중치: sqrt(지출금액)  (큰 캠페인에 더 많은 영향력)
  *  - Ridge 패널티: λ = 0.5 (다중공선성 완화, 절편 제외)
@@ -109,6 +109,7 @@ function weightedR2(y: number[], yHat: number[], w: number[]): number {
 // ─── 카테고리 & 피처 구조 ─────────────────────────────
 export interface ModelCategories {
   industries: string[]; // 정렬됨, [0] = 참조 카테고리
+  objectives: string[];
   genders: string[];
   ageRanges: string[];
   months: string[];     // YYYY-MM 정렬, [0] = 참조(최초 월)
@@ -137,12 +138,16 @@ function buildRow(
   r: XlsxRecord,
   cats: ModelCategories,
 ): number[] {
-  const { industries, genders, ageRanges, months } = cats;
+  const { industries, objectives, genders, ageRanges, months } = cats;
   const feat: number[] = [1]; // 절편
 
   // 업종 더미 (참조: industries[0])
   for (let i = 1; i < industries.length; i++) {
     feat.push(r.업종 === industries[i] ? 1 : 0);
+  }
+  // 목표 더미 (참조: objectives[0])
+  for (let i = 1; i < objectives.length; i++) {
+    feat.push(r.목표 === objectives[i] ? 1 : 0);
   }
   // 성별 더미 (참조: genders[0])
   for (let i = 1; i < genders.length; i++) {
@@ -166,10 +171,11 @@ function buildRow(
 }
 
 function featureNames(cats: ModelCategories): string[] {
-  const { industries, genders, ageRanges, months } = cats;
+  const { industries, objectives, genders, ageRanges, months } = cats;
   return [
     'intercept',
     ...industries.slice(1).map(v => `ind_${v}`),
+    ...objectives.slice(1).map(v => `obj_${v}`),
     ...genders.slice(1).map(v => `gen_${v}`),
     ...ageRanges.slice(1).map(v => `age_${v}`),
     ...months.slice(1).map(v => `mon_${v}`),
@@ -187,13 +193,14 @@ export function fitRegressionModels(): RegressionBundle {
   if (data.length === 0) {
     const emptyModel: FittedModel = { beta: [], featureNames: [], r2: 0, nObs: 0, lambda: 0.5 };
     return { cpm: emptyModel, cpc: emptyModel, cpcLink: emptyModel, vtr: emptyModel,
-      cats: { industries: [], genders: [], ageRanges: [], months: [] } };
+      cats: { industries: [], objectives: [], genders: [], ageRanges: [], months: [] } };
   }
 
   // 카테고리 추출
   const AGE_ORDER = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
   const cats: ModelCategories = {
     industries: [...new Set(data.map(r => r.업종).filter(Boolean))].sort(),
+    objectives: [...new Set(data.map(r => r.목표).filter(Boolean))].sort(),
     genders:    [...new Set(data.map(r => r.성별).filter(Boolean))].sort(),
     ageRanges:  AGE_ORDER.filter(a => data.some(r => r.연령 === a)),
     months:     [...new Set(
@@ -263,11 +270,12 @@ export function fitRegressionModels(): RegressionBundle {
 function buildPredictRow(
   cats: ModelCategories,
   selIndustries: string[],
+  selObjectives: string[],
   selGenders: string[],
   selAgeRanges: string[],
   selMonth?: string,
 ): number[] {
-  const { industries, genders, ageRanges, months } = cats;
+  const { industries, objectives, genders, ageRanges, months } = cats;
 
   const feat: number[] = [1]; // 절편
 
@@ -275,6 +283,12 @@ function buildPredictRow(
   const indSel = selIndustries.length > 0 ? selIndustries : industries;
   for (let i = 1; i < industries.length; i++) {
     feat.push(indSel.filter(v => v === industries[i]).length / indSel.length);
+  }
+
+  // 목표 더미 평균
+  const objSel = selObjectives.length > 0 ? selObjectives : objectives;
+  for (let i = 1; i < objectives.length; i++) {
+    feat.push(objSel.filter(v => v === objectives[i]).length / objSel.length);
   }
 
   // 성별 더미 평균
@@ -338,12 +352,13 @@ export function predictByRegression(
   selIndustries: string[],
   selGenders: string[],
   selAgeRanges: string[],
+  selObjectives: string[],
   selMonth?: string,
 ): RegPredictResult {
   const bundle = fitRegressionModels();
   const { cats } = bundle;
 
-  const feat = buildPredictRow(cats, selIndustries, selGenders, selAgeRanges, selMonth);
+  const feat = buildPredictRow(cats, selIndustries, selObjectives, selGenders, selAgeRanges, selMonth);
 
   function dotBeta(model: FittedModel): number {
     return feat.reduce((s, f, j) => s + f * (model.beta[j] ?? 0), 0);

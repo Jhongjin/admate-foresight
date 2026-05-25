@@ -388,7 +388,7 @@ export function predict(input: PredictInput): PredictResult {
   let r2Cpm: number | undefined, r2Cpc: number | undefined, r2Vtr: number | undefined;
   let regResult: ReturnType<typeof predictByRegression> | null = null;
 
-  try { regResult = predictByRegression(industries, genders, ageRanges, selMonth); } catch {}
+  try { regResult = predictByRegression(industries, genders, ageRanges, objectives, selMonth); } catch {}
 
   // cpm <= 100이면 nObs=0 빈 모델(exp(0)=1)이므로 weighted avg로 fallback
   if (regResult && regResult.cpm > 100) {
@@ -470,7 +470,7 @@ export function predict(input: PredictInput): PredictResult {
       const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       prevMonthStr = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
     }
-    const prevReg = predictByRegression(industries, genders, ageRanges, prevMonthStr);
+    const prevReg = predictByRegression(industries, genders, ageRanges, objectives, prevMonthStr);
     if (prevReg.cpm > 0) {
       const prevBaseFreq = weightedFrequency(
         getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives)
