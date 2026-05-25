@@ -98,20 +98,8 @@ export default function ForesightTextMaterialCanvas() {
           y: Math.min(height - particle.radius, particle.y),
         }));
 
-      if (reducedMotionQuery.matches) {
-        particles = [];
-
-        for (let index = 0; index < Math.min(maxParticles, Math.floor((width * height) / 150)); index += 1) {
-          const particle = createParticle(width, fontSize, spawnIndex + index);
-          particle.x = (index * 23) % width;
-          particle.y = height - particle.radius - Math.floor(index / Math.max(1, Math.floor(width / 10))) * particle.radius * 1.35;
-          particle.vx = 0;
-          particle.vy = 0;
-          particle.settled = true;
-          particles.push(particle);
-        }
-
-        draw();
+      if (particles.length > maxParticles) {
+        particles = particles.slice(-maxParticles);
       }
     };
 
@@ -144,13 +132,10 @@ export default function ForesightTextMaterialCanvas() {
     };
 
     const tick = (time: number) => {
-      if (reducedMotionQuery.matches) {
-        return;
-      }
-
-      const delta = Math.min(1 / 28, (lastTime ? time - lastTime : 16) / 1000);
+      const motionScale = reducedMotionQuery.matches ? 0.34 : 1;
+      const delta = Math.min(1 / 28, (lastTime ? time - lastTime : 16) / 1000) * motionScale;
       lastTime = time;
-      spawnAccumulator += delta * 52;
+      spawnAccumulator += delta * (reducedMotionQuery.matches ? 24 : 52);
 
       if (spawnAccumulator >= 1) {
         const spawnCount = Math.min(8, Math.floor(spawnAccumulator));
@@ -272,12 +257,16 @@ export default function ForesightTextMaterialCanvas() {
       lastTime = 0;
       resize();
 
-      if (!reducedMotionQuery.matches) {
-        if (particles.length === 0) {
-          spawnParticles(Math.min(160, Math.floor(maxParticles * 0.18)));
-        }
+      if (particles.length === 0) {
+        spawnParticles(Math.min(160, Math.floor(maxParticles * 0.18)));
+      }
 
-        animationFrame = window.requestAnimationFrame(tick);
+      animationFrame = window.requestAnimationFrame(tick);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        restart();
       }
     };
 
@@ -297,6 +286,7 @@ export default function ForesightTextMaterialCanvas() {
     canvas.addEventListener('pointermove', handlePointerMove);
     canvas.addEventListener('pointerleave', handlePointerLeave);
     reducedMotionQuery.addEventListener('change', restart);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     restart();
 
     return () => {
@@ -304,6 +294,7 @@ export default function ForesightTextMaterialCanvas() {
       canvas.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('pointerleave', handlePointerLeave);
       reducedMotionQuery.removeEventListener('change', restart);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.cancelAnimationFrame(animationFrame);
     };
   }, []);
