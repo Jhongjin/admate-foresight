@@ -27,14 +27,12 @@ const HIGHER_LEVELS = [
 ];
 
 function buildLevels(budget: number): number[] {
-  if (budget <= 100_000_000) return BASE_LEVELS;
+  const levels = budget <= 100_000_000
+    ? [...BASE_LEVELS]
+    : [...BASE_LEVELS, ...HIGHER_LEVELS.filter((l) => l < budget)];
 
-  // 1억 초과: 후보 중 budget 미만인 것 + budget 자체 포함
-  const extras = HIGHER_LEVELS.filter((l) => l < budget);
-  const levels = [...BASE_LEVELS, ...extras];
-  // 정확히 budget이 없으면 추가
-  if (!levels.includes(budget)) levels.push(budget);
-  return levels;
+  if (budget > 0 && !levels.includes(budget)) levels.push(budget);
+  return levels.sort((a, b) => a - b);
 }
 
 export async function POST(req: NextRequest) {
@@ -56,16 +54,17 @@ export async function POST(req: NextRequest) {
       genders = [],
       ageRanges = [],
       objectives = [],
-      budget: currentBudget = 0,
+      budget: currentMonthlyBudget = 0,
       monthFrom,
       monthTo,
     } = body;
 
-    const levels = buildLevels(currentBudget);
+    // /api/predict와 동일하게 월 환산 예산을 기준으로 구간을 계산한다.
+    const levels = buildLevels(currentMonthlyBudget);
 
-    const results = levels.map((budget) => {
-      const r = predict({ industries, genders, ageRanges, objectives, budget, monthFrom, monthTo });
-      return { budget, reach: r.reach, cpm: r.cpm, cpc: r.cpc };
+    const results = levels.map((monthlyBudget) => {
+      const r = predict({ industries, genders, ageRanges, objectives, budget: monthlyBudget, monthFrom, monthTo });
+      return { budget: monthlyBudget, reach: r.reach, cpm: r.cpm, cpc: r.cpc };
     });
 
     const dataLoaded = loadXlsxData().length > 0;

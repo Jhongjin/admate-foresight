@@ -10,6 +10,10 @@ import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import PlanningStatePanel from '@/components/PlanningStatePanel';
 import StatePanel from '@/components/StatePanel';
+import {
+  buildCampaignRangePoint,
+  buildForesightBudgetBasis,
+} from '@/lib/foresightBudgetBasis';
 
 const ALL_GENDERS = [
   { value: 'male', label: '남성' },
@@ -388,8 +392,9 @@ export default function SimulatorPage() {
     finally { setRangeLoading(false); }
   }, []);
 
-  // 총 예산 → 월 환산 예산 (predict API는 월 기준)
-  const monthlyBudget = Math.round(budget * (30 / campaignDays));
+  // API 예측은 월 기준 예산으로 맞추고, 화면 표시는 캠페인 기간 기준으로 환산한다.
+  const budgetBasis = buildForesightBudgetBasis(budget, campaignDays);
+  const monthlyBudget = budgetBasis.monthlyBudget;
 
   useEffect(() => {
     if (!isCalculated) return;
@@ -403,9 +408,9 @@ export default function SimulatorPage() {
     if (!isCalculated) return;
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
     rangeDebounceRef.current = setTimeout(() => {
-      fetchRange({ industries, genders, ageRanges, objectives, budget });
+      fetchRange({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
     }, 400);
-  }, [isCalculated, industries, genders, ageRanges, objectives, budget, fetchRange]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, fetchRange]);
 
   // ML 예측 (Python FastAPI) — 조건 변경 시 자동 갱신
   useEffect(() => {
@@ -427,9 +432,9 @@ export default function SimulatorPage() {
     // 이미 계산된 상태(재시뮬레이션)이면 useEffect가 재실행되지 않으므로 직접 호출
     // 처음 계산 시에는 isCalculated 변화에 의해 useEffect가 fetchRange를 호출하므로 중복 방지
     if (wasCalculated) {
-      fetchRange({ industries, genders, ageRanges, objectives, budget });
+      fetchRange({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
     }
-  }, [isCalculated, industries, genders, ageRanges, objectives, budget, monthlyBudget, fetchPrediction, fetchRange]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, fetchPrediction, fetchRange]);
 
   // 테이블 클릭 등 외부에서 budget 변경 시 input 동기화
   useEffect(() => {
@@ -533,7 +538,7 @@ export default function SimulatorPage() {
   ];
 
   // 기간 스케일 팩터 (월 기준 예측값 → 캠페인 기간 환산)
-  const durationFactor = campaignDays / 30;
+  const durationFactor = budgetBasis.durationFactor;
   const totalReach = result ? Math.round(result.reach * durationFactor) : 0;
   const selectedTargetCount = industries.length + genders.length + ageRanges.length + objectives.length;
   const marketSelected = result?.marketAvg?.industrySelected === true;
@@ -713,8 +718,8 @@ export default function SimulatorPage() {
   const expansionPotential = useMemo(() => {
     if (!result) return null;
     const freq = result.frequency;
-    const maxReach = rangeData.length > 0 ? rangeData[rangeData.length - 1].reach : 0;
-    const reachRate = maxReach > 0 ? totalReach / maxReach : 1;
+    const maxMonthlyReach = rangeData.length > 0 ? rangeData[rangeData.length - 1].reach : 0;
+    const reachRate = maxMonthlyReach > 0 ? result.reach / maxMonthlyReach : 1;
     const canExpand = freq < 1.5 && reachRate <= 0.3;
 
     if (!canExpand) return { canExpand: false, frequency: freq, reachRate };
@@ -732,16 +737,16 @@ export default function SimulatorPage() {
     }
     const additionalReach = Math.max(0, Math.round((reach120 - result.reach) * durationFactor));
     return { canExpand: true, frequency: freq, reachRate, additionalReach, additionalBudget: Math.round(budget * 0.2) };
-  }, [result, rangeData, totalReach, monthlyBudget, budget, durationFactor]);
+  }, [result, rangeData, monthlyBudget, budget, durationFactor]);
 
-  // Chart data (range chart는 월 기준 유지)
-  const chartData = rangeData.map((p) => ({
-    ...p,
-    label: formatBudget(p.budget),
-    impressions: p.cpm > 0 ? Math.round(p.budget / p.cpm * 1000) : 0,
-    clicks: p.cpc > 0 ? Math.round(p.budget / p.cpc) : 0,
-    reachEfficiency: p.reach > 0 ? Math.round(p.reach / (p.budget / 10_000)) : 0,
-  }));
+  // Range API 결과는 월 기준이고, 곡선/표는 입력한 캠페인 기간 기준으로 표시한다.
+  const chartData = rangeData.map((p) => {
+    const campaignPoint = buildCampaignRangePoint(p, campaignDays);
+    return {
+      ...campaignPoint,
+      label: formatBudget(campaignPoint.budget),
+    };
+  });
   const predictionRangeRows = result && predictionRangeSpread != null
     ? [
         {
@@ -2021,7 +2026,7 @@ export default function SimulatorPage() {
                   {chartData.map((row) => {
                     const isSelected = row.budget === budget;
                     return (
-                      <tr key={row.budget} onClick={() => setBudget(row.budget)}
+                      <tr key={row.monthlyBudget} onClick={() => setBudget(row.budget)}
                         className={`border-b border-gray-50 cursor-pointer transition-colors ${
                           isSelected ? 'bg-teal-50 font-semibold' : 'hover:bg-slate-50'
                         }`}>
