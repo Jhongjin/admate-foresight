@@ -173,7 +173,7 @@ const ACCOUNT_URL = 'https://sentinel.admate.ai.kr/account';
 const ACCESS_REQUESTS_URL = 'https://sentinel.admate.ai.kr/users/access-requests';
 const ORGANIZATIONS_URL = 'https://sentinel.admate.ai.kr/users/organizations';
 const USERS_URL = 'https://sentinel.admate.ai.kr/users';
-const FORESIGHT_LOGOUT_NEXT_URL = 'https://foresight.admate.ai.kr/login?logout=complete';
+const FORESIGHT_LOGOUT_NEXT_URL = 'https://foresight.admate.ai.kr/';
 const SENTINEL_LOGOUT_URL = 'https://sentinel.admate.ai.kr/auth/logout';
 
 function buildSentinelLogoutUrl(nextUrl: string) {
