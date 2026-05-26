@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { noStoreJson } from './security';
 
 interface RateLimitOptions {
   key: string;
@@ -34,7 +35,7 @@ export function checkRateLimit(
 
   if (current.count >= options.limit) {
     const retryAfter = Math.max(1, Math.ceil((current.resetAt - now) / 1000));
-    return NextResponse.json(
+    return noStoreJson(
       { error: 'Too many requests.' },
       {
         status: 429,

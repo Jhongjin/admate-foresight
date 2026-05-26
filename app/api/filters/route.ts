@@ -25,6 +25,12 @@ const INDUSTRY_ORDER: string[] = [
   '기타',
 ];
 
+function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
+  const headers = new Headers(init.headers);
+  headers.set('Cache-Control', 'no-store');
+  return NextResponse.json(body, { ...init, headers });
+}
+
 function sortIndustries(industries: string[]): string[] {
   const remaining = new Set(industries);
   const result: string[] = [];
@@ -72,9 +78,9 @@ export async function GET() {
       console.warn('[filters] ⚠️  Supabase 업종 데이터 없음 — xlsxIndustries 비어있음');
     }
 
-    return NextResponse.json({ industries: allIndustries, ageRanges, genders, objectives, months });
-  } catch (err) {
-    console.error('[filters] 오류:', err);
-    return NextResponse.json({ error: 'Failed to load filters' }, { status: 500 });
+    return jsonNoStore({ industries: allIndustries, ageRanges, genders, objectives, months });
+  } catch {
+    console.error('[filters] failed');
+    return jsonNoStore({ error: 'Failed to load filters' }, { status: 500 });
   }
 }

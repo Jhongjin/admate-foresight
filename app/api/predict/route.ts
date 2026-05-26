@@ -4,6 +4,12 @@ import { predict } from '@/lib/predictor';
 import { normalizePredictionRequest, PredictionRequestValidationError } from '@/lib/predictionRequest';
 import { ensureDataLoaded } from '@/lib/xlsxLoader';
 
+function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
+  const headers = new Headers(init.headers);
+  headers.set('Cache-Control', 'no-store');
+  return NextResponse.json(body, { ...init, headers });
+}
+
 export async function POST(req: NextRequest) {
   const authResponse = await requireForesightApiSession();
   if (authResponse) return authResponse;
@@ -14,12 +20,12 @@ export async function POST(req: NextRequest) {
     const input = normalizePredictionRequest(body, { defaultBudget: 10_000_000 });
 
     const result = predict(input);
-    return NextResponse.json(result);
+    return jsonNoStore(result);
   } catch (err) {
     if (err instanceof PredictionRequestValidationError) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
+      return jsonNoStore({ error: 'Invalid prediction request.' }, { status: 400 });
     }
-    console.error(err);
-    return NextResponse.json({ error: 'Prediction failed' }, { status: 500 });
+    console.error('[predict] failed');
+    return jsonNoStore({ error: 'Prediction failed' }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { sanitizeError } from '@/lib/security';
+import { noStoreJson, sanitizeError } from '@/lib/security';
 
 const BASE = 'https://adstransparency.google.com/anji/_/rpc';
 const HEADERS = {
@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
     // 1) 광고주 목록 가져오기
     const advertisers = await searchAdvertisers(searchKeyword, 5);
     if (!advertisers.length) {
-      return NextResponse.json({ ads: [], searchKeyword, advertisers: [] });
+      return noStoreJson({ ads: [], searchKeyword, advertisers: [] });
     }
 
     // 2) 소재 가져오기
@@ -160,7 +160,7 @@ export async function GET(req: NextRequest) {
       country: advertiserMap[c.advertiserId]?.country || '',
     }));
 
-    return NextResponse.json({
+    return noStoreJson({
       ads,
       searchKeyword,
       advertisers,
@@ -168,6 +168,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error('[google-ads] request failed:', sanitizeError(err));
-    return NextResponse.json({ error: 'External ads lookup failed.' }, { status: 502 });
+    return noStoreJson({ error: 'External ads lookup failed.' }, { status: 502 });
   }
 }

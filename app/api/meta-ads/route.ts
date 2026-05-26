@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { sanitizeError } from '@/lib/security';
+import { noStoreJson, sanitizeError } from '@/lib/security';
 
 const META_API_VERSION = 'v21.0';
 const BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`;
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
   const accessToken = userToken || (appId && appSecret ? `${appId}|${appSecret}` : null);
 
   if (!accessToken) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: 'External ads lookup is not configured.' },
       { status: 503 }
     );
@@ -97,18 +97,14 @@ export async function GET(req: NextRequest) {
     const data = await res.json();
 
     if (!res.ok) {
-      console.error('[meta-ads] API error:', {
-        status: res.status,
-        code: data.error?.code,
-        type: data.error?.type,
-      });
-      return NextResponse.json(
+      console.error('[meta-ads] API error status:', res.status);
+      return noStoreJson(
         { error: 'External ads lookup failed.' },
         { status: res.status }
       );
     }
 
-    return NextResponse.json({
+    return noStoreJson({
       ads: data.data ?? [],
       paging: data.paging ?? null,
       nextCursor: data.paging?.cursors?.after ?? null,
@@ -117,7 +113,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error('[meta-ads] request failed:', sanitizeError(err));
-    return NextResponse.json(
+    return noStoreJson(
       { error: '광고 데이터를 불러오지 못했습니다.' },
       { status: 500 }
     );

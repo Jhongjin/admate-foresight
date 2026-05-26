@@ -3,6 +3,12 @@ import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { getRegressionSummary } from '@/lib/regression';
 import { ensureDataLoaded } from '@/lib/xlsxLoader';
 
+function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
+  const headers = new Headers(init.headers);
+  headers.set('Cache-Control', 'no-store');
+  return NextResponse.json(body, { ...init, headers });
+}
+
 export async function GET() {
   const authResponse = await requireForesightApiSession();
   if (authResponse) return authResponse;
@@ -10,9 +16,9 @@ export async function GET() {
   try {
     await ensureDataLoaded();
     const summary = getRegressionSummary();
-    return NextResponse.json(summary);
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Regression summary failed' }, { status: 500 });
+    return jsonNoStore(summary);
+  } catch {
+    console.error('[regression-summary] failed');
+    return jsonNoStore({ error: 'Regression summary failed' }, { status: 500 });
   }
 }

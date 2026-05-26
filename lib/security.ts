@@ -24,10 +24,16 @@ function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(aBuf, bBuf);
 }
 
+export function noStoreJson(body: unknown, init: ResponseInit = {}): NextResponse {
+  const headers = new Headers(init.headers);
+  headers.set('Cache-Control', 'no-store');
+  return NextResponse.json(body, { ...init, headers });
+}
+
 export function requireInternalKey(req: NextRequest): NextResponse | null {
   const expected = getConfiguredInternalKey();
   if (!expected) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: 'Internal access is not configured.' },
       { status: 503 },
     );
@@ -35,7 +41,7 @@ export function requireInternalKey(req: NextRequest): NextResponse | null {
 
   const provided = req.headers.get(INTERNAL_KEY_HEADER) ?? '';
   if (!provided || !safeEqual(provided, expected)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return noStoreJson({ error: 'Forbidden' }, { status: 403 });
   }
 
   return null;
@@ -47,7 +53,7 @@ export function isProductionRuntime(): boolean {
 
 export function blockProductionDebugRoute(): NextResponse | null {
   if (!isProductionRuntime()) return null;
-  return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return noStoreJson({ error: 'Not found' }, { status: 404 });
 }
 
 export function maskIdentifier(value: string | null | undefined): string {

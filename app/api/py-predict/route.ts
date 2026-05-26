@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 
+function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
+  const headers = new Headers(init.headers);
+  headers.set('Cache-Control', 'no-store');
+  return NextResponse.json(body, { ...init, headers });
+}
+
 /**
  * POST /api/py-predict
  *
@@ -20,7 +26,7 @@ export async function POST(req: NextRequest) {
   const PY_API = process.env.PYTHON_API_URL;
 
   if (!PY_API) {
-    return NextResponse.json(
+    return jsonNoStore(
       {
         error: 'ML 서비스 미설정',
       },
@@ -32,7 +38,7 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: '요청 본문 파싱 오류' }, { status: 400 });
+    return jsonNoStore({ error: '요청 본문 파싱 오류' }, { status: 400 });
   }
 
   try {
@@ -46,16 +52,16 @@ export async function POST(req: NextRequest) {
     const data = await res.json();
 
     if (!res.ok) {
-      return NextResponse.json(
+      return jsonNoStore(
         { error: 'ML 서비스 오류', status: res.status },
         { status: res.status },
       );
     }
 
-    return NextResponse.json(data);
+    return jsonNoStore(data);
   } catch (err) {
     const isTimeout = err instanceof DOMException && (err.name === 'TimeoutError' || err.name === 'AbortError');
-    return NextResponse.json(
+    return jsonNoStore(
       {
         error: isTimeout ? 'ML 서비스 응답 시간 초과' : 'ML 서비스 연결 실패',
       },

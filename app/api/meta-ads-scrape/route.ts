@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { isProductionRuntime, requireInternalKey, sanitizeError } from '@/lib/security';
+import { isProductionRuntime, noStoreJson, requireInternalKey, sanitizeError } from '@/lib/security';
 
 // Vercel serverless 환경 timeout (Pro 300s, Hobby 60s)
 export const maxDuration = 60;
@@ -414,7 +414,7 @@ export async function GET(req: NextRequest) {
     } catch (scrapeErr) {
       console.error('[meta-ads-scrape] Playwright failed:', sanitizeError(scrapeErr));
 
-      return NextResponse.json(
+      return noStoreJson(
         { error: 'External ads lookup failed.' },
         { status: 500 }
       );
@@ -437,7 +437,7 @@ export async function GET(req: NextRequest) {
     ads = rawAds.slice(0, limit);
   }
 
-  return NextResponse.json({
+  return noStoreJson({
     ads,
     industry,
     searchTerm: searchKeyword,

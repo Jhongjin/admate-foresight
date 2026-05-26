@@ -5,6 +5,12 @@ import { predict } from '@/lib/predictor';
 import { normalizePredictionRequest, PredictionRequestValidationError } from '@/lib/predictionRequest';
 import { ensureDataLoaded, loadXlsxData } from '@/lib/xlsxLoader';
 
+function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
+  const headers = new Headers(init.headers);
+  headers.set('Cache-Control', 'no-store');
+  return NextResponse.json(body, { ...init, headers });
+}
+
 export async function POST(req: NextRequest) {
   const authResponse = await requireForesightApiSession();
   if (authResponse) return authResponse;
@@ -39,12 +45,12 @@ export async function POST(req: NextRequest) {
     const dataLoaded = loadXlsxData().length > 0;
     console.log(`[predict-range] 완료: ${results.length}구간, 데이터로딩=${dataLoaded}, 첫 reach=${results[0]?.reach}`);
 
-    return NextResponse.json(results);
+    return jsonNoStore(results);
   } catch (err) {
     if (err instanceof PredictionRequestValidationError) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
+      return jsonNoStore({ error: 'Invalid prediction request.' }, { status: 400 });
     }
-    console.error('[predict-range] 오류:', err);
-    return NextResponse.json({ error: 'Prediction failed' }, { status: 500 });
+    console.error('[predict-range] failed');
+    return jsonNoStore({ error: 'Prediction failed' }, { status: 500 });
   }
 }

@@ -3,6 +3,12 @@ import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { ensureDataLoaded } from '@/lib/xlsxLoader';
 import { getBreakdown } from '@/lib/trendsData';
 
+function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
+  const headers = new Headers(init.headers);
+  headers.set('Cache-Control', 'no-store');
+  return NextResponse.json(body, { ...init, headers });
+}
+
 function parseList(val: string | null): string[] {
   if (!val) return [];
   return val.split(',').map((s) => s.trim()).filter(Boolean);
@@ -21,9 +27,9 @@ export async function GET(req: NextRequest) {
 
     await ensureDataLoaded();
     const data = getBreakdown(industries, genders, ageRanges, objectives);
-    return NextResponse.json(data);
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Failed' }, { status: 500 });
+    return jsonNoStore(data);
+  } catch {
+    console.error('[breakdown] failed');
+    return jsonNoStore({ error: 'Failed' }, { status: 500 });
   }
 }

@@ -3,6 +3,12 @@ import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { ensureDataLoaded } from '@/lib/xlsxLoader';
 import { getSeasonalityInsights } from '@/lib/trendsData';
 
+function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
+  const headers = new Headers(init.headers);
+  headers.set('Cache-Control', 'no-store');
+  return NextResponse.json(body, { ...init, headers });
+}
+
 export async function GET(req: NextRequest) {
   const authResponse = await requireForesightApiSession();
   if (authResponse) return authResponse;
@@ -14,9 +20,9 @@ export async function GET(req: NextRequest) {
 
     await ensureDataLoaded();
     const data = getSeasonalityInsights(industries);
-    return NextResponse.json(data);
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Failed to load seasonality data' }, { status: 500 });
+    return jsonNoStore(data);
+  } catch {
+    console.error('[seasonality] failed');
+    return jsonNoStore({ error: 'Failed to load seasonality data' }, { status: 500 });
   }
 }
