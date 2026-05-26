@@ -87,6 +87,11 @@ export interface ForecastRangeConfirmation {
   blockedActions: string[];
 }
 
+export interface ForecastRangeResponseNormalization {
+  rangeData: ForecastRangeConfirmationPoint[] | null;
+  confirmation: ForecastRangeConfirmation | null;
+}
+
 const DATA_SUFFICIENCY_STATUSES: DataSufficiencyStatus[] = [
   'sufficient',
   'relaxed',
@@ -200,6 +205,45 @@ function normalizeRangePoint(value: unknown): ForecastRangeConfirmationPoint | n
     cpm: value.cpm,
     cpc: value.cpc,
     dataSufficiency,
+  };
+}
+
+function normalizeForecastRangeConfirmation(value: unknown): ForecastRangeConfirmation | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.acceptedForReview !== 'boolean') return null;
+  if (!isRecord(value.readiness) || typeof value.readiness.operatorReviewReady !== 'boolean') return null;
+  if (
+    value.state !== 'accepted_for_operator_review' &&
+    value.state !== 'blocked_by_sufficiency' &&
+    value.state !== 'blocked_by_current_range' &&
+    value.state !== 'rejected_invalid_range'
+  ) {
+    return null;
+  }
+
+  return value as unknown as ForecastRangeConfirmation;
+}
+
+export function normalizeForecastRangeData(value: unknown): ForecastRangeConfirmationPoint[] | null {
+  const range = Array.isArray(value)
+    ? value
+    : isRecord(value) && Array.isArray(value.range)
+      ? value.range
+      : null;
+
+  if (!range) return null;
+
+  const points = range.map(normalizeRangePoint);
+  if (points.some((point) => point === null)) return null;
+  return points.filter((point): point is ForecastRangeConfirmationPoint => point !== null);
+}
+
+export function normalizeForecastRangeResponse(value: unknown): ForecastRangeResponseNormalization {
+  return {
+    rangeData: normalizeForecastRangeData(value),
+    confirmation: isRecord(value)
+      ? normalizeForecastRangeConfirmation(value.confirmation)
+      : null,
   };
 }
 

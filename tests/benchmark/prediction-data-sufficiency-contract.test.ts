@@ -91,6 +91,7 @@ async function importPredictRangeRouteWithPrediction(localPrediction: Record<str
   const routePath = join(process.cwd(), 'app', 'api', 'predict-range', 'route.ts');
   const predictionRequest = loadLocalTsModule(['lib', 'predictionRequest.ts']);
   const predictRangeLevels = loadLocalTsModule(['lib', 'predictRangeLevels.ts']);
+  const forecastRangeConfirmation = loadLocalTsModule(['lib', 'forecastRangeConfirmation.ts']);
   const source = readFileSync(routePath, 'utf8');
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -126,6 +127,7 @@ async function importPredictRangeRouteWithPrediction(localPrediction: Record<str
     if (id === '@/lib/predictor') return { predict };
     if (id === '@/lib/predictionRequest') return predictionRequest;
     if (id === '@/lib/predictRangeLevels') return predictRangeLevels;
+    if (id === '@/lib/forecastRangeConfirmation') return forecastRangeConfirmation;
     throw new Error(`Unexpected route dependency: ${id}`);
   };
 
@@ -299,8 +301,32 @@ describe('prediction data sufficiency contract', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toHaveLength(8);
-    expect(body).toEqual(
+    expect(body).toMatchObject({
+      confirmation: {
+        state: 'blocked_by_sufficiency',
+        acceptedForReview: false,
+        readiness: {
+          operatorReviewReady: false,
+          llmReady: false,
+          persistenceReady: false,
+          reportReady: false,
+          exportReady: false,
+          promotionReady: false,
+          applyReady: false,
+        },
+        sideEffectSummary: {
+          llmCalls: 0,
+          databaseReads: 0,
+          databaseWrites: 0,
+          pythonRuns: 0,
+          metaCalls: 0,
+          exportWrites: 0,
+          promotionApplyCalls: 0,
+        },
+      },
+    });
+    expect(body.range).toHaveLength(8);
+    expect(body.range).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           budget: 1_000_000,

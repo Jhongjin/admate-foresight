@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
+import { buildForecastRangeConfirmation } from '@/lib/forecastRangeConfirmation';
 import { buildPredictRangeLevels } from '@/lib/predictRangeLevels';
 import { predict } from '@/lib/predictor';
 import { normalizePredictionRequest, PredictionRequestValidationError } from '@/lib/predictionRequest';
@@ -41,11 +42,15 @@ export async function POST(req: NextRequest) {
         dataSufficiency: r.dataSufficiency,
       };
     });
+    const confirmation = buildForecastRangeConfirmation({
+      range: results,
+      currentBudget: input.budget,
+    });
 
     const dataLoaded = loadXlsxData().length > 0;
     console.log(`[predict-range] 완료: ${results.length}구간, 데이터로딩=${dataLoaded}, 첫 reach=${results[0]?.reach}`);
 
-    return jsonNoStore(results);
+    return jsonNoStore({ range: results, confirmation });
   } catch (err) {
     if (err instanceof PredictionRequestValidationError) {
       return jsonNoStore({ error: 'Invalid prediction request.' }, { status: 400 });

@@ -14,6 +14,11 @@ import {
   buildCampaignRangePoint,
   buildForesightBudgetBasis,
 } from '@/lib/foresightBudgetBasis';
+import {
+  normalizeForecastRangeResponse,
+  type ForecastRangeConfirmation,
+  type ForecastRangeConfirmationPoint,
+} from '@/lib/forecastRangeConfirmation';
 
 const ALL_GENDERS = [
   { value: 'male', label: '남성' },
@@ -93,12 +98,7 @@ interface ScenarioResult {
   cpc: number;
 }
 
-interface RangePoint {
-  budget: number;
-  reach: number;
-  cpm: number;
-  cpc: number;
-}
+type RangePoint = ForecastRangeConfirmationPoint;
 
 interface MLResult {
   cpm:        number;
@@ -236,26 +236,6 @@ function normalizePredictResult(value: unknown): PredictResult | null {
   return result;
 }
 
-function normalizeRangePoint(value: unknown): RangePoint | null {
-  if (!isRecord(value)) return null;
-
-  const budget = readFiniteNumber(value.budget);
-  const reach = readFiniteNumber(value.reach);
-  const cpm = readFiniteNumber(value.cpm);
-  const cpc = readFiniteNumber(value.cpc);
-
-  if (budget == null || reach == null || cpm == null || cpc == null) return null;
-  return { budget, reach, cpm, cpc };
-}
-
-function normalizeRangeData(value: unknown): RangePoint[] | null {
-  if (!Array.isArray(value)) return null;
-
-  const points = value.map(normalizeRangePoint);
-  if (points.some((point) => point == null)) return null;
-  return points.filter((point): point is RangePoint => point != null);
-}
-
 async function readJsonOrNull(response: Response): Promise<unknown | null> {
   try {
     return await response.json();
@@ -293,6 +273,7 @@ export default function SimulatorPage() {
   const [result, setResult] = useState<PredictResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [rangeData, setRangeData] = useState<RangePoint[]>([]);
+  const [rangeConfirmation, setRangeConfirmation] = useState<ForecastRangeConfirmation | null>(null);
   const [rangeLoading, setRangeLoading] = useState(false);
   const [scenarios, setScenarios] = useState<ScenarioResult[]>([]);
   const [scenarioLoading, setScenarioLoading] = useState(false);
@@ -379,15 +360,18 @@ export default function SimulatorPage() {
       });
       if (!res.ok) {
         setRangeData([]);
+        setRangeConfirmation(null);
         return;
       }
       const data = await readJsonOrNull(res);
-      const nextRangeData = normalizeRangeData(data);
+      const { rangeData: nextRangeData, confirmation } = normalizeForecastRangeResponse(data);
       setRangeData(nextRangeData ?? []);
+      setRangeConfirmation(confirmation);
       if (!nextRangeData) console.warn('[predict-range] 예산 구간 형식을 확인하지 못했습니다.');
     } catch {
       console.warn('[predict-range] 예산 구간을 불러오지 못했습니다.');
       setRangeData([]);
+      setRangeConfirmation(null);
     }
     finally { setRangeLoading(false); }
   }, []);
@@ -426,6 +410,7 @@ export default function SimulatorPage() {
     const wasCalculated = isCalculated;
     setResult(null);
     setRangeData([]);
+    setRangeConfirmation(null);
     setScenarios([]);
     setIsCalculated(true);
     fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
@@ -648,6 +633,32 @@ export default function SimulatorPage() {
     { label: '주의', detail: '전체 기준 또는 일부 근거만으로 검토할 때 표시합니다.' },
     { label: '확인 필요', detail: '데이터가 적거나 보강이 필요할 때 표시합니다.' },
   ];
+  const rangeReviewStatus = rangeConfirmation?.state;
+  const rangeReviewLabel = !isCalculated
+    ? '실행 전'
+    : rangeLoading
+      ? '구간 계산 중'
+      : rangeReviewStatus === 'accepted_for_operator_review'
+        ? '운영자 검토 가능'
+        : rangeReviewStatus === 'blocked_by_sufficiency'
+          ? '근거 보강 필요'
+          : rangeReviewStatus === 'blocked_by_current_range'
+            ? '현재 예산 확인 필요'
+            : rangeReviewStatus === 'rejected_invalid_range'
+              ? '구간 재계산 필요'
+              : '구간 확인 대기';
+  const rangeReviewDetail = rangeConfirmation
+    ? `${rangeConfirmation.range.pointCount}개 구간 · 최소 매칭 ${rangeConfirmation.sufficiency.minimumMatchedCount.toLocaleString()}건`
+    : rangeLoading
+      ? '예산별 결과를 확인하고 있습니다.'
+      : '구간 결과가 들어오면 운영자 검토 상태를 표시합니다.';
+  const rangeReviewTone = rangeConfirmation?.readiness.operatorReviewReady
+    ? 'ok'
+    : rangeLoading
+      ? 'watch'
+      : rangeConfirmation
+        ? 'risk'
+        : 'idle';
   const confidenceTone = confidenceScore == null
     ? 'text-gray-500'
     : confidenceScore >= 82
@@ -694,6 +705,7 @@ export default function SimulatorPage() {
     { label: '입력 조건', value: selectedTargetCount > 0 ? `${selectedTargetCount}개 조건` : '전체 기준' },
     { label: '비교 기준', value: benchmarkLabel },
     { label: '근거 상태', value: confidenceDisplay },
+    { label: '구간 검토', value: rangeReviewLabel },
   ];
   const planningBasis = [
     { label: '기준 기간', value: '최근 6개월', detail: benchmarkLabel },
@@ -828,9 +840,9 @@ export default function SimulatorPage() {
     },
     {
       label: '시나리오 구간',
-      status: chartData.length > 0 ? `예산 ${chartData.length}개 구간` : rangeLoading ? '계산 중' : '구간 대기',
-      detail: chartData.length > 0 ? '곡선/표 동시 검토 가능' : '예산 구간 대기',
-      tone: chartData.length > 0 ? 'ok' : rangeLoading ? 'watch' : 'idle',
+      status: chartData.length > 0 ? rangeReviewLabel : rangeLoading ? '계산 중' : '구간 대기',
+      detail: chartData.length > 0 ? rangeReviewDetail : '예산 구간 대기',
+      tone: chartData.length > 0 ? rangeReviewTone : rangeLoading ? 'watch' : 'idle',
     },
   ];
   const evidencePanelTone = confidenceGateTone === 'ok'
@@ -884,15 +896,17 @@ export default function SimulatorPage() {
           : null,
       ].filter((item): item is { label: string; detail: string } => Boolean(item))
     : [];
-  const dataSufficiencyStatus = !result
-    ? '계산 전'
-    : confidenceGateStatus === '근거 보강'
-      ? '근거 보강 필요'
-      : !marketSelected
-        ? '전체 기준 상태'
-        : chartData.length === 0
-          ? '구간 보강 필요'
-          : '검토 가능';
+  const dataSufficiencyStatus = rangeConfirmation
+    ? rangeReviewLabel
+    : !result
+      ? '계산 전'
+      : confidenceGateStatus === '근거 보강'
+        ? '근거 보강 필요'
+        : !marketSelected
+          ? '전체 기준 상태'
+          : chartData.length === 0
+            ? '구간 보강 필요'
+            : '검토 가능';
   const dataSufficiencyLedger = result
     ? [
         {
@@ -913,9 +927,9 @@ export default function SimulatorPage() {
         },
         {
           label: '예산 구간',
-          value: chartData.length > 0 ? `${chartData.length}개 구간` : '예산 곡선 대기',
+          value: rangeConfirmation ? rangeReviewLabel : chartData.length > 0 ? `${chartData.length}개 구간` : '예산 곡선 대기',
           detail: chartData.length > 0
-            ? '곡선과 비교표가 같은 range 결과를 공유합니다.'
+            ? rangeReviewDetail
             : '단일 KPI만으로 증액/감액 결정을 확정하지 않습니다.',
         },
         {
@@ -1657,9 +1671,9 @@ export default function SimulatorPage() {
                   <p className="mt-1 text-xs leading-5 text-slate-600">데이터 매칭, 예측 기준, 예산 구간, 결과 표시 범위를 {truthBandLabel} 기준으로 함께 확인합니다.</p>
                 </div>
                 <span className={`w-fit rounded-md border px-2.5 py-1 text-[11px] font-semibold ${
-                  dataSufficiencyStatus === '검토 가능'
+                  dataSufficiencyStatus === '검토 가능' || dataSufficiencyStatus === '운영자 검토 가능'
                     ? 'border-teal-200 bg-teal-50 text-teal-800'
-                    : dataSufficiencyStatus === '근거 보강 필요' || dataSufficiencyStatus === '구간 보강 필요'
+                    : dataSufficiencyStatus === '근거 보강 필요' || dataSufficiencyStatus === '구간 보강 필요' || dataSufficiencyStatus === '현재 예산 확인 필요' || dataSufficiencyStatus === '구간 재계산 필요'
                       ? 'border-amber-200 bg-amber-50 text-amber-800'
                       : 'border-stone-200 bg-stone-50 text-stone-600'
                 }`}>
