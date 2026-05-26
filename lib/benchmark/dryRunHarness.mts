@@ -237,6 +237,8 @@ export interface MockRunResult {
 }
 
 const SCHEMA_MAPPING_VERSION = 'benchmark_column_mapping_v1' as const;
+const ALLOWED_SOURCE_TYPES = ['dashboard_export', 'meta_api_export'] as const;
+const METADATA_ACCEPTED_SOURCE_COLUMNS = ['platform', 'source_type', 'currency'] as const;
 
 const REQUIRED_FIELDS: CanonicalField[] = [
   'platform',
@@ -310,6 +312,18 @@ function normalizeLabel(value: string): string {
     .trim()
     .toLowerCase()
     .replace(/[\s._/-]+/g, '');
+}
+
+function isAllowedSourceType(value: unknown): value is SourceType {
+  return typeof value === 'string' && (ALLOWED_SOURCE_TYPES as readonly string[]).includes(value);
+}
+
+function getAllowedMetadataSourceType(metadata: BenchmarkDryRunMetadata): SourceType | null {
+  return isAllowedSourceType(metadata.source_type) ? metadata.source_type : null;
+}
+
+function isAcceptedMetadataSourceColumn(column: string): boolean {
+  return (METADATA_ACCEPTED_SOURCE_COLUMNS as readonly string[]).includes(column);
 }
 
 function sanitizeColumnLabel(column: string): string {
@@ -430,7 +444,8 @@ function findMappingForField(
   sheetName: string,
   metadata: BenchmarkDryRunMetadata,
 ): FieldMapping | null {
-  if (field === 'source_type' && metadata.source_type) {
+  if (field === 'source_type' && metadata.source_type !== undefined) {
+    if (!getAllowedMetadataSourceType(metadata)) return null;
     return {
       source_sheet: 'upload_metadata',
       source_column: 'source_type',
@@ -520,11 +535,14 @@ function buildMappings(input: BenchmarkDryRunInput): {
   for (const field of CANONICAL_FIELDS) {
     const fieldMapping = findMappingForField(field, headers, sheetName, input.metadata);
     if (!fieldMapping) continue;
+    if (fieldMapping.from_metadata && !isAcceptedMetadataSourceColumn(fieldMapping.source_column)) continue;
     mapping[field] = fieldMapping;
     if (!fieldMapping.from_metadata) mappedSourceColumns.add(fieldMapping.source_column);
     acceptedColumns.push({
       source_sheet: fieldMapping.source_sheet,
-      source_column_masked_or_label: fieldMapping.from_metadata ? `upload_metadata.${fieldMapping.source_column}` : sanitizeColumnLabel(fieldMapping.source_column),
+      source_column_masked_or_label: fieldMapping.from_metadata
+        ? `upload_metadata.${fieldMapping.source_column}`
+        : sanitizeColumnLabel(fieldMapping.source_column),
       normalized_source_column: normalizeLabel(fieldMapping.source_column),
       canonical_field: field,
       mapping_confidence: fieldMapping.confidence,
@@ -1202,7 +1220,7 @@ export function runBenchmarkDryRun(input: BenchmarkDryRunInput): BenchmarkDryRun
     sheet_summary: buildSheetSummary(input),
     mapping_report: {
       parser_profile: 'inline_mock_profile_v1',
-      source_type: input.metadata.source_type ?? 'missing',
+      source_type: getAllowedMetadataSourceType(input.metadata) ?? 'missing',
       schema_mapping_version: SCHEMA_MAPPING_VERSION,
       canonical_field_status: canonicalFieldStatus,
       mapping_confidence_summary: buildConfidenceSummary(canonicalFieldStatus),
