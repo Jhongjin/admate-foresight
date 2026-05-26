@@ -1,40 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
+import { buildPredictRangeLevels } from '@/lib/predictRangeLevels';
 import { predict } from '@/lib/predictor';
 import { normalizePredictionRequest, PredictionRequestValidationError } from '@/lib/predictionRequest';
 import { ensureDataLoaded, loadXlsxData } from '@/lib/xlsxLoader';
-
-// 기본 구간 (1억 이하)
-const BASE_LEVELS = [
-  1_000_000,
-  3_000_000,
-  5_000_000,
-  10_000_000,
-  20_000_000,
-  30_000_000,
-  50_000_000,
-  100_000_000,
-];
-
-// 1억 초과 구간 후보
-const HIGHER_LEVELS = [
-  200_000_000,
-  300_000_000,
-  500_000_000,
-  1_000_000_000,
-  2_000_000_000,
-  3_000_000_000,
-  5_000_000_000,
-];
-
-function buildLevels(budget: number): number[] {
-  const levels = budget <= 100_000_000
-    ? [...BASE_LEVELS]
-    : [...BASE_LEVELS, ...HIGHER_LEVELS.filter((l) => l < budget)];
-
-  if (budget > 0 && !levels.includes(budget)) levels.push(budget);
-  return levels.sort((a, b) => a - b);
-}
 
 export async function POST(req: NextRequest) {
   const authResponse = await requireForesightApiSession();
@@ -54,7 +23,7 @@ export async function POST(req: NextRequest) {
     const { budget: currentMonthlyBudget } = input;
 
     // /api/predict와 동일하게 월 환산 예산을 기준으로 구간을 계산한다.
-    const levels = buildLevels(currentMonthlyBudget);
+    const levels = buildPredictRangeLevels(currentMonthlyBudget);
 
     const results = levels.map((monthlyBudget) => {
       const r = predict({ ...input, budget: monthlyBudget });

@@ -79,6 +79,7 @@ async function importRouteWithLocalPredictor(route: 'predict' | 'predict-range')
   });
   const routePath = join(process.cwd(), 'app', 'api', route, 'route.ts');
   const predictionRequest = loadLocalTsModule(['lib', 'predictionRequest.ts']);
+  const predictRangeLevels = loadLocalTsModule(['lib', 'predictRangeLevels.ts']);
   const source = readFileSync(routePath, 'utf8');
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -113,6 +114,7 @@ async function importRouteWithLocalPredictor(route: 'predict' | 'predict-range')
     }
     if (id === '@/lib/predictor') return { predict };
     if (id === '@/lib/predictionRequest') return predictionRequest;
+    if (id === '@/lib/predictRangeLevels') return predictRangeLevels;
     throw new Error(`Unexpected route dependency: ${id}`);
   };
 

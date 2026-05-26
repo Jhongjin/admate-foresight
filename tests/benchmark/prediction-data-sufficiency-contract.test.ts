@@ -90,6 +90,7 @@ async function importPredictRangeRouteWithPrediction(localPrediction: Record<str
   const predict = vi.fn(() => localPrediction);
   const routePath = join(process.cwd(), 'app', 'api', 'predict-range', 'route.ts');
   const predictionRequest = loadLocalTsModule(['lib', 'predictionRequest.ts']);
+  const predictRangeLevels = loadLocalTsModule(['lib', 'predictRangeLevels.ts']);
   const source = readFileSync(routePath, 'utf8');
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -124,6 +125,7 @@ async function importPredictRangeRouteWithPrediction(localPrediction: Record<str
     }
     if (id === '@/lib/predictor') return { predict };
     if (id === '@/lib/predictionRequest') return predictionRequest;
+    if (id === '@/lib/predictRangeLevels') return predictRangeLevels;
     throw new Error(`Unexpected route dependency: ${id}`);
   };
 
