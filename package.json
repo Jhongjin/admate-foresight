@@ -9,6 +9,7 @@
     "benchmark:ui-fixtures": "node --experimental-strip-types scripts/benchmark-ui-state-fixtures.mjs",
     "check:auth-handoff-static": "node scripts/check-auth-handoff-static.mjs",
     "check:benchmark-kpi-static-contract": "node scripts/check-benchmark-kpi-static-contract.mjs",
+    "check:forecast-range-confirmation-contract": "vitest run tests/benchmark/forecast-range-confirmation-contract.test.ts",
     "check:protected-error-states": "node scripts/check-protected-error-states.mjs",
     "test:benchmark-ui": "vitest run tests/benchmark --environment jsdom",
     "start": "next start",
