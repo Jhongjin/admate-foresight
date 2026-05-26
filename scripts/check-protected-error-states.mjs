@@ -5,6 +5,7 @@ const root = process.cwd()
 
 const statePanelPath = path.join(root, 'components', 'StatePanel.tsx')
 const competitorPath = path.join(root, 'app', 'competitor', 'CompetitorPageClient.tsx')
+const simulatorPath = path.join(root, 'app', 'SimulatorPageClient.tsx')
 const pyPredictRoutePath = path.join(root, 'app', 'api', 'py-predict', 'route.ts')
 const protectedPages = [
   {
@@ -130,6 +131,43 @@ for (const forbidden of forbiddenRawErrorSnippets) {
 
 if ((competitorSource.match(/console\.error/g) || []).length > 0) {
   fail('app/competitor/CompetitorPageClient.tsx has console-only error handling')
+}
+
+const simulatorSource = readSource(simulatorPath)
+assertIncludes(simulatorSource, "import StatePanel from '@/components/StatePanel'", 'simulator common state panel')
+assertIncludes(simulatorSource, 'const SIMULATOR_PRODUCT_SAFE_ERRORS', 'simulator bounded error constants')
+assertIncludes(simulatorSource, 'function buildSimulatorErrorPanel', 'simulator product-safe error panel builder')
+assertIncludes(simulatorSource, 'function toJsonOrThrow(response: Response)', 'simulator bounded response guard')
+assertIncludes(simulatorSource, "throw new Error('request_failed')", 'simulator bounded response failure')
+assertIncludes(simulatorSource, "fetch('/api/filters')", 'simulator filters fetch contract')
+assertIncludes(simulatorSource, "fetch('/api/predict'", 'simulator prediction fetch contract')
+assertIncludes(simulatorSource, "fetch('/api/predict-range'", 'simulator range fetch contract')
+assertIncludes(simulatorSource, "fetch('/api/py-predict'", 'simulator ML fetch contract')
+assertIncludes(simulatorSource, 'setFiltersError(true)', 'simulator filters error state')
+assertIncludes(simulatorSource, 'setPredictionError(true)', 'simulator prediction error state')
+assertIncludes(simulatorSource, 'setRangeError(true)', 'simulator range error state')
+assertIncludes(simulatorSource, 'setScenarioError(true)', 'simulator scenario error state')
+assertIncludes(simulatorSource, 'setMlError(SIMULATOR_PRODUCT_SAFE_ERRORS.mlBaseline.title)', 'simulator ML error state')
+assertIncludes(simulatorSource, '필터 정보를 불러오지 못했습니다', 'simulator filters bounded Korean error copy')
+assertIncludes(simulatorSource, '기본 예측을 불러오지 못했습니다', 'simulator prediction bounded Korean error copy')
+assertIncludes(simulatorSource, '예산 구간을 불러오지 못했습니다', 'simulator range bounded Korean error copy')
+assertIncludes(simulatorSource, '타겟 확장 시나리오를 불러오지 못했습니다', 'simulator scenario bounded Korean error copy')
+assertIncludes(simulatorSource, '보조 기준선을 불러오지 못했습니다', 'simulator ML bounded Korean error copy')
+assertIncludes(simulatorSource, 'variant="error"', 'simulator common error panel')
+assertIncludes(simulatorSource, 'ledger={filtersErrorPanel.ledger}', 'simulator filters error ledger')
+assertIncludes(simulatorSource, 'ledger={predictionErrorPanel.ledger}', 'simulator prediction error ledger')
+assertIncludes(simulatorSource, 'ledger={rangeErrorPanel.ledger}', 'simulator range error ledger')
+assertIncludes(simulatorSource, 'ledger={scenarioErrorPanel.ledger}', 'simulator scenario error ledger')
+assertIncludes(simulatorSource, 'ledger={mlErrorPanel.ledger}', 'simulator ML error ledger')
+
+for (const forbidden of forbiddenRawErrorSnippets) {
+  if (simulatorSource.includes(forbidden)) {
+    fail(`app/SimulatorPageClient.tsx must not render raw error details via ${forbidden}`)
+  }
+}
+
+if ((simulatorSource.match(/console\.error/g) || []).length > 0) {
+  fail('app/SimulatorPageClient.tsx has console-only error handling')
 }
 
 const pyPredictSource = readSource(pyPredictRoutePath)

@@ -244,9 +244,66 @@ async function readJsonOrNull(response: Response): Promise<unknown | null> {
   }
 }
 
+async function toJsonOrThrow(response: Response): Promise<unknown> {
+  if (!response.ok) throw new Error('request_failed');
+  return response.json();
+}
+
 function formatBudget(v: number) {
   if (v >= 100_000_000) return `${v / 100_000_000}억`;
   return `${v / 10_000}만`;
+}
+
+const SIMULATOR_PRODUCT_SAFE_ERRORS = {
+  filters: {
+    title: '필터 정보를 불러오지 못했습니다',
+    description: '조건 선택지는 현재 표시 가능한 기본 범위로 유지됩니다. 잠시 후 새로고침하거나 전체 기준으로 실행하세요.',
+    ledger: '필터 기준선',
+    action: '필터 목록이 비어 있으면 전체 조건으로 시뮬레이션을 먼저 확인하세요.',
+  },
+  prediction: {
+    title: '기본 예측을 불러오지 못했습니다',
+    description: 'KPI 기준선이 확정되지 않아 새 결과를 표시하지 않습니다. 조건을 넓히거나 다시 실행하세요.',
+    ledger: '기본 예측',
+    action: '예산, 목표, 타겟 조건을 확인한 뒤 시뮬레이션을 다시 실행하세요.',
+  },
+  range: {
+    title: '예산 구간을 불러오지 못했습니다',
+    description: '예산별 도달 곡선과 비교표는 계산된 구간이 있을 때만 표시됩니다.',
+    ledger: '예산 구간',
+    action: '단일 KPI를 먼저 검토하고, 구간 판단은 재계산 후 확인하세요.',
+  },
+  scenario: {
+    title: '타겟 확장 시나리오를 불러오지 못했습니다',
+    description: '성별 또는 연령 확장 비교가 준비되지 않아 현재 타겟 기준만 유지합니다.',
+    ledger: '타겟 확장',
+    action: '현재 타겟 기준을 먼저 검토하고 필요하면 조건을 단순화해 다시 확인하세요.',
+  },
+  mlBaseline: {
+    title: '보조 기준선을 불러오지 못했습니다',
+    description: '보조 기준선은 참고 지표입니다. 기본 예측과 예산 구간을 우선 검토하세요.',
+    ledger: '보조 기준선',
+    action: '기본 예측 결과가 있으면 해당 기준으로 검토를 이어가세요.',
+  },
+} as const;
+
+type SimulatorProductSafeErrorKey = keyof typeof SIMULATOR_PRODUCT_SAFE_ERRORS;
+
+function buildSimulatorErrorPanel(key: SimulatorProductSafeErrorKey, detail: string) {
+  const error = SIMULATOR_PRODUCT_SAFE_ERRORS[key];
+
+  return {
+    ...error,
+    ledger: [
+      {
+        label: error.ledger,
+        value: '확인 필요',
+        detail,
+        tone: 'risk' as const,
+      },
+    ],
+    nextActions: [error.action],
+  };
 }
 
 export default function SimulatorPage() {
@@ -277,6 +334,10 @@ export default function SimulatorPage() {
   const [rangeLoading, setRangeLoading] = useState(false);
   const [scenarios, setScenarios] = useState<ScenarioResult[]>([]);
   const [scenarioLoading, setScenarioLoading] = useState(false);
+  const [filtersError, setFiltersError] = useState(false);
+  const [predictionError, setPredictionError] = useState(false);
+  const [rangeError, setRangeError] = useState(false);
+  const [scenarioError, setScenarioError] = useState(false);
 
   // ── ML 예측 (Python FastAPI) ────────────────────────────
   const [mlResult, setMlResult]   = useState<MLResult | null>(null);
@@ -290,18 +351,24 @@ export default function SimulatorPage() {
 
   useEffect(() => {
     fetch('/api/filters')
-      .then((r) => r.json())
+      .then(toJsonOrThrow)
       .then((f) => {
-        setAvailableIndustries(f.industries);
-        setAvailableObjectives(f.objectives ?? []);
+        if (!isRecord(f) || !Array.isArray(f.industries)) throw new Error('request_failed');
+        setAvailableIndustries(f.industries.filter((item): item is string => typeof item === 'string'));
+        setAvailableObjectives(Array.isArray(f.objectives) ? f.objectives.filter((item): item is string => typeof item === 'string') : []);
+        setFiltersError(false);
       })
-      .catch(console.error);
+      .catch(() => {
+        console.warn('[simulator:filters] 필터 정보를 불러오지 못했습니다.');
+        setFiltersError(true);
+      });
   }, []);
 
   const fetchPrediction = useCallback(async (params: {
     industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; monthFrom?: string; monthTo?: string;
   }) => {
     setLoading(true);
+    setPredictionError(false);
     try {
       const res = await fetch('/api/predict', {
         method: 'POST',
@@ -309,16 +376,17 @@ export default function SimulatorPage() {
         body: JSON.stringify(params),
       });
       if (!res.ok) {
-        setResult(null);
+        setPredictionError(true);
         return;
       }
       const data = await readJsonOrNull(res);
       const nextResult = normalizePredictResult(data);
       setResult(nextResult);
-      if (!nextResult) console.warn('[predict] 예측 결과 형식을 확인하지 못했습니다.');
+      setPredictionError(!nextResult);
+      if (!nextResult) console.warn('[simulator:predict] 기본 예측을 불러오지 못했습니다.');
     } catch {
-      console.warn('[predict] 예측 결과를 불러오지 못했습니다.');
-      setResult(null);
+      console.warn('[simulator:predict] 기본 예측을 불러오지 못했습니다.');
+      setPredictionError(true);
     }
     finally { setLoading(false); }
   }, []);
@@ -341,10 +409,10 @@ export default function SimulatorPage() {
           기간:  params.campaignDays,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) { setMlError(data.error ?? '보조 예측을 확인하지 못했습니다'); setMlResult(null); return; }
+      if (!res.ok) { setMlError(SIMULATOR_PRODUCT_SAFE_ERRORS.mlBaseline.title); setMlResult(null); return; }
+      const data = await readJsonOrNull(res);
       setMlResult(data as MLResult);
-    } catch { setMlError('보조 예측 연결을 확인하지 못했습니다'); setMlResult(null); }
+    } catch { setMlError(SIMULATOR_PRODUCT_SAFE_ERRORS.mlBaseline.title); setMlResult(null); }
     finally { setMlLoading(false); }
   }, []);
 
@@ -352,6 +420,7 @@ export default function SimulatorPage() {
     industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; monthFrom?: string; monthTo?: string;
   }) => {
     setRangeLoading(true);
+    setRangeError(false);
     try {
       const res = await fetch('/api/predict-range', {
         method: 'POST',
@@ -359,19 +428,18 @@ export default function SimulatorPage() {
         body: JSON.stringify(params),
       });
       if (!res.ok) {
-        setRangeData([]);
-        setRangeConfirmation(null);
+        setRangeError(true);
         return;
       }
       const data = await readJsonOrNull(res);
       const { rangeData: nextRangeData, confirmation } = normalizeForecastRangeResponse(data);
       setRangeData(nextRangeData ?? []);
       setRangeConfirmation(confirmation);
-      if (!nextRangeData) console.warn('[predict-range] 예산 구간 형식을 확인하지 못했습니다.');
+      setRangeError(!nextRangeData);
+      if (!nextRangeData) console.warn('[simulator:predict-range] 예산 구간을 불러오지 못했습니다.');
     } catch {
-      console.warn('[predict-range] 예산 구간을 불러오지 못했습니다.');
-      setRangeData([]);
-      setRangeConfirmation(null);
+      console.warn('[simulator:predict-range] 예산 구간을 불러오지 못했습니다.');
+      setRangeError(true);
     }
     finally { setRangeLoading(false); }
   }, []);
@@ -412,6 +480,9 @@ export default function SimulatorPage() {
     setRangeData([]);
     setRangeConfirmation(null);
     setScenarios([]);
+    setPredictionError(false);
+    setRangeError(false);
+    setScenarioError(false);
     setIsCalculated(true);
     fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
     // 이미 계산된 상태(재시뮬레이션)이면 useEffect가 재실행되지 않으므로 직접 호출
@@ -432,7 +503,7 @@ export default function SimulatorPage() {
     if (scenarioDebounceRef.current) clearTimeout(scenarioDebounceRef.current);
     scenarioDebounceRef.current = setTimeout(async () => {
       const hasFilter = genders.length > 0 || ageRanges.length > 0 || industries.length > 0;
-      if (!hasFilter) { setScenarios([]); return; }
+      if (!hasFilter) { setScenarios([]); setScenarioError(false); return; }
 
       const expansions: Array<{ label: string; description: string; body: object }> = [];
       if (genders.length > 0) {
@@ -452,6 +523,7 @@ export default function SimulatorPage() {
       // 업종 확장은 캠페인 대전제이므로 시나리오에서 제외
 
       setScenarioLoading(true);
+      setScenarioError(false);
       try {
         const results = await Promise.all(
           expansions.map(async (e) => {
@@ -464,6 +536,9 @@ export default function SimulatorPage() {
             return normalizePredictResult(await readJsonOrNull(res));
           })
         );
+        const hasScenarioError = results.some((scenarioResult) => !scenarioResult);
+        setScenarioError(hasScenarioError);
+        if (hasScenarioError) console.warn('[simulator:scenario] 타겟 확장 시나리오를 불러오지 못했습니다.');
         setScenarios(expansions.flatMap((e, i) => {
           const scenarioResult = results[i];
           if (!scenarioResult) return [];
@@ -477,7 +552,8 @@ export default function SimulatorPage() {
           }];
         }));
       } catch {
-        console.warn('[predict] 타겟 확장 시나리오를 불러오지 못했습니다.');
+        console.warn('[simulator:scenario] 타겟 확장 시나리오를 불러오지 못했습니다.');
+        setScenarioError(true);
         setScenarios([]);
       }
       finally { setScenarioLoading(false); }
@@ -1011,6 +1087,11 @@ export default function SimulatorPage() {
     { label: '표시 항목', status: '도달 / 노출 / 클릭' },
     { label: '사용 목적', status: '예산안 선택' },
   ];
+  const filtersErrorPanel = buildSimulatorErrorPanel('filters', '조건 선택지 로드 실패');
+  const predictionErrorPanel = buildSimulatorErrorPanel('prediction', result ? '이전 정상 결과 유지' : '새 예측 결과 없음');
+  const rangeErrorPanel = buildSimulatorErrorPanel('range', chartData.length > 0 ? '이전 예산 구간 유지' : '예산 구간 없음');
+  const scenarioErrorPanel = buildSimulatorErrorPanel('scenario', scenarios.length > 0 ? '일부 시나리오만 표시' : '확장 비교 없음');
+  const mlErrorPanel = buildSimulatorErrorPanel('mlBaseline', result ? '기본 예측 우선 검토' : '보조 기준선 없음');
 
   return (
     <div className="foresight-workspace space-y-6">
@@ -1162,6 +1243,16 @@ export default function SimulatorPage() {
                   <p className="text-xs text-slate-500">예산, 기간, 타겟 조건을 조정합니다.</p>
                 </div>
               </div>
+              {filtersError && (
+                <StatePanel
+                  variant="error"
+                  title={filtersErrorPanel.title}
+                  description={filtersErrorPanel.description}
+                  ledger={filtersErrorPanel.ledger}
+                  nextActions={filtersErrorPanel.nextActions}
+                  className="mb-4 min-h-0 py-4"
+                />
+              )}
               <div className="space-y-4">
 
           {/* 1. 캠페인 예산 */}
@@ -1599,6 +1690,16 @@ export default function SimulatorPage() {
             </button>
           </div>
         </div>
+        {predictionError && !loading && (
+          <StatePanel
+            variant="error"
+            title={predictionErrorPanel.title}
+            description={predictionErrorPanel.description}
+            ledger={predictionErrorPanel.ledger}
+            nextActions={predictionErrorPanel.nextActions}
+            className="mb-4 min-h-0 py-4"
+          />
+        )}
         {result && (
           <section className={`mb-4 rounded-md border p-4 ${evidencePanelTone.shell}`}>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -1822,7 +1923,14 @@ export default function SimulatorPage() {
 
           {/* 에러 */}
           {!mlLoading && mlError && (
-            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">{mlError}</p>
+            <StatePanel
+              variant="error"
+              title={mlErrorPanel.title}
+              description={mlErrorPanel.description}
+              ledger={mlErrorPanel.ledger}
+              nextActions={mlErrorPanel.nextActions}
+              className="min-h-0 py-4"
+            />
           )}
 
           {/* 보조 기준선 결과 카드 */}
@@ -1864,7 +1972,7 @@ export default function SimulatorPage() {
       {/* 캠페인 최적화 가이드 */}
       {result && (() => {
         const hasExpansion = expansionPotential?.canExpand === true;
-        const hasGuide = hasExpansion || scenarioLoading || scenarios.length > 0;
+        const hasGuide = hasExpansion || scenarioLoading || scenarios.length > 0 || scenarioError;
         if (!hasGuide) return null;
         return (
         <div className="bg-white rounded-md shadow-sm border border-slate-200 p-6">
@@ -1892,7 +2000,7 @@ export default function SimulatorPage() {
             )}
 
             {/* C. 타겟 확장 시나리오 */}
-            {(scenarioLoading || scenarios.length > 0) && (
+            {(scenarioLoading || scenarios.length > 0 || scenarioError) && (
               <div className="rounded-md p-4 border border-slate-200 bg-slate-50">
                 <p className="text-sm font-semibold text-gray-800 mb-1">타겟 범위 확장 시 효율 변화</p>
                 <p className="text-xs text-gray-400 mb-3">성별 또는 연령 타겟을 전체로 넓혔을 때 예상 성과를 비교합니다</p>
@@ -1901,8 +2009,27 @@ export default function SimulatorPage() {
                     <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-teal-700 rounded-full animate-spin" />
                     시나리오 계산 중...
                   </div>
+                ) : scenarioError && scenarios.length === 0 ? (
+                  <StatePanel
+                    variant="error"
+                    title={scenarioErrorPanel.title}
+                    description={scenarioErrorPanel.description}
+                    ledger={scenarioErrorPanel.ledger}
+                    nextActions={scenarioErrorPanel.nextActions}
+                    className="min-h-0 py-4"
+                  />
                 ) : (
                   <div className="space-y-2">
+                    {scenarioError && (
+                      <StatePanel
+                        variant="error"
+                        title={scenarioErrorPanel.title}
+                        description={scenarioErrorPanel.description}
+                        ledger={scenarioErrorPanel.ledger}
+                        nextActions={scenarioErrorPanel.nextActions}
+                        className="min-h-0 py-4"
+                      />
+                    )}
                     {/* 현재 타겟 기준 */}
                     <div className="flex items-center justify-between rounded-md px-3 py-2.5 bg-teal-50 border border-teal-100">
                       <div>
@@ -1956,6 +2083,16 @@ export default function SimulatorPage() {
             <div className="w-5 h-5 border-2 border-teal-200 border-t-teal-700 rounded-full animate-spin" />
           )}
         </div>
+        {rangeError && !rangeLoading && (
+          <StatePanel
+            variant="error"
+            title={rangeErrorPanel.title}
+            description={rangeErrorPanel.description}
+            ledger={rangeErrorPanel.ledger}
+            nextActions={rangeErrorPanel.nextActions}
+            className="mb-4 min-h-0 py-4"
+          />
+        )}
         {rangeTrendBrief.length > 0 && (
           <div className="mb-4 rounded-md border border-stone-200 bg-stone-50/70 p-3">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
