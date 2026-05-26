@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { predict } from '@/lib/predictor';
+import { normalizePredictionRequest, PredictionRequestValidationError } from '@/lib/predictionRequest';
 import { ensureDataLoaded, loadXlsxData } from '@/lib/xlsxLoader';
 
 // 기본 구간 (1억 이하)
@@ -49,21 +50,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const {
-      industries = [],
-      genders = [],
-      ageRanges = [],
-      objectives = [],
-      budget: currentMonthlyBudget = 0,
-      monthFrom,
-      monthTo,
-    } = body;
+    const input = normalizePredictionRequest(body);
+    const { budget: currentMonthlyBudget } = input;
 
     // /api/predict와 동일하게 월 환산 예산을 기준으로 구간을 계산한다.
     const levels = buildLevels(currentMonthlyBudget);
 
     const results = levels.map((monthlyBudget) => {
-      const r = predict({ industries, genders, ageRanges, objectives, budget: monthlyBudget, monthFrom, monthTo });
+      const r = predict({ ...input, budget: monthlyBudget });
       return { budget: monthlyBudget, reach: r.reach, cpm: r.cpm, cpc: r.cpc };
     });
 
@@ -72,6 +66,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(results);
   } catch (err) {
+    if (err instanceof PredictionRequestValidationError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     console.error('[predict-range] 오류:', err);
     return NextResponse.json({ error: 'Prediction failed' }, { status: 500 });
   }

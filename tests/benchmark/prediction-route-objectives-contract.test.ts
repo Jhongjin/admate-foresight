@@ -48,9 +48,37 @@ function requestWithJson(body: unknown) {
   };
 }
 
+function loadLocalTsModule(pathParts: string[]) {
+  const filePath = join(process.cwd(), ...pathParts);
+  const source = readFileSync(filePath, 'utf8');
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020,
+    },
+  });
+  const localModule = {
+    exports: {},
+  };
+
+  new Function('require', 'module', 'exports', outputText)(
+    (id: string) => {
+      throw new Error(`Unexpected helper dependency: ${id}`);
+    },
+    localModule,
+    localModule.exports,
+  );
+
+  return localModule.exports;
+}
+
 async function importRouteWithLocalPredictor(route: 'predict' | 'predict-range') {
-  const predict = vi.fn(() => localPrediction);
+  const predict = vi.fn((input: unknown) => {
+    void input;
+    return localPrediction;
+  });
   const routePath = join(process.cwd(), 'app', 'api', route, 'route.ts');
+  const predictionRequest = loadLocalTsModule(['lib', 'predictionRequest.ts']);
   const source = readFileSync(routePath, 'utf8');
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: {
@@ -84,6 +112,7 @@ async function importRouteWithLocalPredictor(route: 'predict' | 'predict-range')
       };
     }
     if (id === '@/lib/predictor') return { predict };
+    if (id === '@/lib/predictionRequest') return predictionRequest;
     throw new Error(`Unexpected route dependency: ${id}`);
   };
 
@@ -95,6 +124,17 @@ async function importRouteWithLocalPredictor(route: 'predict' | 'predict-range')
 
   if (!routeModule.exports.POST) throw new Error(`Missing POST export for ${route}`);
   return { POST: routeModule.exports.POST, predict };
+}
+
+async function expectBadPredictionRequest(route: 'predict' | 'predict-range', body: unknown) {
+  const { POST, predict } = await importRouteWithLocalPredictor(route);
+
+  const response = await POST(requestWithJson(body) as unknown as Request);
+  const responseBody = await response.json();
+
+  expect(response.status).toBe(400);
+  expect(responseBody).toEqual({ error: expect.any(String) });
+  expect(predict).not.toHaveBeenCalled();
 }
 
 describe('prediction route objectives contract', () => {
@@ -156,5 +196,49 @@ describe('prediction route objectives contract', () => {
       expect.objectContaining({ objectives, budget: 50_000_000 }),
       expect.objectContaining({ objectives, budget: 100_000_000 }),
     ]);
+  });
+
+  it.each([
+    ['predict' as const],
+    ['predict-range' as const],
+  ])('rejects malformed objectives for POST /api/%s', async (route) => {
+    await expectBadPredictionRequest(route, {
+      industries: ['교육'],
+      genders: [],
+      ageRanges: ['35-44'],
+      objectives: ['OUTCOME_TRAFFIC', 123],
+      budget: 5_000_000,
+      monthFrom: '2025-06',
+      monthTo: '2025-06',
+    });
+  });
+
+  it.each([
+    ['predict' as const, Number.NaN],
+    ['predict-range' as const, -1],
+  ])('rejects malformed budget for POST /api/%s', async (route, budget) => {
+    await expectBadPredictionRequest(route, {
+      industries: ['교육'],
+      genders: [],
+      ageRanges: ['35-44'],
+      objectives: ['OUTCOME_TRAFFIC'],
+      budget,
+      monthFrom: '2025-06',
+      monthTo: '2025-06',
+    });
+  });
+
+  it.each([
+    ['predict' as const, { monthFrom: '2025-6', monthTo: '2025-06' }],
+    ['predict-range' as const, { monthFrom: '2025-06', monthTo: '2025-13' }],
+  ])('rejects malformed months for POST /api/%s', async (route, months) => {
+    await expectBadPredictionRequest(route, {
+      industries: ['교육'],
+      genders: [],
+      ageRanges: ['35-44'],
+      objectives: ['OUTCOME_TRAFFIC'],
+      budget: 5_000_000,
+      ...months,
+    });
   });
 });
