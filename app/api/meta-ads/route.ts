@@ -1,10 +1,12 @@
 import { NextRequest } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { noStoreJson, sanitizeError } from '@/lib/security';
+import { noStoreJson } from '@/lib/security';
 
 const META_API_VERSION = 'v21.0';
 const BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`;
+const NOT_CONFIGURED_ERROR = 'External ads lookup is not configured.';
+const LOOKUP_FAILED_ERROR = 'External ads lookup failed.';
 
 // 업종 → Meta 광고 라이브러리 검색 키워드 매핑
 const INDUSTRY_KEYWORDS: Record<string, string> = {
@@ -25,6 +27,65 @@ const INDUSTRY_KEYWORDS: Record<string, string> = {
   '유통':         '쇼핑 유통',
   '기타':         '브랜드',
 };
+
+type MetaAdsArchiveItem = {
+  id?: string;
+  page_name?: string;
+  ad_creative_bodies?: string[];
+  ad_creative_link_titles?: string[];
+  ad_creative_link_descriptions?: string[];
+  ad_snapshot_url?: string;
+  ad_delivery_start_time?: string;
+  ad_delivery_stop_time?: string;
+  publisher_platforms?: string[];
+  languages?: string[];
+  ad_reached_countries?: string[];
+};
+
+function boundedProviderFailureStatus(status: number): 502 | 503 {
+  return status === 429 || status >= 500 ? 503 : 502;
+}
+
+function safeMetaSnapshotUrl(raw: unknown, id: string): string {
+  const safeId = /^\d{1,32}$/.test(id) ? id : '';
+  if (!safeId) return '';
+
+  try {
+    const url = typeof raw === 'string'
+      ? new URL(raw)
+      : new URL(`https://www.facebook.com/ads/library/?id=${safeId}`);
+    if (url.protocol !== 'https:') return '';
+    if (url.hostname !== 'www.facebook.com' && url.hostname !== 'facebook.com') {
+      return '';
+    }
+    return `https://www.facebook.com/ads/library/?id=${safeId}`;
+  } catch {
+    return `https://www.facebook.com/ads/library/?id=${safeId}`;
+  }
+}
+
+function toSafeMetaAd(ad: MetaAdsArchiveItem) {
+  const id = typeof ad.id === 'string' ? ad.id : '';
+  return {
+    id,
+    page_name: typeof ad.page_name === 'string' ? ad.page_name : '',
+    ad_creative_bodies: Array.isArray(ad.ad_creative_bodies) ? ad.ad_creative_bodies : [],
+    ad_creative_link_titles: Array.isArray(ad.ad_creative_link_titles) ? ad.ad_creative_link_titles : [],
+    ad_creative_link_descriptions: Array.isArray(ad.ad_creative_link_descriptions)
+      ? ad.ad_creative_link_descriptions
+      : [],
+    ad_snapshot_url: safeMetaSnapshotUrl(ad.ad_snapshot_url, id),
+    ad_delivery_start_time: typeof ad.ad_delivery_start_time === 'string'
+      ? ad.ad_delivery_start_time
+      : '',
+    ad_delivery_stop_time: typeof ad.ad_delivery_stop_time === 'string'
+      ? ad.ad_delivery_stop_time
+      : '',
+    publisher_platforms: Array.isArray(ad.publisher_platforms) ? ad.publisher_platforms : [],
+    languages: Array.isArray(ad.languages) ? ad.languages : [],
+    ad_reached_countries: Array.isArray(ad.ad_reached_countries) ? ad.ad_reached_countries : [],
+  };
+}
 
 export async function GET(req: NextRequest) {
   const authResponse = await requireForesightApiSession();
@@ -50,7 +111,7 @@ export async function GET(req: NextRequest) {
 
   if (!accessToken) {
     return noStoreJson(
-      { error: 'External ads lookup is not configured.' },
+      { error: NOT_CONFIGURED_ERROR },
       { status: 503 }
     );
   }
@@ -94,28 +155,31 @@ export async function GET(req: NextRequest) {
     const res = await fetch(`${BASE_URL}/ads_archive?${params}`, {
       next: { revalidate: 300 },
     });
-    const data = await res.json();
 
     if (!res.ok) {
-      console.error('[meta-ads] API error status:', res.status);
+      console.warn('[meta-ads] lookup failed: provider_non_ok');
       return noStoreJson(
-        { error: 'External ads lookup failed.' },
-        { status: res.status }
+        { error: LOOKUP_FAILED_ERROR },
+        { status: boundedProviderFailureStatus(res.status) }
       );
     }
 
+    const data = await res.json() as {
+      data?: MetaAdsArchiveItem[];
+      paging?: { cursors?: { after?: string } };
+    };
+
     return noStoreJson({
-      ads: data.data ?? [],
-      paging: data.paging ?? null,
+      ads: (data.data ?? []).map(toSafeMetaAd),
       nextCursor: data.paging?.cursors?.after ?? null,
       industry,
       searchTerm,
     });
-  } catch (err) {
-    console.error('[meta-ads] request failed:', sanitizeError(err));
+  } catch {
+    console.error('[meta-ads] lookup failed: request_failed');
     return noStoreJson(
-      { error: '광고 데이터를 불러오지 못했습니다.' },
-      { status: 500 }
+      { error: LOOKUP_FAILED_ERROR },
+      { status: 502 }
     );
   }
 }

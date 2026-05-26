@@ -20,6 +20,12 @@ const targetRoutes = [
   file('app', 'api', 'meta-ads-scrape', 'route.ts'),
 ]
 
+const externalLookupRoutes = [
+  file('app', 'api', 'meta-ads', 'route.ts'),
+  file('app', 'api', 'google-ads', 'route.ts'),
+  file('app', 'api', 'meta-ads-scrape', 'route.ts'),
+]
+
 const sharedHelpers = {
   authGuard: file('lib', 'auth', 'foresightApiGuard.ts'),
   security: file('lib', 'security.ts'),
@@ -41,6 +47,16 @@ const forbiddenRawErrorSnippets = [
   'detail:',
 ]
 
+const forbiddenExternalLookupSnippets = [
+  'status: res.status',
+  'HTTP ${res.status}',
+  'data.error?.message',
+  'response.statusText',
+  'response.text()',
+  'return blocked;',
+  'return requireInternalKey(req)',
+]
+
 let failed = false
 
 function fail(message) {
@@ -55,6 +71,10 @@ function read(target) {
   }
 
   return fs.readFileSync(target, 'utf8')
+}
+
+function assertIncludes(source, expected, context) {
+  if (!source.includes(expected)) fail(`${context} missing ${expected}`)
 }
 
 function stripQuotedText(line) {
@@ -128,11 +148,49 @@ function assertBoundedErrors(source, target) {
   }
 }
 
+function assertExternalLookupFailClosed(source, target) {
+  const relative = rel(target)
+
+  for (const forbidden of forbiddenExternalLookupSnippets) {
+    if (source.includes(forbidden)) {
+      fail(`${relative} must not use external lookup provider detail passthrough via ${forbidden}`)
+    }
+  }
+
+  if (!source.includes('External ads lookup failed.')) {
+    fail(`${relative} must use bounded external lookup failure copy`)
+  }
+
+  if (!source.includes('noStoreJson(')) {
+    fail(`${relative} must keep external lookup responses no-store`)
+  }
+
+  if (/status\s*:\s*(res|response)\.status/.test(source)) {
+    fail(`${relative} must not propagate provider status directly`)
+  }
+}
+
 for (const route of targetRoutes) {
   const source = read(route)
   assertRouteNoStore(source, route)
   assertBoundedErrors(source, route)
 }
+
+for (const route of externalLookupRoutes) {
+  assertExternalLookupFailClosed(read(route), route)
+}
+
+const metaAdsSource = read(file('app', 'api', 'meta-ads', 'route.ts'))
+assertIncludes(metaAdsSource, 'function safeMetaSnapshotUrl', 'meta-ads snapshot URL allowlist')
+assertIncludes(metaAdsSource, 'ad_snapshot_url: safeMetaSnapshotUrl', 'meta-ads snapshot URL allowlist')
+assertIncludes(metaAdsSource, '^\\d{1,32}$', 'meta-ads snapshot id guard')
+
+const metaScrapeSource = read(file('app', 'api', 'meta-ads-scrape', 'route.ts'))
+assertIncludes(metaScrapeSource, 'function safeMetaExternalUrl', 'meta scrape media URL allowlist')
+assertIncludes(metaScrapeSource, 'function safeMetaSnapshotUrl', 'meta scrape snapshot URL allowlist')
+assertIncludes(metaScrapeSource, 'snapshot_url:  safeMetaSnapshotUrl', 'meta scrape API snapshot URL allowlist')
+assertIncludes(metaScrapeSource, 'image_url: safeMetaExternalUrl(imageUrl)', 'meta scrape image URL allowlist')
+assertIncludes(metaScrapeSource, 'profile_image: safeMetaExternalUrl(profileImage)', 'meta scrape profile URL allowlist')
 
 const authGuardSource = read(sharedHelpers.authGuard)
 if (!authGuardSource.includes("'Cache-Control': 'no-store'")) {

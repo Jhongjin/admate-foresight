@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { noStoreJson, sanitizeError } from '@/lib/security';
+import { noStoreJson } from '@/lib/security';
 
 const BASE = 'https://adstransparency.google.com/anji/_/rpc';
+const LOOKUP_FAILED_ERROR = 'External ads lookup failed.';
 const HEADERS = {
   'Content-Type': 'application/x-www-form-urlencoded',
   'Origin': 'https://adstransparency.google.com',
@@ -12,6 +13,29 @@ const HEADERS = {
   'X-Framework-Xsrf-Token': '',
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
 };
+
+type ExternalLookupReason =
+  | 'advertiser_provider_non_ok'
+  | 'creative_provider_non_ok'
+  | 'request_failed';
+
+class ExternalLookupError extends Error {
+  constructor(readonly reason: ExternalLookupReason) {
+    super(reason);
+  }
+}
+
+function safeExternalUrl(raw: string, allowedHosts: string[]): string {
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' || !allowedHosts.includes(url.hostname)) return '';
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
 
 const INDUSTRY_KEYWORDS: Record<string, string> = {
   '식음료':      '식음료 음식',
@@ -43,7 +67,7 @@ async function searchAdvertisers(keyword: string, limit = 5): Promise<{ id: stri
   const res = await fetch(`${BASE}/SearchService/SearchSuggestions?authuser=`, {
     method: 'POST', headers: HEADERS, body,
   });
-  if (!res.ok) throw new Error(`SearchSuggestions HTTP ${res.status}`);
+  if (!res.ok) throw new ExternalLookupError('advertiser_provider_non_ok');
   const data = await res.json();
   const items = data['1'] ?? [];
   return items.map((item: Record<string, Record<string, string>>) => ({
@@ -74,7 +98,7 @@ async function searchCreatives(advertiserIds: string[], limit = 12): Promise<{
   const res = await fetch(`${BASE}/SearchService/SearchCreatives?authuser=`, {
     method: 'POST', headers: HEADERS, body,
   });
-  if (!res.ok) throw new Error(`SearchCreatives HTTP ${res.status}`);
+  if (!res.ok) throw new ExternalLookupError('creative_provider_non_ok');
   const data = await res.json();
   const items: Record<string, unknown>[] = data['1'] ?? [];
 
@@ -110,8 +134,13 @@ async function searchCreatives(advertiserIds: string[], limit = 12): Promise<{
       id:             creativeId,
       advertiserId,
       advertiserName: (creative['12'] as string) ?? '',
-      imageUrl,
-      previewUrl,
+      imageUrl: safeExternalUrl(imageUrl, [
+        'adstransparency.google.com',
+        'tpc.googlesyndication.com',
+        'lh3.googleusercontent.com',
+        'www.gstatic.com',
+      ]),
+      previewUrl: safeExternalUrl(previewUrl, ['adstransparency.google.com']),
       detailUrl: advertiserId && creativeId
         ? `https://adstransparency.google.com/advertiser/${advertiserId}/creative/${creativeId}`
         : '',
@@ -167,7 +196,8 @@ export async function GET(req: NextRequest) {
       total: ads.length,
     });
   } catch (err) {
-    console.error('[google-ads] request failed:', sanitizeError(err));
-    return noStoreJson({ error: 'External ads lookup failed.' }, { status: 502 });
+    const reason = err instanceof ExternalLookupError ? err.reason : 'request_failed';
+    console.error(`[google-ads] lookup failed: ${reason}`);
+    return noStoreJson({ error: LOOKUP_FAILED_ERROR }, { status: 502 });
   }
 }

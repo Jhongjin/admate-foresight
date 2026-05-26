@@ -20,11 +20,35 @@ interface MetaAd {
 /* ─── 상수 ─── */
 const ALL_LABEL = '전체';
 const PRODUCT_SAFE_ERROR = '현재 광고 소재 데이터를 불러올 수 없습니다.';
+const SENSITIVE_LOOKUP_PATTERN =
+  /(access[_-]?token|sessionid|cookie=|bearer\s+|secret|api[_-]?key|x-admate-internal-key|[A-Za-z0-9._~+/=-]{32,})/i;
 const INDUSTRIES = [
   ALL_LABEL,
   '식음료', '의약/건기식', '패션', '뷰티', '생활/잡화', '기관/단체',
   '교육', '금융', '여행', '게임', '부동산', '자동차', '엔터', '가전제품', '유통', '화장품', '서비스',
 ];
+
+async function readJsonOrNull(res: Response): Promise<unknown | null> {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isDisplaySafeLookupText(value: string): boolean {
+  return Boolean(value.trim()) && !SENSITIVE_LOOKUP_PATTERN.test(value);
+}
+
+function toDisplaySafeLookupText(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+  return isDisplaySafeLookupText(trimmed) ? trimmed : fallback;
+}
 
 /* ─── Meta 카드 ─── */
 function MetaCard({ ad }: { ad: MetaAd }) {
@@ -107,10 +131,12 @@ export default function CompetitorPage() {
       if (ind && ind !== ALL_LABEL) params.set('industry', ind);
       if (kw) params.set('keyword', kw);
       const res  = await fetch(`/api/meta-ads-scrape?${params}`);
-      const data = await res.json();
-      if (!res.ok) { setError(PRODUCT_SAFE_ERROR); return; }
-      setAds(data.ads ?? []);
-      setSearchTerm(data.searchTerm ?? '');
+      const data = await readJsonOrNull(res);
+      if (!res.ok || !isRecord(data)) { setError(PRODUCT_SAFE_ERROR); return; }
+      setAds(Array.isArray(data.ads) ? data.ads as MetaAd[] : []);
+      setSearchTerm(typeof data.searchTerm === 'string'
+        ? toDisplaySafeLookupText(data.searchTerm, '')
+        : '');
     } catch {
       setError(PRODUCT_SAFE_ERROR);
     } finally {
@@ -136,7 +162,7 @@ export default function CompetitorPage() {
     const kw = keyword.trim();
     if (!kw) return;
     setIndustry('');
-    setSearchLabel(kw);
+    setSearchLabel(toDisplaySafeLookupText(kw, '직접 입력 검색어'));
     fetchMeta('', kw);
   }
 
@@ -144,6 +170,7 @@ export default function CompetitorPage() {
   const isKeywordScope = Boolean(searchLabel && searchLabel !== ALL_LABEL && industry === '');
   const visibleScope = isKeywordScope ? '직접 입력 검색어' : activeScope === ALL_LABEL ? '전체업종' : activeScope;
   const captureMode = isKeywordScope ? '키워드 직접 캡처' : '업종 기준 캡처';
+  const safeSearchTermForLink = searchTerm && isDisplaySafeLookupText(searchTerm) ? searchTerm : '';
   const captureLedger = [
     {
       label: '캡처 범위',
@@ -290,9 +317,9 @@ export default function CompetitorPage() {
                 <span className="ml-2 text-sm font-normal text-slate-400">{ads.length}개</span>
               </h2>
             </div>
-            {searchTerm && (
+            {safeSearchTermForLink && (
               <a
-                href={`https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(searchTerm)}`}
+                href={`https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&q=${encodeURIComponent(safeSearchTermForLink)}`}
                 target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-md border border-teal-200 px-3 py-1.5 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-50"
               >
@@ -311,7 +338,7 @@ export default function CompetitorPage() {
       {!loading && !error && ads.length === 0 && searchLabel && (
         <StatePanel
           variant="empty"
-          title={isKeywordScope ? '직접 입력 검색어 소재 기준선이 비어 있습니다' : `"${searchLabel}" 소재 기준선이 비어 있습니다`}
+          title={isKeywordScope ? '직접 입력 검색어 소재 기준선이 비어 있습니다' : `"${toDisplaySafeLookupText(searchLabel, '선택한 범위')}" 소재 기준선이 비어 있습니다`}
           description="다른 키워드로 검색하거나 업종을 변경해 현재 시장에서 관찰 가능한 소재 흐름을 다시 확인해 보세요."
           eyebrow="소재 캡처 대기"
           checks={competitorStateChecks}

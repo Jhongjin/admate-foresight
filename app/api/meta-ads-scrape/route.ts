@@ -4,12 +4,14 @@ import path from 'path';
 import fs from 'fs';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { isProductionRuntime, noStoreJson, requireInternalKey, sanitizeError } from '@/lib/security';
+import { isProductionRuntime, noStoreJson, requireInternalKey } from '@/lib/security';
 
 // Vercel serverless 환경 timeout (Pro 300s, Hobby 60s)
 export const maxDuration = 60;
 
 const isVercel = !!process.env.VERCEL;
+const NOT_CONFIGURED_ERROR = 'External ads lookup is not configured.';
+const LOOKUP_FAILED_ERROR = 'External ads lookup failed.';
 
 const INDUSTRY_KEYWORDS: Record<string, string> = {
   '식음료':      '식음료',
@@ -45,6 +47,54 @@ export interface AdResult {
   profile_image: string;
 }
 
+type ExternalLookupReason =
+  | 'meta_api_not_configured'
+  | 'meta_api_provider_non_ok'
+  | 'playwright_failed'
+  | 'worker_failed';
+
+class ExternalLookupError extends Error {
+  constructor(readonly reason: ExternalLookupReason) {
+    super(reason);
+  }
+}
+
+function isAllowedMetaUrlHost(hostname: string): boolean {
+  return hostname === 'facebook.com' ||
+    hostname === 'www.facebook.com' ||
+    hostname.endsWith('.facebook.com') ||
+    hostname.endsWith('.fbcdn.net');
+}
+
+function safeMetaExternalUrl(raw: unknown, fallback = ''): string {
+  const candidate = typeof raw === 'string' && raw.trim() ? raw : fallback;
+  if (!candidate) return '';
+
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== 'https:' || !isAllowedMetaUrlHost(url.hostname)) return '';
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
+function safeMetaSnapshotUrl(raw: unknown, id: string): string {
+  const safeId = /^\d{1,32}$/.test(id) ? id : '';
+  if (!safeId) return '';
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const url = new URL(raw);
+      if (url.protocol !== 'https:' || !isAllowedMetaUrlHost(url.hostname)) return '';
+    } catch {
+      return `https://www.facebook.com/ads/library/?id=${safeId}`;
+    }
+  }
+  return `https://www.facebook.com/ads/library/?id=${safeId}`;
+}
+
 // ══════════════════════════════════════════════════════════════
 // 1. Meta Ad Library API (공식) — 브라우저 불필요, 빠름
 // ══════════════════════════════════════════════════════════════
@@ -56,7 +106,7 @@ async function scrapeViaMetaAPI(keyword: string, limit: number): Promise<AdResul
   const appSecret = process.env.META_APP_SECRET;
   const accessToken = userToken || (appId && appSecret ? `${appId}|${appSecret}` : null);
 
-  if (!accessToken) throw new Error('META_ACCESS_TOKEN 없음');
+  if (!accessToken) throw new ExternalLookupError('meta_api_not_configured');
 
   const ALL_COUNTRIES = JSON.stringify([
     'KR','US','JP','CN','GB','DE','FR','IN','BR','AU',
@@ -89,6 +139,10 @@ async function scrapeViaMetaAPI(keyword: string, limit: number): Promise<AdResul
     `https://graph.facebook.com/${META_API_VERSION}/ads_archive?${params}`,
     { signal: AbortSignal.timeout(15000) },
   );
+  if (!res.ok) {
+    throw new ExternalLookupError('meta_api_provider_non_ok');
+  }
+
   const data = await res.json() as {
     data?: Array<{
       id: string;
@@ -99,11 +153,11 @@ async function scrapeViaMetaAPI(keyword: string, limit: number): Promise<AdResul
       ad_snapshot_url?: string;
       ad_delivery_start_time?: string;
     }>;
-    error?: { message: string; code: number };
+    error?: unknown;
   };
 
-  if (!res.ok || data.error) {
-    throw new Error(data.error?.message ?? `HTTP ${res.status}`);
+  if (data.error) {
+    throw new ExternalLookupError('meta_api_provider_non_ok');
   }
 
   return (data.data ?? []).map((ad) => ({
@@ -113,7 +167,7 @@ async function scrapeViaMetaAPI(keyword: string, limit: number): Promise<AdResul
     title:         ad.ad_creative_link_titles?.[0] ?? '',
     caption:       ad.ad_creative_link_descriptions?.[0] ?? '',
     cta:           '',
-    snapshot_url:  ad.ad_snapshot_url ?? `https://www.facebook.com/ads/library/?id=${ad.id}`,
+    snapshot_url:  safeMetaSnapshotUrl(ad.ad_snapshot_url, ad.id),
     start_date:    ad.ad_delivery_start_time?.slice(0, 10) ?? '',
     image_url:     '',
     profile_image: '',
@@ -195,8 +249,8 @@ function extractAdsFromHtml(html: string, limit: number): AdResult[] {
     if (pageName || body) {
       results.push({
         id: archiveId, page_name: pageName, body, title, caption, cta,
-        snapshot_url: snapshotUrl, start_date: startDate,
-        image_url: imageUrl, profile_image: profileImage,
+        snapshot_url: safeMetaSnapshotUrl(snapshotUrl, archiveId), start_date: startDate,
+        image_url: safeMetaExternalUrl(imageUrl), profile_image: safeMetaExternalUrl(profileImage),
       });
     }
   }
@@ -342,13 +396,13 @@ async function scrapeLocal(url: string, limit: number): Promise<AdResult[]> {
     });
     child.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
     child.stderr.on('data', () => null);
-    child.on('close', (code: number) => {
+    child.on('close', () => {
       try {
         const parsed = JSON.parse(stdout);
-        if (parsed.error) return reject(new Error(parsed.error));
+        if (parsed.error) return reject(new ExternalLookupError('worker_failed'));
         resolve(parsed.ads || []);
       } catch {
-        reject(new Error(`scrape_worker failed exit=${code}`));
+        reject(new ExternalLookupError('worker_failed'));
       }
     });
     child.on('error', reject);
@@ -394,13 +448,24 @@ export async function GET(req: NextRequest) {
     method = 'meta_api';
     console.log(`[meta-ads-scrape] Meta API 성공 — ${rawAds.length}건`);
   } catch (apiErr) {
-    console.warn('[meta-ads-scrape] Meta API failed:', sanitizeError(apiErr, 160));
+    const apiReason = apiErr instanceof ExternalLookupError ? apiErr.reason : 'meta_api_provider_non_ok';
+    console.warn(`[meta-ads-scrape] lookup failed: ${apiReason}`);
+
+    if (apiReason === 'meta_api_not_configured') {
+      return noStoreJson(
+        { error: NOT_CONFIGURED_ERROR },
+        { status: 503 }
+      );
+    }
 
     if (isProductionRuntime()) {
       const blocked = requireInternalKey(req);
       if (blocked) {
         console.warn('[meta-ads-scrape] Playwright fallback blocked for public production request');
-        return blocked;
+        return noStoreJson(
+          { error: LOOKUP_FAILED_ERROR },
+          { status: 503 }
+        );
       }
     }
 
@@ -411,12 +476,12 @@ export async function GET(req: NextRequest) {
         : await scrapeLocal(libraryUrl, limit);
       method = 'playwright';
       console.log(`[meta-ads-scrape] Playwright 성공 — ${rawAds.length}건`);
-    } catch (scrapeErr) {
-      console.error('[meta-ads-scrape] Playwright failed:', sanitizeError(scrapeErr));
+    } catch {
+      console.error('[meta-ads-scrape] lookup failed: playwright_failed');
 
       return noStoreJson(
-        { error: 'External ads lookup failed.' },
-        { status: 500 }
+        { error: LOOKUP_FAILED_ERROR },
+        { status: 502 }
       );
     }
   }
