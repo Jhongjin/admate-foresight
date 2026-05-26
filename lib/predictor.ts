@@ -12,6 +12,24 @@ export interface PredictInput {
   monthTo?: string;
 }
 
+export type DataSufficiencyStatus = 'sufficient' | 'relaxed' | 'insufficient';
+
+export type DataSufficiencyBasis =
+  | 'exact_cohort'
+  | 'relaxed_demographic'
+  | 'relaxed_industry_objective'
+  | 'date_window_only'
+  | 'global_fallback'
+  | 'invalid_month_range';
+
+export interface DataSufficiency {
+  status: DataSufficiencyStatus;
+  basis: DataSufficiencyBasis;
+  matchedCount: number;
+  minimumRequired: number;
+  warningCodes: string[];
+}
+
 export interface MarketAvg {
   cpm: number;
   cpc: number;
@@ -43,6 +61,7 @@ export interface PredictResult {
   cpmChange: number | null;
   cpcChange: number | null;
   matchedCount: number;
+  dataSufficiency: DataSufficiency;
   r2Cpm?: number;
   r2Cpc?: number;
   r2Vtr?: number;
@@ -65,6 +84,7 @@ const FREQ_GAMMA = 0.044;
 const REF_BUDGET = 1_000_000;
 const SAT_FREQ_THRESHOLD = 2.0;   // 포화 시작 빈도
 const SAT_CPM_RATE = 0.25;        // 빈도 초과분당 CPM 할증률
+const MINIMUM_MATCHED_RECORDS = 10;
 
 // ════════════════════════════════════════════════════════════
 // 1. 시즌성 가중치 (Seasonality)
@@ -245,32 +265,106 @@ function calcFromRecords(records: XlsxRecord[], budget: number) {
   };
 }
 
+function buildDataSufficiency(
+  basis: DataSufficiencyBasis,
+  matchedCount: number,
+): DataSufficiency {
+  const warningCodes: string[] = [];
+  let status: DataSufficiencyStatus = 'sufficient';
+
+  if (basis === 'invalid_month_range') {
+    status = 'insufficient';
+    warningCodes.push('REVERSED_MONTH_RANGE', 'INSUFFICIENT_MATCHED_DATA');
+  } else if (basis !== 'exact_cohort') {
+    status = basis === 'global_fallback' ? 'insufficient' : 'relaxed';
+    warningCodes.push('RELAXED_COHORT_MATCH');
+    if (basis === 'global_fallback') warningCodes.push('GLOBAL_FALLBACK_USED');
+  }
+
+  if (matchedCount < MINIMUM_MATCHED_RECORDS && basis !== 'invalid_month_range') {
+    status = 'insufficient';
+    warningCodes.push('INSUFFICIENT_MATCHED_DATA');
+  }
+
+  return {
+    status,
+    basis,
+    matchedCount,
+    minimumRequired: MINIMUM_MATCHED_RECORDS,
+    warningCodes: [...new Set(warningCodes)],
+  };
+}
+
+function getMatchedXlsxWithSufficiency(
+  data: XlsxRecord[],
+  industries: string[], genders: string[], ageRanges: string[], objectives: string[],
+  monthFrom?: string, monthTo?: string,
+): { matched: XlsxRecord[]; dataSufficiency: DataSufficiency } {
+  if (monthFrom && monthTo && monthFrom > monthTo) {
+    return {
+      matched: [],
+      dataSufficiency: buildDataSufficiency('invalid_month_range', 0),
+    };
+  }
+
+  if (monthFrom || monthTo) {
+    let m = filterXlsx(data, industries, genders, ageRanges, objectives, monthFrom, monthTo);
+    if (m.length >= MINIMUM_MATCHED_RECORDS) {
+      return { matched: m, dataSufficiency: buildDataSufficiency('exact_cohort', m.length) };
+    }
+    m = filterXlsx(data, industries, genders, [], objectives, monthFrom, monthTo);
+    if (m.length >= MINIMUM_MATCHED_RECORDS) {
+      return { matched: m, dataSufficiency: buildDataSufficiency('relaxed_demographic', m.length) };
+    }
+    m = filterXlsx(data, industries, [], [], objectives, monthFrom, monthTo);
+    if (m.length >= MINIMUM_MATCHED_RECORDS) {
+      return { matched: m, dataSufficiency: buildDataSufficiency('relaxed_demographic', m.length) };
+    }
+    m = filterXlsx(data, [], [], [], objectives, monthFrom, monthTo);
+    if (m.length >= MINIMUM_MATCHED_RECORDS) {
+      return { matched: m, dataSufficiency: buildDataSufficiency('relaxed_industry_objective', m.length) };
+    }
+    m = filterXlsx(data, [], [], [], [], monthFrom, monthTo);
+    if (m.length >= MINIMUM_MATCHED_RECORDS) {
+      return { matched: m, dataSufficiency: buildDataSufficiency('date_window_only', m.length) };
+    }
+  }
+  let matched = filterXlsx(data, industries, genders, ageRanges, objectives);
+  if (matched.length >= MINIMUM_MATCHED_RECORDS) {
+    return { matched, dataSufficiency: buildDataSufficiency('exact_cohort', matched.length) };
+  }
+  matched = filterXlsx(data, industries, genders, [], objectives);
+  if (matched.length >= MINIMUM_MATCHED_RECORDS) {
+    return { matched, dataSufficiency: buildDataSufficiency('relaxed_demographic', matched.length) };
+  }
+  matched = filterXlsx(data, industries, [], [], objectives);
+  if (matched.length >= MINIMUM_MATCHED_RECORDS) {
+    return { matched, dataSufficiency: buildDataSufficiency('relaxed_demographic', matched.length) };
+  }
+  matched = filterXlsx(data, [], [], [], objectives);
+  if (matched.length >= MINIMUM_MATCHED_RECORDS) {
+    return { matched, dataSufficiency: buildDataSufficiency('relaxed_industry_objective', matched.length) };
+  }
+  return {
+    matched: data,
+    dataSufficiency: buildDataSufficiency('global_fallback', data.length),
+  };
+}
+
 function getMatchedXlsx(
   data: XlsxRecord[],
   industries: string[], genders: string[], ageRanges: string[], objectives: string[],
   monthFrom?: string, monthTo?: string,
 ): XlsxRecord[] {
-  if (monthFrom || monthTo) {
-    let m = filterXlsx(data, industries, genders, ageRanges, objectives, monthFrom, monthTo);
-    if (m.length >= 10) return m;
-    m = filterXlsx(data, industries, genders, [], objectives, monthFrom, monthTo);
-    if (m.length >= 10) return m;
-    m = filterXlsx(data, industries, [], [], objectives, monthFrom, monthTo);
-    if (m.length >= 10) return m;
-    m = filterXlsx(data, [], [], [], objectives, monthFrom, monthTo);
-    if (m.length >= 10) return m;
-    m = filterXlsx(data, [], [], [], [], monthFrom, monthTo);
-    if (m.length >= 10) return m;
-  }
-  let matched = filterXlsx(data, industries, genders, ageRanges, objectives);
-  if (matched.length >= 10) return matched;
-  matched = filterXlsx(data, industries, genders, [], objectives);
-  if (matched.length >= 10) return matched;
-  matched = filterXlsx(data, industries, [], [], objectives);
-  if (matched.length >= 10) return matched;
-  matched = filterXlsx(data, [], [], [], objectives);
-  if (matched.length >= 10) return matched;
-  return data;
+  return getMatchedXlsxWithSufficiency(
+    data,
+    industries,
+    genders,
+    ageRanges,
+    objectives,
+    monthFrom,
+    monthTo,
+  ).matched;
 }
 
 function calcReachFromCsv(budget: number) {
@@ -379,7 +473,15 @@ export function predict(input: PredictInput): PredictResult {
   const xlsxData = loadXlsxData();
 
   // ── 매칭 데이터 ──
-  const matched = getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives, monthFrom, monthTo);
+  const { matched, dataSufficiency } = getMatchedXlsxWithSufficiency(
+    xlsxData,
+    industries,
+    genders,
+    ageRanges,
+    objectives,
+    monthFrom,
+    monthTo,
+  );
   const selMonth = monthTo ?? monthFrom;
 
   // ── 1차: Ridge 회귀 예측 ──
@@ -541,6 +643,7 @@ export function predict(input: PredictInput): PredictResult {
     reach, cpm, cpc, cpcLink, cpv, vtr, frequency,
     reachChange, cpmChange, cpcChange,
     matchedCount: matched.length,
+    dataSufficiency,
     r2Cpm, r2Cpc, r2Vtr,
     predictionMethod,
     marketAvg,

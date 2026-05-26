@@ -58,7 +58,13 @@ export async function POST(req: NextRequest) {
 
     const results = levels.map((monthlyBudget) => {
       const r = predict({ ...input, budget: monthlyBudget });
-      return { budget: monthlyBudget, reach: r.reach, cpm: r.cpm, cpc: r.cpc };
+      return {
+        budget: monthlyBudget,
+        reach: r.reach,
+        cpm: r.cpm,
+        cpc: r.cpc,
+        dataSufficiency: r.dataSufficiency,
+      };
     });
 
     const dataLoaded = loadXlsxData().length > 0;
