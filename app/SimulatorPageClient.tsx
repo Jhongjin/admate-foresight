@@ -1017,7 +1017,7 @@ export default function SimulatorPage() {
         },
       ]
     : [];
-  // Static contract markers: 보고서 출력은 검토용, 내보내기 허용, 확정 성과 표현 금지 원칙
+  // Static contract markers: 보고서 출력은 검토용, 리포트/내보내기/승격/적용 준비 false, 확정 성과 표현 금지 원칙
   const forecastEmptySignals = [
     {
       label: '기준선 근거',

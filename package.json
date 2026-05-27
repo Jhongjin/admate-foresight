@@ -14,6 +14,7 @@
     "check:forecast-range-confirmation-contract": "vitest run tests/benchmark/forecast-range-confirmation-contract.test.ts",
     "check:predict-range-levels-contract": "vitest run tests/benchmark/predict-range-levels-contract.test.ts",
     "check:protected-error-states": "node scripts/check-protected-error-states.mjs",
+    "check:simulator-forecast-readiness-contract": "vitest run tests/benchmark/simulator-forecast-readiness-contract.test.ts",
     "test:benchmark-ui": "vitest run tests/benchmark --environment jsdom",
     "start": "next start",
     "lint": "eslint"

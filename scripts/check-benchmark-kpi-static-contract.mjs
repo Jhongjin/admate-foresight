@@ -97,7 +97,7 @@ const requiredSimulatorSnippets = [
   '전체 기준으로 표시',
   '예산 곡선 대기',
   '보고서 출력은 검토용',
-  '내보내기 허용',
+  '리포트/내보내기/승격/적용 준비 false',
   '확정 성과 표현 금지 원칙',
 ]
 
@@ -187,6 +187,7 @@ const simulatorSource = readSource(files.simulator)
 for (const expected of requiredSimulatorSnippets) {
   assertIncludes(simulatorSource, expected, 'Simulator data sufficiency contract')
 }
+assertDoesNotInclude(simulatorSource, '내보내기 허용', 'Simulator forecast readiness contract')
 
 const uiTestSource = readSource(files.uiRenderingTest)
 for (const expected of requiredUiTestSnippets) {
