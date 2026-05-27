@@ -47,8 +47,9 @@ export async function POST(req: NextRequest) {
       currentBudget: input.budget,
     });
 
-    const dataLoaded = loadXlsxData().length > 0;
-    console.log(`[predict-range] 완료: ${results.length}구간, 데이터로딩=${dataLoaded}, 첫 reach=${results[0]?.reach}`);
+    const loadedRowCount = loadXlsxData().length;
+    const dataLoaded = loadedRowCount > 0;
+    console.log(`[predict-range] complete: rangeCount=${results.length}, dataLoaded=${dataLoaded}, loadedRowCount=${loadedRowCount}`);
 
     return jsonNoStore({ range: results, confirmation });
   } catch (err) {

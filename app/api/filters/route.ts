@@ -70,10 +70,11 @@ export async function GET() {
     const objectives = getObjectives();
     const months = getAvailableMonths();
 
-    // 진단 로그 — Vercel 함수 로그에서 확인 가능
-    console.log('[filters] csvIndustries:', csvIndustries.length, '| xlsxIndustries:', xlsxIndustries.length, '| total:', allIndustries.length);
+    // 진단 로그는 집계 카운터/불리언만 남긴다.
+    const hasXlsxIndustries = xlsxIndustries.length > 0;
+    console.log(`[filters] loaded: csvIndustryCount=${csvIndustries.length}, xlsxIndustryCount=${xlsxIndustries.length}, totalIndustryCount=${allIndustries.length}, ageRangeCount=${ageRanges.length}, objectiveCount=${objectives.length}, monthCount=${months.length}, hasXlsxIndustries=${hasXlsxIndustries}`);
     if (xlsxIndustries.length > 0) {
-      console.log('[filters] 업종 목록:', xlsxIndustries.join(', '));
+      console.log('[filters] xlsx industry source available');
     } else {
       console.warn('[filters] ⚠️  Supabase 업종 데이터 없음 — xlsxIndustries 비어있음');
     }

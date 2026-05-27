@@ -26,6 +26,11 @@ const externalLookupRoutes = [
   file('app', 'api', 'meta-ads-scrape', 'route.ts'),
 ]
 
+const diagnosticLogRoutes = [
+  file('app', 'api', 'filters', 'route.ts'),
+  file('app', 'api', 'predict-range', 'route.ts'),
+]
+
 const sharedHelpers = {
   authGuard: file('lib', 'auth', 'foresightApiGuard.ts'),
   security: file('lib', 'security.ts'),
@@ -148,6 +153,58 @@ function assertBoundedErrors(source, target) {
   }
 }
 
+function consoleDiagnosticLines(source) {
+  return source
+    .split(/\r?\n/)
+    .filter((line) => /console\.(log|warn|error)\s*\(/.test(line))
+}
+
+function assertBoundedDiagnosticLogging(source, target) {
+  const relative = rel(target)
+
+  for (const forbidden of [
+    ".join(', ')",
+    '.join(", ")',
+    '첫 reach',
+    'first reach',
+    'firstReach',
+    'results[0]?.reach',
+    'results[0].reach',
+  ]) {
+    if (source.includes(forbidden)) {
+      fail(`${relative} must not log diagnostic detail via ${forbidden}`)
+    }
+  }
+
+  for (const line of consoleDiagnosticLines(source)) {
+    const unquoted = stripQuotedText(line)
+    const args = unquoted.replace(/^.*console\.(log|warn|error)\s*\(/, '')
+    if (/,\s*\{/.test(args)) {
+      fail(`${relative} must not log unbounded diagnostic objects: ${line.trim()}`)
+    }
+  }
+
+  if (relative === 'app/api/filters/route.ts') {
+    for (const collectionName of ['csvIndustries', 'xlsxIndustries', 'allIndustries']) {
+      for (const line of consoleDiagnosticLines(source)) {
+        const unquoted = stripQuotedText(line)
+        if (unquoted.includes(collectionName) && !unquoted.includes(`${collectionName}.length`)) {
+          fail(`${relative} must log only bounded industry counters/booleans: ${line.trim()}`)
+        }
+      }
+    }
+  }
+
+  if (relative === 'app/api/predict-range/route.ts') {
+    for (const line of consoleDiagnosticLines(source)) {
+      const unquoted = stripQuotedText(line)
+      if (/\b(reach|cpm|cpc|dataSufficiency)\b/.test(unquoted)) {
+        fail(`${relative} must not log prediction output values: ${line.trim()}`)
+      }
+    }
+  }
+}
+
 function assertExternalLookupFailClosed(source, target) {
   const relative = rel(target)
 
@@ -178,6 +235,10 @@ for (const route of targetRoutes) {
 
 for (const route of externalLookupRoutes) {
   assertExternalLookupFailClosed(read(route), route)
+}
+
+for (const route of diagnosticLogRoutes) {
+  assertBoundedDiagnosticLogging(read(route), route)
 }
 
 const metaAdsSource = read(file('app', 'api', 'meta-ads', 'route.ts'))
