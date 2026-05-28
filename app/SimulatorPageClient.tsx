@@ -10,10 +10,11 @@ import ConditionTags from '@/components/ConditionTags';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import PlanningStatePanel from '@/components/PlanningStatePanel';
 import StatePanel from '@/components/StatePanel';
+import { buildForesightBudgetBasis } from '@/lib/foresightBudgetBasis';
 import {
-  buildCampaignRangePoint,
-  buildForesightBudgetBasis,
-} from '@/lib/foresightBudgetBasis';
+  buildSimulatorRangeViewModel,
+  formatSimulatorBudget,
+} from '@/lib/foresightRangeViewModel';
 import {
   normalizeForecastRangeResponse,
   type ForecastRangeConfirmation,
@@ -247,11 +248,6 @@ async function readJsonOrNull(response: Response): Promise<unknown | null> {
 async function toJsonOrThrow(response: Response): Promise<unknown> {
   if (!response.ok) throw new Error('request_failed');
   return response.json();
-}
-
-function formatBudget(v: number) {
-  if (v >= 100_000_000) return `${v / 100_000_000}억`;
-  return `${v / 10_000}만`;
 }
 
 const SIMULATOR_PRODUCT_SAFE_ERRORS = {
@@ -828,12 +824,10 @@ export default function SimulatorPage() {
   }, [result, rangeData, monthlyBudget, budget, durationFactor]);
 
   // Range API 결과는 월 기준이고, 곡선/표는 입력한 캠페인 기간 기준으로 표시한다.
-  const chartData = rangeData.map((p) => {
-    const campaignPoint = buildCampaignRangePoint(p, campaignDays);
-    return {
-      ...campaignPoint,
-      label: formatBudget(campaignPoint.budget),
-    };
+  const { chartData, rangeTrendBrief } = buildSimulatorRangeViewModel({
+    rangeData,
+    campaignDays,
+    selectedBudget: budget,
   });
   const predictionRangeRows = result && predictionRangeSpread != null
     ? [
@@ -855,42 +849,6 @@ export default function SimulatorPage() {
       ]
     : [];
   const truthBandLabel = confidenceScore == null ? evidenceBasisLabel : confidenceDisplay;
-  const rangeTrendBrief = chartData.length > 0
-    ? (() => {
-        const first = chartData[0];
-        const last = chartData[chartData.length - 1];
-        const selected = chartData.find((row) => row.budget === budget)
-          ?? chartData.reduce((closest, row) => (
-            Math.abs(row.budget - budget) < Math.abs(closest.budget - budget) ? row : closest
-          ), first);
-        const reachLiftPct = first.reach > 0
-          ? Math.round(((last.reach - first.reach) / first.reach) * 100)
-          : null;
-        const efficiencySignal = last.reachEfficiency < first.reachEfficiency
-          ? '효율 체감'
-          : last.reachEfficiency > first.reachEfficiency
-            ? '효율 개선'
-            : '효율 유지';
-
-        return [
-          {
-            label: '예산 범위',
-            value: `${first.label} → ${last.label}`,
-            detail: reachLiftPct == null ? '도달 증분 계산 대기' : `도달 +${reachLiftPct.toLocaleString()}%`,
-          },
-          {
-            label: '선택 예산',
-            value: `₩${selected.budget.toLocaleString()}`,
-            detail: `만원당 ${selected.reachEfficiency.toLocaleString()}명 도달`,
-          },
-          {
-            label: '한계 효율 신호',
-            value: efficiencySignal,
-            detail: `구간 끝 CPM ₩${last.cpm.toLocaleString()}`,
-          },
-        ];
-      })()
-    : [];
   const decisionGateRows = [
     {
       label: '기준선 범위',
@@ -1164,7 +1122,7 @@ export default function SimulatorPage() {
                 </svg>
                 <div className="foresight-curve-label foresight-curve-label--left">
                   <span>예산</span>
-                  <strong>{formatBudget(budget)}</strong>
+                  <strong>{formatSimulatorBudget(budget)}</strong>
                 </div>
                 <div className="foresight-curve-label foresight-curve-label--right">
                   <span>근거</span>
@@ -2129,7 +2087,7 @@ export default function SimulatorPage() {
                 labelFormatter={(label) => `예산 ${label}`}
               />
               <ReferenceLine
-                x={formatBudget(budget)}
+                x={formatSimulatorBudget(budget)}
                 stroke="#0f766e"
                 strokeDasharray="4 4"
                 label={{ value: '현재', position: 'top', fontSize: 11, fill: '#0f766e' }}
