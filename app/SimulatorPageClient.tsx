@@ -12,6 +12,7 @@ import PlanningStatePanel from '@/components/PlanningStatePanel';
 import StatePanel from '@/components/StatePanel';
 import { buildForesightBudgetBasis } from '@/lib/foresightBudgetBasis';
 import {
+  buildSimulatorRangeReviewCopy,
   buildSimulatorRangeViewModel,
   formatSimulatorBudget,
 } from '@/lib/foresightRangeViewModel';
@@ -705,32 +706,14 @@ export default function SimulatorPage() {
     { label: '주의', detail: '전체 기준 또는 일부 근거만으로 검토할 때 표시합니다.' },
     { label: '확인 필요', detail: '데이터가 적거나 보강이 필요할 때 표시합니다.' },
   ];
-  const rangeReviewStatus = rangeConfirmation?.state;
-  const rangeReviewLabel = !isCalculated
-    ? '실행 전'
-    : rangeLoading
-      ? '구간 계산 중'
-      : rangeReviewStatus === 'accepted_for_operator_review'
-        ? '운영자 검토 가능'
-        : rangeReviewStatus === 'blocked_by_sufficiency'
-          ? '근거 보강 필요'
-          : rangeReviewStatus === 'blocked_by_current_range'
-            ? '현재 예산 확인 필요'
-            : rangeReviewStatus === 'rejected_invalid_range'
-              ? '구간 재계산 필요'
-              : '구간 확인 대기';
-  const rangeReviewDetail = rangeConfirmation
-    ? `${rangeConfirmation.range.pointCount}개 구간 · 최소 매칭 ${rangeConfirmation.sufficiency.minimumMatchedCount.toLocaleString()}건`
-    : rangeLoading
-      ? '예산별 결과를 확인하고 있습니다.'
-      : '구간 결과가 들어오면 운영자 검토 상태를 표시합니다.';
-  const rangeReviewTone = rangeConfirmation?.readiness.operatorReviewReady
-    ? 'ok'
-    : rangeLoading
-      ? 'watch'
-      : rangeConfirmation
-        ? 'risk'
-        : 'idle';
+  const rangeReviewCopy = buildSimulatorRangeReviewCopy({
+    confirmation: rangeConfirmation,
+    isCalculated,
+    loading: rangeLoading,
+  });
+  const rangeReviewLabel = rangeReviewCopy.label;
+  const rangeReviewDetail = rangeReviewCopy.detail;
+  const rangeReviewTone = rangeReviewCopy.tone;
   const confidenceTone = confidenceScore == null
     ? 'text-gray-500'
     : confidenceScore >= 82
