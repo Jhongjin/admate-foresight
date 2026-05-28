@@ -7,6 +7,7 @@ const files = {
   kpiCard: path.join(root, 'components', 'KPICard.tsx'),
   planningStatePanel: path.join(root, 'components', 'PlanningStatePanel.tsx'),
   simulator: path.join(root, 'app', 'SimulatorPageClient.tsx'),
+  simulatorDecisionViewModel: path.join(root, 'lib', 'foresightSimulatorDecisionViewModel.ts'),
   viewModel: path.join(root, 'lib', 'benchmark', 'uiStateViewModel.ts'),
   uiRenderingTest: path.join(root, 'tests', 'benchmark', 'benchmark-ui-state-rendering.test.tsx'),
   routeGuardTest: path.join(root, 'tests', 'benchmark', 'benchmark-route-output-guards.test.ts'),
@@ -184,10 +185,15 @@ for (const forbidden of ['fetch(', 'process.env', 'createClient', '@supabase', '
 }
 
 const simulatorSource = readSource(files.simulator)
+const simulatorDecisionViewModelSource = readSource(files.simulatorDecisionViewModel)
+const simulatorContractSource = `${simulatorSource}\n${simulatorDecisionViewModelSource}`
 for (const expected of requiredSimulatorSnippets) {
-  assertIncludes(simulatorSource, expected, 'Simulator data sufficiency contract')
+  assertIncludes(simulatorContractSource, expected, 'Simulator data sufficiency contract')
 }
 assertDoesNotInclude(simulatorSource, '내보내기 허용', 'Simulator forecast readiness contract')
+for (const forbidden of ['fetch(', 'process.env', 'createClient', '@supabase', '/api/', 'document.cookie']) {
+  assertDoesNotInclude(simulatorDecisionViewModelSource, forbidden, 'Simulator decision view model local-only boundary')
+}
 
 const uiTestSource = readSource(files.uiRenderingTest)
 for (const expected of requiredUiTestSnippets) {
