@@ -15,6 +15,7 @@ interface KPICardProps {
   benchmarkStatusLabel?: string;
   benchmarkBasisLines?: string[];
   benchmarkConfidenceLabel?: string;
+  benchmarkEvidenceLabel?: string;
   benchmarkVisibleCopy?: string[];
   benchmarkSyntheticContextLabel?: string;
   benchmarkBlockedOutputs?: string[];
@@ -51,6 +52,7 @@ export default function KPICard({
   benchmarkStatusLabel,
   benchmarkBasisLines = [],
   benchmarkConfidenceLabel,
+  benchmarkEvidenceLabel,
   benchmarkVisibleCopy = [],
   benchmarkSyntheticContextLabel,
   benchmarkBlockedOutputs = [],
@@ -70,6 +72,7 @@ export default function KPICard({
     : undefined;
   const hasBenchmarkDisplay = !loading && Boolean(
     benchmarkStatusLabel
+      || benchmarkEvidenceLabel
       || benchmarkConfidenceLabel
       || benchmarkSyntheticContextLabel
       || benchmarkBasisLines.length
@@ -133,7 +136,9 @@ export default function KPICard({
 
       {hasBenchmarkDisplay && (
         <section
-          aria-label={`${title} 벤치마크 신뢰도 세부 정보`}
+          aria-label={benchmarkEvidenceLabel
+            ? `${title} 벤치마크 근거 세부 정보`
+            : `${title} 벤치마크 신뢰도 세부 정보`}
           className="min-w-0 space-y-2 border-t border-stone-200/80 pt-3"
         >
           <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-stone-500">기준 확인</p>
@@ -156,13 +161,15 @@ export default function KPICard({
             )}
           </div>
 
-          {benchmarkConfidenceLabel && (
+          {(benchmarkEvidenceLabel || benchmarkConfidenceLabel) && (
             <p
-              aria-label={`벤치마크 신뢰도: ${benchmarkConfidenceLabel}`}
+              aria-label={benchmarkEvidenceLabel
+                ? `벤치마크 근거: ${benchmarkEvidenceLabel}`
+                : `벤치마크 신뢰도: ${benchmarkConfidenceLabel}`}
               className="break-words text-[11px] leading-snug text-slate-600"
             >
-              <span className="sr-only">벤치마크 신뢰도: </span>
-              {benchmarkConfidenceLabel}
+              <span className="sr-only">{benchmarkEvidenceLabel ? '벤치마크 근거: ' : '벤치마크 신뢰도: '}</span>
+              {benchmarkEvidenceLabel || benchmarkConfidenceLabel}
             </p>
           )}
 

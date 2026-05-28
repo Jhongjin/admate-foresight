@@ -11,6 +11,7 @@ import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import PlanningStatePanel from '@/components/PlanningStatePanel';
 import StatePanel from '@/components/StatePanel';
 import { buildForesightBudgetBasis } from '@/lib/foresightBudgetBasis';
+import { buildForesightPredictionEvidenceViewModel } from '@/lib/foresightPredictionEvidenceViewModel';
 import {
   buildSimulatorRangeReviewCopy,
   buildSimulatorRangeViewModel,
@@ -602,35 +603,18 @@ export default function SimulatorPage() {
   const marketSelected = result?.marketAvg?.industrySelected === true;
   const marketSampleCount = result?.marketAvg?.count ?? 0;
   const matchedSampleCount = result?.matchedCount ?? 0;
-  const averageR2 = result
-    ? (() => {
-        const r2Values = [result.r2Cpm, result.r2Cpc, result.r2Vtr]
-          .filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
-        return r2Values.length > 0
-          ? r2Values.reduce((sum, v) => sum + v, 0) / r2Values.length
-          : null;
-      })()
-    : null;
-  const confidenceScore = result && result.predictionMethod === 'regression' && averageR2 != null
-    ? Math.min(
-        96,
-        Math.max(
-          42,
-          Math.round(
-            (averageR2 * 70)
-            + (Math.min(matchedSampleCount, 200) / 200) * 20
-            + (marketSelected ? 6 : 0)
-          )
-        )
-      )
-    : null;
-  const evidenceBasisLabel = result?.predictionMethod === 'regression'
-    ? averageR2 == null ? '예측 기준 확인 전' : '예측 기준 확인'
-    : result?.predictionMethod === 'weighted_avg'
-      ? '최근 데이터 기준'
-      : result?.predictionMethod === 'fallback'
-        ? '임시 기준'
-        : '실행 전';
+  const predictionEvidence = buildForesightPredictionEvidenceViewModel({
+    predictionMethod: result?.predictionMethod,
+    r2Cpm: result?.r2Cpm,
+    r2Cpc: result?.r2Cpc,
+    r2Vtr: result?.r2Vtr,
+    matchedCount: matchedSampleCount,
+    marketSelected,
+    loading,
+    isCalculated,
+  });
+  const confidenceScore = predictionEvidence.score;
+  const evidenceBasisLabel = predictionEvidence.basisLabel;
   const readinessTone = loading
     ? 'border-sky-200 bg-sky-50 text-sky-700'
     : !isCalculated
@@ -666,34 +650,9 @@ export default function SimulatorPage() {
       : result
         ? '결과를 검토하고 필요하면 예산/타겟을 조정하세요.'
         : '조건을 넓히거나 다시 실행해 결과를 확인하세요.';
-  const confidenceLabel = loading
-    ? '계산 중'
-    : confidenceScore == null
-      ? evidenceBasisLabel
-      : confidenceScore >= 82
-        ? '높음'
-        : confidenceScore >= 66
-          ? '보통'
-          : '주의';
-  const confidenceDisplay = confidenceScore == null ? confidenceLabel : `${confidenceScore}% · ${confidenceLabel}`;
-  const confidenceGateStatus = confidenceScore == null
-    ? result?.predictionMethod === 'fallback'
-      ? '근거 보강'
-      : result
-        ? '최근 데이터 기준'
-        : '미산정'
-    : confidenceScore >= 66
-      ? '검토 가능'
-      : '근거 보강';
-  const confidenceGateTone = confidenceScore == null
-    ? result?.predictionMethod === 'fallback'
-      ? 'watch'
-      : result
-        ? 'idle'
-        : 'idle'
-    : confidenceScore >= 66
-      ? 'ok'
-      : 'watch';
+  const confidenceDisplay = predictionEvidence.display;
+  const confidenceGateStatus = predictionEvidence.gateStatus;
+  const confidenceGateTone = predictionEvidence.gateTone;
   const sampleStatus = !result || loading
     ? { label: '주의', detail: loading ? '계산 중' : '실행 전', tone: 'border-amber-200 bg-amber-50 text-amber-800' }
     : confidenceGateStatus === '근거 보강' || matchedSampleCount < 20
@@ -714,13 +673,7 @@ export default function SimulatorPage() {
   const rangeReviewLabel = rangeReviewCopy.label;
   const rangeReviewDetail = rangeReviewCopy.detail;
   const rangeReviewTone = rangeReviewCopy.tone;
-  const confidenceTone = confidenceScore == null
-    ? 'text-gray-500'
-    : confidenceScore >= 82
-      ? 'text-emerald-700'
-      : confidenceScore >= 66
-        ? 'text-sky-700'
-        : 'text-amber-700';
+  const confidenceTone = predictionEvidence.textToneClassName;
   const predictionRangeSpread = result
     ? confidenceScore == null
       ? result.predictionMethod === 'fallback'
@@ -1690,7 +1643,7 @@ export default function SimulatorPage() {
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">예상 범위</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-600">단일 KPI를 확정값처럼 보지 않도록 신뢰도에 맞춘 예상 범위를 함께 표시합니다.</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">단일 KPI를 확정값처럼 보지 않도록 근거 점수에 맞춘 예상 범위를 함께 표시합니다.</p>
                 </div>
                 <span className="w-fit rounded-md border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] font-semibold text-stone-600">
                   예상 범위
@@ -1775,7 +1728,7 @@ export default function SimulatorPage() {
           };
           const kpiLedgerProps = {
             benchmarkStatusLabel: hasMarket ? '업종 매칭 벤치마크' : '전체 기준 벤치마크',
-            benchmarkConfidenceLabel: confidenceDisplay,
+            benchmarkEvidenceLabel: confidenceDisplay,
             benchmarkSyntheticContextLabel: '최근 6개월 · KRW Net',
             benchmarkVisibleCopy: [
               chartData.length > 0 ? '예산 구간: 예산 곡선과 같은 실행 결과' : '예산 구간: 계산 대기',
@@ -2090,7 +2043,7 @@ export default function SimulatorPage() {
           <PlanningStatePanel
             eyebrow="예산 구간"
             title="예산 곡선은 계산된 구간만 표시합니다"
-            description="현재 화면은 빈 차트가 아니라, 예산별 도달 범위를 아직 신뢰할 수 있게 계산하지 못한 상태입니다."
+            description="현재 화면은 빈 차트가 아니라, 예산별 도달 범위를 아직 검토 가능한 근거로 계산하지 못한 상태입니다."
             signals={rangeEmptySignals}
             stages={rangeEmptyStages}
             className="min-h-64"
