@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
@@ -16,6 +16,7 @@ import {
   buildSimulatorRangeViewModel,
   formatSimulatorBudget,
 } from '@/lib/foresightRangeViewModel';
+import { buildForesightSimulatorOptimizationViewModel } from '@/lib/foresightSimulatorOptimizationViewModel';
 import {
   normalizeForecastRangeResponse,
   type ForecastRangeConfirmation,
@@ -57,7 +58,6 @@ const FIXED_OBJECTIVES = [
 ];
 
 const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
-const DIMINISHING_RETURNS_BETA = 0.864;
 
 interface MarketAvg {
   cpm: number; cpc: number; cpcLink: number; cpv: number; vtr: number; count: number;
@@ -618,6 +618,7 @@ export default function SimulatorPage() {
     evidenceBasisLabel,
     confidenceDisplay,
     confidenceGateStatus,
+    confidenceGateTone,
     confidenceTone,
     sampleStatus,
     sampleStatusLegend,
@@ -668,31 +669,22 @@ export default function SimulatorPage() {
     { label: '다음 확인', active: Boolean(result) },
   ];
 
-  // ── 성과 확장 잠재력 ────────────────────────────────────────
-  // 조건: 빈도 < 1.5 AND 현재도달 / rangeData 최대도달 ≤ 30%
-  const expansionPotential = useMemo(() => {
-    if (!result) return null;
-    const freq = result.frequency;
-    const maxMonthlyReach = rangeData.length > 0 ? rangeData[rangeData.length - 1].reach : 0;
-    const reachRate = maxMonthlyReach > 0 ? result.reach / maxMonthlyReach : 1;
-    const canExpand = freq < 1.5 && reachRate <= 0.3;
-
-    if (!canExpand) return { canExpand: false, frequency: freq, reachRate };
-
-    // 20% 증액 시 추가 도달 계산
-    const b120 = monthlyBudget * 1.2;
-    const lower = [...rangeData].reverse().find(d => d.budget <= b120);
-    const upper = rangeData.find(d => d.budget > b120);
-    let reach120 = 0;
-    if (lower && upper) {
-      const ratio = (b120 - lower.budget) / (upper.budget - lower.budget);
-      reach120 = lower.reach + ratio * (upper.reach - lower.reach);
-    } else if (lower) {
-      reach120 = lower.reach * Math.pow(b120 / lower.budget, DIMINISHING_RETURNS_BETA);
-    }
-    const additionalReach = Math.max(0, Math.round((reach120 - result.reach) * durationFactor));
-    return { canExpand: true, frequency: freq, reachRate, additionalReach, additionalBudget: Math.round(budget * 0.2) };
-  }, [result, rangeData, monthlyBudget, budget, durationFactor]);
+  const optimizationGuide = buildForesightSimulatorOptimizationViewModel({
+    result,
+    rangeData,
+    scenarios,
+    scenarioLoading,
+    scenarioError,
+    loading,
+    isCalculated,
+    monthlyBudget,
+    campaignBudget: budget,
+    durationFactor,
+    totalReach,
+    confidenceScore,
+    confidenceGateStatus,
+    confidenceGateTone,
+  });
 
   const rangeEmptySignals = [
     {
@@ -1617,46 +1609,42 @@ export default function SimulatorPage() {
       )}
 
       {/* 캠페인 최적화 가이드 */}
-      {result && (() => {
-        const hasExpansion = expansionPotential?.canExpand === true;
-        const hasGuide = hasExpansion || scenarioLoading || scenarios.length > 0 || scenarioError;
-        if (!hasGuide) return null;
-        return (
+      {optimizationGuide.shouldRender && (
         <div className="bg-white rounded-md shadow-sm border border-slate-200 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-1">캠페인 최적화 가이드</h2>
-          <p className="text-xs text-gray-400 mb-5">지금 더 투자해도 좋은지, 현재 설정을 유지할지 확인하세요</p>
+          <h2 className="text-base font-semibold text-gray-800 mb-1">{optimizationGuide.title}</h2>
+          <p className="text-xs text-gray-400 mb-5">{optimizationGuide.description}</p>
           <div className="space-y-4">
 
             {/* B. 성장 기회 안내 */}
-            {expansionPotential?.canExpand && (
-              <div className="rounded-md p-4 border-l-4 border-emerald-400 bg-emerald-50">
-                <p className="text-sm font-semibold text-gray-800 mb-2">추가 확보 가능 성과</p>
+            {optimizationGuide.expansion && (
+              <div className={optimizationGuide.expansion.shellClassName}>
+                <p className="text-sm font-semibold text-gray-800 mb-2">{optimizationGuide.expansion.title}</p>
                 <p className="text-sm text-gray-600 leading-relaxed mb-3">
-                  현재 설정한 타겟 시장에 광고가 아직 충분히 노출되지 않아,
-                  {' '}<strong className="text-emerald-700">성과를 더 키울 수 있는 여유가 있습니다.</strong>
+                  {optimizationGuide.expansion.description}
                 </p>
-                <div className="flex flex-col gap-2 rounded-md border border-emerald-200 bg-white px-3 py-2.5 sm:flex-row sm:items-start">
-                  <span className="rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">+20%</span>
+                <div className="flex flex-col gap-2 rounded-md border border-white/70 bg-white px-3 py-2.5 sm:flex-row sm:items-start">
+                  <span className={optimizationGuide.expansion.badgeClassName}>{optimizationGuide.expansion.badgeLabel}</span>
                   <p className="min-w-0 break-words text-sm text-gray-700">
-                    예산을 <strong>20% 늘리면</strong> 약{' '}
-                    <strong className="text-emerald-700">{(expansionPotential.additionalReach ?? 0).toLocaleString()} 명</strong>의 고객에게 추가로 도달할 수 있습니다.
-                    {' '}<span className="text-gray-400 text-xs">(+₩{(expansionPotential.additionalBudget ?? 0).toLocaleString()})</span>
+                    {optimizationGuide.expansion.actionLead}{' '}
+                    <strong className={optimizationGuide.expansion.valueClassName}>{optimizationGuide.expansion.actionValue}</strong>
+                    {optimizationGuide.expansion.actionSuffix}
+                    {' '}<span className="text-gray-400 text-xs">{optimizationGuide.expansion.actionMuted}</span>
                   </p>
                 </div>
               </div>
             )}
 
             {/* C. 타겟 확장 시나리오 */}
-            {(scenarioLoading || scenarios.length > 0 || scenarioError) && (
+            {optimizationGuide.scenario.visible && (
               <div className="rounded-md p-4 border border-slate-200 bg-slate-50">
-                <p className="text-sm font-semibold text-gray-800 mb-1">타겟 범위 확장 시 효율 변화</p>
-                <p className="text-xs text-gray-400 mb-3">성별 또는 연령 타겟을 전체로 넓혔을 때 예상 성과를 비교합니다</p>
-                {scenarioLoading ? (
+                <p className="text-sm font-semibold text-gray-800 mb-1">{optimizationGuide.scenario.title}</p>
+                <p className="text-xs text-gray-400 mb-3">{optimizationGuide.scenario.description}</p>
+                {optimizationGuide.scenario.loading ? (
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-teal-700 rounded-full animate-spin" />
-                    시나리오 계산 중...
+                    {optimizationGuide.scenario.loadingLabel}
                   </div>
-                ) : scenarioError && scenarios.length === 0 ? (
+                ) : optimizationGuide.scenario.showEmptyError ? (
                   <StatePanel
                     variant="error"
                     title={scenarioErrorPanel.title}
@@ -1667,7 +1655,7 @@ export default function SimulatorPage() {
                   />
                 ) : (
                   <div className="space-y-2">
-                    {scenarioError && (
+                    {optimizationGuide.scenario.showInlineError && (
                       <StatePanel
                         variant="error"
                         title={scenarioErrorPanel.title}
@@ -1678,37 +1666,30 @@ export default function SimulatorPage() {
                       />
                     )}
                     {/* 현재 타겟 기준 */}
-                    <div className="flex items-center justify-between rounded-md px-3 py-2.5 bg-teal-50 border border-teal-100">
-                      <div>
-                        <p className="text-xs font-semibold text-teal-800">현재 타겟 기준</p>
-                        <p className="text-[11px] text-teal-600 mt-0.5">CPM ₩{result.cpm.toLocaleString()} · 도달 {totalReach.toLocaleString()}명</p>
+                    {optimizationGuide.scenario.currentTarget && (
+                      <div className="flex items-center justify-between rounded-md px-3 py-2.5 bg-teal-50 border border-teal-100">
+                        <div>
+                          <p className="text-xs font-semibold text-teal-800">{optimizationGuide.scenario.currentTarget.title}</p>
+                          <p className="text-[11px] text-teal-600 mt-0.5">{optimizationGuide.scenario.currentTarget.detail}</p>
+                        </div>
+                        <span className="text-xs font-bold text-teal-700 bg-white px-2 py-1 rounded border border-teal-200">
+                          {optimizationGuide.scenario.currentTarget.badgeLabel}
+                        </span>
                       </div>
-                      <span className="text-xs font-bold text-teal-700 bg-white px-2 py-1 rounded border border-teal-200">기준값</span>
-                    </div>
-                    {scenarios.map((s) => {
-                      const cpmBetter = s.cpm > 0 && s.cpm < result.cpm;
-                      const reachMore = s.reach * durationFactor > totalReach;
-                      const overallBetter = cpmBetter || reachMore;
-                      return (
-                        <div key={s.label} className={`flex items-center justify-between rounded-lg px-3 py-2.5 border ${
-                          overallBetter ? 'bg-emerald-50 border-emerald-100' : 'bg-white border-gray-100'
-                        }`}>
+                    )}
+                    {optimizationGuide.scenario.rows.map((s) => (
+                        <div key={s.label} className={`flex items-center justify-between rounded-lg px-3 py-2.5 border ${s.shellClassName}`}>
                           <div>
                             <p className="text-xs font-semibold text-gray-700">{s.label}</p>
                             <p className="text-[11px] text-gray-400 mt-0.5">
-                              CPM ₩{s.cpm.toLocaleString()} · 도달 {Math.round(s.reach * durationFactor).toLocaleString()}명
+                              {s.detail}
                             </p>
                           </div>
-                          <span className={`text-xs font-bold px-2 py-1 rounded border ${
-                            overallBetter
-                              ? 'bg-emerald-600 text-white border-emerald-600'
-                              : 'bg-gray-100 text-gray-500 border-gray-200'
-                          }`}>
-                            {overallBetter ? '효율 개선' : '변화 없음'}
+                          <span className={`text-xs font-bold px-2 py-1 rounded border ${s.statusClassName}`}>
+                            {s.statusLabel}
                           </span>
                         </div>
-                      );
-                    })}
+                    ))}
                   </div>
                 )}
               </div>
@@ -1716,7 +1697,7 @@ export default function SimulatorPage() {
 
           </div>
         </div>
-      );})()}
+      )}
 
 
       {/* Budget Range Chart */}
