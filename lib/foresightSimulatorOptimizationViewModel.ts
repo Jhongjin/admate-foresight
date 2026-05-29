@@ -1,4 +1,9 @@
 import type { ForesightPredictionEvidenceViewModel } from './foresightPredictionEvidenceViewModel';
+import {
+  buildForesightSimulatorScenarioViewModel,
+  type ForesightSimulatorScenarioViewModel,
+  type SimulatorScenarioRow,
+} from './foresightSimulatorScenarioViewModel';
 
 const DIMINISHING_RETURNS_BETA = 0.864;
 
@@ -42,34 +47,9 @@ export interface SimulatorOptimizationExpansionViewModel {
   valueClassName: string;
 }
 
-export interface SimulatorOptimizationScenarioRow {
-  label: string;
-  detail: string;
-  statusLabel: string;
-  tone: SimulatorOptimizationTone;
-  cpm: number;
-  reach: number;
-  cpmBetter: boolean;
-  reachMore: boolean;
-  shellClassName: string;
-  statusClassName: string;
-}
+export type SimulatorOptimizationScenarioRow = SimulatorScenarioRow;
 
-export interface SimulatorOptimizationScenarioSectionViewModel {
-  visible: boolean;
-  title: string;
-  description: string;
-  loading: boolean;
-  loadingLabel: string;
-  showEmptyError: boolean;
-  showInlineError: boolean;
-  currentTarget: {
-    title: string;
-    detail: string;
-    badgeLabel: string;
-  } | null;
-  rows: SimulatorOptimizationScenarioRow[];
-}
+export type SimulatorOptimizationScenarioSectionViewModel = ForesightSimulatorScenarioViewModel;
 
 export interface ForesightSimulatorOptimizationViewModel {
   shouldRender: boolean;
@@ -200,76 +180,22 @@ function buildExpansionViewModel(
   };
 }
 
-function buildScenarioRowClassName(tone: SimulatorOptimizationTone): string {
-  if (tone === 'positive') return 'bg-emerald-50 border-emerald-100';
-  if (tone === 'watch') return 'bg-amber-50 border-amber-100';
-  return 'bg-white border-gray-100';
-}
-
-function buildScenarioStatusClassName(tone: SimulatorOptimizationTone): string {
-  if (tone === 'positive') return 'bg-emerald-600 text-white border-emerald-600';
-  if (tone === 'watch') return 'bg-amber-100 text-amber-800 border-amber-200';
-  return 'bg-gray-100 text-gray-500 border-gray-200';
-}
-
 function buildScenarioSection(
   input: BuildForesightSimulatorOptimizationViewModelInput,
-  evidenceReady: boolean,
 ): SimulatorOptimizationScenarioSectionViewModel {
-  const emptySection: SimulatorOptimizationScenarioSectionViewModel = {
-    visible: false,
-    title: '타겟 범위 확장 시 효율 변화',
-    description: '성별 또는 연령 타겟을 전체로 넓혔을 때 예상 성과를 비교합니다',
-    loading: input.scenarioLoading,
-    loadingLabel: '시나리오 계산 중...',
-    showEmptyError: false,
-    showInlineError: false,
-    currentTarget: null,
-    rows: [],
-  };
-
-  if (!input.result) return emptySection;
-
-  const rows = input.scenarios.map((scenario) => {
-    const campaignReach = Math.max(0, Math.round(scenario.reach * input.durationFactor));
-    const cpmBetter = scenario.cpm > 0 && input.result!.cpm > 0 && scenario.cpm < input.result!.cpm;
-    const reachMore = campaignReach > input.totalReach;
-    const overallBetter = cpmBetter || reachMore;
-    const tone: SimulatorOptimizationTone = evidenceReady && overallBetter
-      ? 'positive'
-      : !evidenceReady && overallBetter
-        ? 'watch'
-        : 'neutral';
-
-    return {
-      label: scenario.label,
-      detail: `CPM ${formatCurrency(scenario.cpm)} · 도달 ${formatPeople(campaignReach)}`,
-      statusLabel: tone === 'positive' ? '효율 개선' : tone === 'watch' ? '근거 확인' : '변화 없음',
-      tone,
-      cpm: scenario.cpm,
-      reach: scenario.reach,
-      cpmBetter,
-      reachMore,
-      shellClassName: buildScenarioRowClassName(tone),
-      statusClassName: buildScenarioStatusClassName(tone),
-    };
+  return buildForesightSimulatorScenarioViewModel({
+    result: input.result,
+    scenarios: input.scenarios,
+    scenarioLoading: input.scenarioLoading,
+    scenarioError: input.scenarioError,
+    loading: input.loading,
+    isCalculated: input.isCalculated,
+    durationFactor: input.durationFactor,
+    totalReach: input.totalReach,
+    confidenceScore: input.confidenceScore,
+    confidenceGateStatus: input.confidenceGateStatus,
+    confidenceGateTone: input.confidenceGateTone,
   });
-  const visible = input.scenarioLoading || rows.length > 0 || input.scenarioError;
-
-  return {
-    ...emptySection,
-    visible,
-    showEmptyError: !input.scenarioLoading && input.scenarioError && rows.length === 0,
-    showInlineError: !input.scenarioLoading && input.scenarioError && rows.length > 0,
-    currentTarget: visible
-      ? {
-          title: '현재 타겟 기준',
-          detail: `CPM ${formatCurrency(input.result.cpm)} · 도달 ${formatPeople(input.totalReach)}`,
-          badgeLabel: '기준값',
-        }
-      : null,
-    rows,
-  };
 }
 
 export function buildForesightSimulatorOptimizationViewModel(
@@ -277,7 +203,7 @@ export function buildForesightSimulatorOptimizationViewModel(
 ): ForesightSimulatorOptimizationViewModel {
   const evidenceReady = hasReviewableEvidence(input);
   const expansion = buildExpansionViewModel(input, evidenceReady);
-  const scenario = buildScenarioSection(input, evidenceReady);
+  const scenario = buildScenarioSection(input);
 
   return {
     shouldRender: Boolean(input.result && (expansion || scenario.visible)),

@@ -21,6 +21,7 @@
     "check:simulator-ml-baseline-view-model": "vitest run tests/benchmark/simulator-ml-baseline-view-model.test.ts",
     "check:simulator-optimization-view-model": "vitest run tests/benchmark/simulator-optimization-view-model.test.ts",
     "check:simulator-prediction-evidence-view-model": "vitest run tests/benchmark/simulator-prediction-evidence-view-model.test.ts",
+    "check:simulator-scenario-view-model": "vitest run tests/benchmark/simulator-scenario-view-model.test.ts",
     "check:simulator-performance-flow-contract": "vitest run tests/benchmark/simulator-performance-flow-contract.test.ts",
     "check:simulator-range-view-model": "vitest run tests/benchmark/simulator-range-view-model.test.ts",
     "test:benchmark-ui": "vitest run tests/benchmark --environment jsdom",

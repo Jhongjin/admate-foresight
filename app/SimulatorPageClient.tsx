@@ -17,6 +17,7 @@ import {
   formatSimulatorBudget,
 } from '@/lib/foresightRangeViewModel';
 import { buildForesightSimulatorOptimizationViewModel } from '@/lib/foresightSimulatorOptimizationViewModel';
+import { buildForesightSimulatorScenarioViewModel } from '@/lib/foresightSimulatorScenarioViewModel';
 import { buildForesightSimulatorKpiBenchmarkViewModel } from '@/lib/foresightSimulatorKpiBenchmarkViewModel';
 import {
   buildForesightSimulatorMlBaselineViewModel,
@@ -677,6 +678,19 @@ export default function SimulatorPage() {
     isCalculated,
     monthlyBudget,
     campaignBudget: budget,
+    durationFactor,
+    totalReach,
+    confidenceScore,
+    confidenceGateStatus,
+    confidenceGateTone,
+  });
+  const scenarioViewModel = buildForesightSimulatorScenarioViewModel({
+    result,
+    scenarios,
+    scenarioLoading,
+    scenarioError,
+    loading,
+    isCalculated,
     durationFactor,
     totalReach,
     confidenceScore,
@@ -1582,16 +1596,16 @@ export default function SimulatorPage() {
             )}
 
             {/* C. 타겟 확장 시나리오 */}
-            {optimizationGuide.scenario.visible && (
+            {scenarioViewModel.visible && (
               <div className="rounded-md p-4 border border-slate-200 bg-slate-50">
-                <p className="text-sm font-semibold text-gray-800 mb-1">{optimizationGuide.scenario.title}</p>
-                <p className="text-xs text-gray-400 mb-3">{optimizationGuide.scenario.description}</p>
-                {optimizationGuide.scenario.loading ? (
+                <p className="text-sm font-semibold text-gray-800 mb-1">{scenarioViewModel.title}</p>
+                <p className="text-xs text-gray-400 mb-3">{scenarioViewModel.description}</p>
+                {scenarioViewModel.loading ? (
                   <div className="flex items-center gap-2 text-xs text-gray-400">
                     <div className="w-3.5 h-3.5 border-2 border-slate-300 border-t-teal-700 rounded-full animate-spin" />
-                    {optimizationGuide.scenario.loadingLabel}
+                    {scenarioViewModel.loadingLabel}
                   </div>
-                ) : optimizationGuide.scenario.showEmptyError ? (
+                ) : scenarioViewModel.showEmptyError ? (
                   <StatePanel
                     variant="error"
                     title={scenarioErrorPanel.title}
@@ -1602,7 +1616,7 @@ export default function SimulatorPage() {
                   />
                 ) : (
                   <div className="space-y-2">
-                    {optimizationGuide.scenario.showInlineError && (
+                    {scenarioViewModel.showInlineError && (
                       <StatePanel
                         variant="error"
                         title={scenarioErrorPanel.title}
@@ -1613,18 +1627,18 @@ export default function SimulatorPage() {
                       />
                     )}
                     {/* 현재 타겟 기준 */}
-                    {optimizationGuide.scenario.currentTarget && (
+                    {scenarioViewModel.currentTarget && (
                       <div className="flex items-center justify-between rounded-md px-3 py-2.5 bg-teal-50 border border-teal-100">
                         <div>
-                          <p className="text-xs font-semibold text-teal-800">{optimizationGuide.scenario.currentTarget.title}</p>
-                          <p className="text-[11px] text-teal-600 mt-0.5">{optimizationGuide.scenario.currentTarget.detail}</p>
+                          <p className="text-xs font-semibold text-teal-800">{scenarioViewModel.currentTarget.title}</p>
+                          <p className="text-[11px] text-teal-600 mt-0.5">{scenarioViewModel.currentTarget.detail}</p>
                         </div>
                         <span className="text-xs font-bold text-teal-700 bg-white px-2 py-1 rounded border border-teal-200">
-                          {optimizationGuide.scenario.currentTarget.badgeLabel}
+                          {scenarioViewModel.currentTarget.badgeLabel}
                         </span>
                       </div>
                     )}
-                    {optimizationGuide.scenario.rows.map((s) => (
+                    {scenarioViewModel.rows.map((s) => (
                         <div key={s.label} className={`flex items-center justify-between rounded-lg px-3 py-2.5 border ${s.shellClassName}`}>
                           <div>
                             <p className="text-xs font-semibold text-gray-700">{s.label}</p>
