@@ -17,6 +17,7 @@
     "check:protected-error-states": "node scripts/check-protected-error-states.mjs",
     "check:simulator-forecast-readiness-contract": "vitest run tests/benchmark/simulator-forecast-readiness-contract.test.ts",
     "check:simulator-decision-view-model": "vitest run tests/benchmark/simulator-decision-view-model.test.ts",
+    "check:simulator-kpi-benchmark-view-model": "vitest run tests/benchmark/simulator-kpi-benchmark-view-model.test.ts",
     "check:simulator-optimization-view-model": "vitest run tests/benchmark/simulator-optimization-view-model.test.ts",
     "check:simulator-prediction-evidence-view-model": "vitest run tests/benchmark/simulator-prediction-evidence-view-model.test.ts",
     "check:simulator-performance-flow-contract": "vitest run tests/benchmark/simulator-performance-flow-contract.test.ts",

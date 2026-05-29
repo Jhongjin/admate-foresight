@@ -8,6 +8,7 @@ const files = {
   planningStatePanel: path.join(root, 'components', 'PlanningStatePanel.tsx'),
   simulator: path.join(root, 'app', 'SimulatorPageClient.tsx'),
   simulatorDecisionViewModel: path.join(root, 'lib', 'foresightSimulatorDecisionViewModel.ts'),
+  simulatorKpiBenchmarkViewModel: path.join(root, 'lib', 'foresightSimulatorKpiBenchmarkViewModel.ts'),
   viewModel: path.join(root, 'lib', 'benchmark', 'uiStateViewModel.ts'),
   uiRenderingTest: path.join(root, 'tests', 'benchmark', 'benchmark-ui-state-rendering.test.tsx'),
   routeGuardTest: path.join(root, 'tests', 'benchmark', 'benchmark-route-output-guards.test.ts'),
@@ -89,6 +90,7 @@ const requiredSimulatorSnippets = [
   'dataSufficiencyStatus',
   'dataSufficiencyLedger',
   'PlanningStatePanel',
+  'buildForesightSimulatorKpiBenchmarkViewModel',
   'predictionRangeSpread',
   'predictionRangeRows',
   '예상 범위',
@@ -100,6 +102,20 @@ const requiredSimulatorSnippets = [
   '보고서 출력은 검토용',
   '리포트/내보내기/승격/적용 준비 false',
   '확정 성과 표현 금지 원칙',
+]
+
+const requiredSimulatorKpiBenchmarkViewModelSnippets = [
+  'buildForesightSimulatorKpiBenchmarkViewModel',
+  'SimulatorKpiBenchmarkCardViewModel',
+  'benchmarkStatusLabel',
+  'benchmarkEvidenceLabel',
+  'benchmarkBasisLines',
+  'benchmarkBlockedOutputs',
+  '시뮬레이션 후 기준 확인',
+  '업종 매칭 벤치마크',
+  '전체 기준 벤치마크',
+  '업종 특화 평균처럼 표시하지 않음',
+  '확정 성과가 아닌 매체 집행 확인',
 ]
 
 const requiredUiTestSnippets = [
@@ -186,13 +202,23 @@ for (const forbidden of ['fetch(', 'process.env', 'createClient', '@supabase', '
 
 const simulatorSource = readSource(files.simulator)
 const simulatorDecisionViewModelSource = readSource(files.simulatorDecisionViewModel)
-const simulatorContractSource = `${simulatorSource}\n${simulatorDecisionViewModelSource}`
+const simulatorKpiBenchmarkViewModelSource = readSource(files.simulatorKpiBenchmarkViewModel)
+const simulatorContractSource = `${simulatorSource}\n${simulatorDecisionViewModelSource}\n${simulatorKpiBenchmarkViewModelSource}`
 for (const expected of requiredSimulatorSnippets) {
   assertIncludes(simulatorContractSource, expected, 'Simulator data sufficiency contract')
 }
 assertDoesNotInclude(simulatorSource, '내보내기 허용', 'Simulator forecast readiness contract')
 for (const forbidden of ['fetch(', 'process.env', 'createClient', '@supabase', '/api/', 'document.cookie']) {
   assertDoesNotInclude(simulatorDecisionViewModelSource, forbidden, 'Simulator decision view model local-only boundary')
+}
+for (const expected of requiredSimulatorKpiBenchmarkViewModelSnippets) {
+  assertIncludes(simulatorKpiBenchmarkViewModelSource, expected, 'Simulator KPI benchmark view model contract')
+}
+for (const forbidden of ['fetch(', 'process.env', 'createClient', '@supabase', '/api/', 'document.cookie']) {
+  assertDoesNotInclude(simulatorKpiBenchmarkViewModelSource, forbidden, 'Simulator KPI benchmark view model local-only boundary')
+}
+for (const forbidden of ['sourceRows', 'accountId', 'campaignId', 'adsetId', 'adId', 'providerId']) {
+  assertDoesNotInclude(simulatorKpiBenchmarkViewModelSource, forbidden, 'Simulator KPI benchmark aggregate-only boundary')
 }
 
 const uiTestSource = readSource(files.uiRenderingTest)

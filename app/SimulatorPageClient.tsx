@@ -17,6 +17,7 @@ import {
   formatSimulatorBudget,
 } from '@/lib/foresightRangeViewModel';
 import { buildForesightSimulatorOptimizationViewModel } from '@/lib/foresightSimulatorOptimizationViewModel';
+import { buildForesightSimulatorKpiBenchmarkViewModel } from '@/lib/foresightSimulatorKpiBenchmarkViewModel';
 import {
   normalizeForecastRangeResponse,
   type ForecastRangeConfirmation,
@@ -684,6 +685,22 @@ export default function SimulatorPage() {
     confidenceScore,
     confidenceGateStatus,
     confidenceGateTone,
+  });
+  const kpiBenchmarkViewModel = buildForesightSimulatorKpiBenchmarkViewModel({
+    result,
+    loading,
+    isCalculated,
+    campaignDays,
+    totalReach,
+    applySeasonBoost,
+    peakCpmMultiplier: PEAK_CPM_MULTIPLIER,
+    chartDataLength: chartData.length,
+    confidenceDisplay,
+    marketSampleCount,
+    matchedSampleCount,
+    objectiveLabel,
+    genderLabel,
+    ageLabel,
   });
 
   const rangeEmptySignals = [
@@ -1453,78 +1470,11 @@ export default function SimulatorPage() {
             )}
           </section>
         )}
-        {(() => {
-          const hasMarket = result?.marketAvg?.industrySelected === true;
-          const mktCpm     = result?.marketAvg?.cpm     ?? 0;
-          const mktCpc     = result?.marketAvg?.cpc     ?? 0;
-          const mktCpcLink = result?.marketAvg?.cpcLink ?? 0;
-          const mktCpv     = result?.marketAvg?.cpv     ?? 0;
-          const mktVtr     = result?.marketAvg?.vtr     ?? 0;
-          const mktReach = hasMarket && mktCpm > 0 && result!.cpm > 0
-            ? Math.round(totalReach * result!.cpm / mktCpm) : 0;
-          const fmtR = (v: number) => `${v.toLocaleString()} 명`;
-          const reachDiff = hasMarket && mktReach > 0 && totalReach > 0
-            ? Math.round(((totalReach - mktReach) / mktReach) * 100 * 10) / 10 : null;
-          const mktLabel = (val: string | number, fmt?: (v: number) => string) => {
-            if (!hasMarket) return '-';
-            const n = typeof val === 'number' ? val : 0;
-            if (n <= 0) return '—';
-            return fmt ? fmt(n) : `₩${n.toLocaleString()}`;
-          };
-          const kpiLedgerProps = {
-            benchmarkStatusLabel: hasMarket ? '업종 매칭 벤치마크' : '전체 기준 벤치마크',
-            benchmarkEvidenceLabel: confidenceDisplay,
-            benchmarkSyntheticContextLabel: '최근 6개월 · KRW Net',
-            benchmarkVisibleCopy: [
-              chartData.length > 0 ? '예산 구간: 예산 곡선과 같은 실행 결과' : '예산 구간: 계산 대기',
-            ],
-          };
-          const kpiBasisLines = [
-            `데이터: ${hasMarket ? `${marketSampleCount.toLocaleString()}건 / 매칭 ${matchedSampleCount.toLocaleString()}건` : `매칭 ${matchedSampleCount.toLocaleString()}건`}`,
-            `필터: ${objectiveLabel} · ${genderLabel} · ${ageLabel}`,
-            `용도: 확정 성과가 아닌 매체 집행 확인`,
-          ];
-          return (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <KPICard title={`예상 도달 (${campaignDays}일)`} value={result ? fmtR(totalReach) : '—'}
-                icon="Reach" loading={loading} marketLabel={result ? mktLabel(mktReach, fmtR) : undefined}
-                diff={hasMarket ? reachDiff : null} lowerBetter={false}
-                {...kpiLedgerProps}
-                benchmarkBasisLines={kpiBasisLines}
-                benchmarkBlockedOutputs={hasMarket ? [] : ['업종 특화 평균처럼 표시하지 않음']} />
-              <KPICard title="예상 CPM"
-                value={result ? `₩${(applySeasonBoost ? Math.round(result.cpm * PEAK_CPM_MULTIPLIER) : result.cpm).toLocaleString()}` : '—'}
-                icon="CPM" loading={loading} marketLabel={result ? mktLabel(mktCpm) : undefined}
-                diff={hasMarket ? (result?.marketAvg?.cpmDiff ?? null) : null} lowerBetter={true}
-                {...kpiLedgerProps} />
-              <KPICard title="CPC(전체)"
-                value={result ? (result.cpc > 0 ? `₩${result.cpc.toLocaleString()}` : '—') : '—'}
-                icon="CPC" loading={loading} marketLabel={result ? mktLabel(mktCpc) : undefined}
-                diff={hasMarket ? (result?.marketAvg?.cpcDiff ?? null) : null} lowerBetter={true}
-                {...kpiLedgerProps} />
-              <KPICard title="CPC(링크)"
-                value={result ? (result.cpcLink > 0 ? `₩${result.cpcLink.toLocaleString()}` : '—') : '—'}
-                icon="Link" loading={loading}
-                marketLabel={result ? mktLabel(mktCpcLink) : undefined}
-                diff={hasMarket ? (result?.marketAvg?.cpcLinkDiff ?? null) : null}
-                lowerBetter={true}
-                {...kpiLedgerProps} />
-              <KPICard title="동영상 3초 조회당 비용"
-                value={result ? (result.cpv > 0 ? `₩${result.cpv.toLocaleString()}` : '—') : '—'}
-                icon="View" loading={loading}
-                marketLabel={result ? (hasMarket ? (mktCpv > 0 ? `₩${mktCpv.toLocaleString()}` : '—') : '-') : undefined}
-                diff={hasMarket ? (result?.marketAvg?.cpvDiff ?? null) : null}
-                lowerBetter={true}
-                {...kpiLedgerProps} />
-              <KPICard title="VTR(3s)"
-                value={result ? (result.vtr > 0 ? `${result.vtr.toFixed(2)}%` : '—') : '—'}
-                icon="VTR" loading={loading}
-                marketLabel={result ? (hasMarket ? (mktVtr > 0 ? `${mktVtr.toFixed(2)}%` : '—') : '-') : undefined}
-                diff={hasMarket ? (result?.marketAvg?.vtrDiff ?? null) : null} lowerBetter={false}
-                {...kpiLedgerProps} />
-            </div>
-          );
-        })()}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {kpiBenchmarkViewModel.cards.map((card) => (
+            <KPICard key={card.title} {...card} />
+          ))}
+        </div>
       </div>
 
       {/* ── ML 예측 패널 (Python FastAPI) ──────────────────── */}
