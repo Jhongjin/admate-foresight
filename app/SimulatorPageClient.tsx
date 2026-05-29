@@ -19,6 +19,11 @@ import {
 import { buildForesightSimulatorOptimizationViewModel } from '@/lib/foresightSimulatorOptimizationViewModel';
 import { buildForesightSimulatorKpiBenchmarkViewModel } from '@/lib/foresightSimulatorKpiBenchmarkViewModel';
 import {
+  buildForesightSimulatorMlBaselineViewModel,
+  normalizeForesightSimulatorMlBaselineResponse,
+  type ForesightSimulatorMlBaselineResult,
+} from '@/lib/foresightSimulatorMlBaselineViewModel';
+import {
   normalizeForecastRangeResponse,
   type ForecastRangeConfirmation,
   type ForecastRangeConfirmationPoint,
@@ -102,19 +107,6 @@ interface ScenarioResult {
 }
 
 type RangePoint = ForecastRangeConfirmationPoint;
-
-interface MLResult {
-  cpm:        number;
-  ctr:        number;    // % 단위
-  cpc:        number;
-  reach:      number;
-  r2_cpm:     number;
-  r2_ctr:     number;
-  cv_r2:      number;
-  model_type: string;
-  trained_at: string;
-  n_samples:  number;
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -338,7 +330,7 @@ export default function SimulatorPage() {
   const [scenarioError, setScenarioError] = useState(false);
 
   // ── ML 예측 (Python FastAPI) ────────────────────────────
-  const [mlResult, setMlResult]   = useState<MLResult | null>(null);
+  const [mlResult, setMlResult]   = useState<ForesightSimulatorMlBaselineResult | null>(null);
   const [mlLoading, setMlLoading] = useState(false);
   const [mlError, setMlError]     = useState('');
 
@@ -409,7 +401,12 @@ export default function SimulatorPage() {
       });
       if (!res.ok) { setMlError(SIMULATOR_PRODUCT_SAFE_ERRORS.mlBaseline.title); setMlResult(null); return; }
       const data = await readJsonOrNull(res);
-      setMlResult(data as MLResult);
+      const nextResult = normalizeForesightSimulatorMlBaselineResponse(data);
+      setMlResult(nextResult);
+      if (!nextResult) {
+        console.warn('[simulator:ml-baseline] 보조 기준선을 불러오지 못했습니다.');
+        setMlError(SIMULATOR_PRODUCT_SAFE_ERRORS.mlBaseline.title);
+      }
     } catch { setMlError(SIMULATOR_PRODUCT_SAFE_ERRORS.mlBaseline.title); setMlResult(null); }
     finally { setMlLoading(false); }
   }, []);
@@ -702,6 +699,13 @@ export default function SimulatorPage() {
     genderLabel,
     ageLabel,
   });
+  const mlBaselineViewModel = buildForesightSimulatorMlBaselineViewModel({
+    result: mlResult,
+    loading: mlLoading,
+    errorMessage: mlError,
+    isCalculated,
+    hasPrimaryPrediction: Boolean(result),
+  });
 
   const rangeEmptySignals = [
     {
@@ -753,7 +757,7 @@ export default function SimulatorPage() {
   const predictionErrorPanel = buildSimulatorErrorPanel('prediction', result ? '이전 정상 결과 유지' : '새 예측 결과 없음');
   const rangeErrorPanel = buildSimulatorErrorPanel('range', chartData.length > 0 ? '이전 예산 구간 유지' : '예산 구간 없음');
   const scenarioErrorPanel = buildSimulatorErrorPanel('scenario', scenarios.length > 0 ? '일부 시나리오만 표시' : '확장 비교 없음');
-  const mlErrorPanel = buildSimulatorErrorPanel('mlBaseline', result ? '기본 예측 우선 검토' : '보조 기준선 없음');
+  const mlErrorPanel = buildSimulatorErrorPanel('mlBaseline', mlBaselineViewModel.error.detail);
 
   return (
     <div className="foresight-workspace space-y-6">
@@ -1478,40 +1482,38 @@ export default function SimulatorPage() {
       </div>
 
       {/* ── ML 예측 패널 (Python FastAPI) ──────────────────── */}
-      {isCalculated && (mlLoading || mlResult || mlError) && (
+      {mlBaselineViewModel.shouldRender && (
         <div className="bg-white rounded-md shadow-sm border border-slate-200 p-5 space-y-4">
           {/* 헤더 */}
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-[11px] font-semibold text-stone-700">보조 기준</span>
-              <h2 className="text-sm font-semibold text-gray-800">보조 기준선 검토</h2>
-              {mlResult && (
-                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                  mlResult.model_type === 'random_forest'
-                    ? 'bg-teal-50 text-teal-700'
-                    : 'bg-sky-50 text-sky-700'
-                }`}>
-                  {mlResult.model_type === 'random_forest' ? '보수 기준선' : '추세 기준선'}
+              <span className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-[11px] font-semibold text-stone-700">
+                {mlBaselineViewModel.eyebrow}
+              </span>
+              <h2 className="text-sm font-semibold text-gray-800">{mlBaselineViewModel.title}</h2>
+              {mlBaselineViewModel.modelBadge && (
+                <span className={mlBaselineViewModel.modelBadge.className}>
+                  {mlBaselineViewModel.modelBadge.label}
                 </span>
               )}
             </div>
-            {mlResult && (
+            {mlBaselineViewModel.summaryLabel && (
               <span className="text-[11px] text-gray-400 num">
-                기준 데이터 {mlResult.n_samples.toLocaleString()}건 · 설명력 {mlResult.cv_r2.toFixed(3)}
+                {mlBaselineViewModel.summaryLabel}
               </span>
             )}
           </div>
 
           {/* 로딩 */}
-          {mlLoading && (
+          {mlBaselineViewModel.loading.visible && (
             <div className="flex items-center gap-2 py-2">
               <div className="w-3.5 h-3.5 border-2 border-teal-200 border-t-teal-700 rounded-full animate-spin" />
-              <span className="text-xs text-teal-700">보조 기준선을 계산하고 있습니다...</span>
+              <span className="text-xs text-teal-700">{mlBaselineViewModel.loading.label}</span>
             </div>
           )}
 
           {/* 에러 */}
-          {!mlLoading && mlError && (
+          {mlBaselineViewModel.error.visible && (
             <StatePanel
               variant="error"
               title={mlErrorPanel.title}
@@ -1523,22 +1525,17 @@ export default function SimulatorPage() {
           )}
 
           {/* 보조 기준선 결과 카드 */}
-          {!mlLoading && mlResult && (
+          {mlBaselineViewModel.metrics.visible && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label: 'CPM', value: `₩${mlResult.cpm.toLocaleString()}`, r2: mlResult.r2_cpm, lowerBetter: true },
-                { label: 'CTR', value: `${mlResult.ctr.toFixed(2)}%`,       r2: mlResult.r2_ctr, lowerBetter: false },
-                { label: 'CPC', value: `₩${mlResult.cpc.toLocaleString()}`, r2: null, lowerBetter: true },
-                { label: '예상 도달', value: `${mlResult.reach.toLocaleString()}명`, r2: null, lowerBetter: false },
-              ].map(({ label, value, r2 }) => (
-                <div key={label} className="bg-slate-50 rounded-md p-3 space-y-1">
-                  <p className="text-[11px] font-medium text-gray-500">{label}</p>
-                  <p className="text-base font-bold text-gray-900 num">{value}</p>
-                  {r2 != null && (
+              {mlBaselineViewModel.metrics.cards.map((card) => (
+                <div key={card.label} className="bg-slate-50 rounded-md p-3 space-y-1">
+                  <p className="text-[11px] font-medium text-gray-500">{card.label}</p>
+                  <p className="text-base font-bold text-gray-900 num">{card.value}</p>
+                  {card.evidence && (
                     <p className="text-[10px] text-gray-400 num">
-                      근거 점수 {r2.toFixed(3)}
-                      <span className={`ml-1.5 ${r2 >= 0.7 ? 'text-emerald-500' : r2 >= 0.5 ? 'text-amber-500' : 'text-red-400'}`}>
-                        {r2 >= 0.7 ? '●' : r2 >= 0.5 ? '◐' : '○'}
+                      {card.evidence.label}
+                      <span className={`ml-1.5 ${card.evidence.indicatorClassName}`}>
+                        {card.evidence.indicator}
                       </span>
                     </p>
                   )}
@@ -1548,10 +1545,10 @@ export default function SimulatorPage() {
           )}
 
           {/* AdMate 기준 데이터로 관리되는 모델 상태 안내 */}
-          {!mlLoading && (
+          {mlBaselineViewModel.footer.visible && (
             <div className="flex items-center justify-end pt-1 border-t border-gray-50">
               <p className="text-[11px] text-gray-400">
-                추가 예측 기준은 AdMate 기준 데이터로 확인합니다.
+                {mlBaselineViewModel.footer.label}
               </p>
             </div>
           )}
