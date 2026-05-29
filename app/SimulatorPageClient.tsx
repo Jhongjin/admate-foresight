@@ -25,6 +25,10 @@ import {
   type ForesightSimulatorMlBaselineResult,
 } from '@/lib/foresightSimulatorMlBaselineViewModel';
 import {
+  buildSimulatorErrorPanel,
+  SIMULATOR_PRODUCT_SAFE_ERRORS,
+} from '@/lib/foresightSimulatorProductSafeErrorViewModel';
+import {
   normalizeForecastRangeResponse,
   type ForecastRangeConfirmation,
   type ForecastRangeConfirmationPoint,
@@ -243,58 +247,6 @@ async function readJsonOrNull(response: Response): Promise<unknown | null> {
 async function toJsonOrThrow(response: Response): Promise<unknown> {
   if (!response.ok) throw new Error('request_failed');
   return response.json();
-}
-
-const SIMULATOR_PRODUCT_SAFE_ERRORS = {
-  filters: {
-    title: '필터 정보를 불러오지 못했습니다',
-    description: '조건 선택지는 현재 표시 가능한 기본 범위로 유지됩니다. 잠시 후 새로고침하거나 전체 기준으로 실행하세요.',
-    ledger: '필터 기준선',
-    action: '필터 목록이 비어 있으면 전체 조건으로 시뮬레이션을 먼저 확인하세요.',
-  },
-  prediction: {
-    title: '기본 예측을 불러오지 못했습니다',
-    description: 'KPI 기준선이 확정되지 않아 새 결과를 표시하지 않습니다. 조건을 넓히거나 다시 실행하세요.',
-    ledger: '기본 예측',
-    action: '예산, 목표, 타겟 조건을 확인한 뒤 시뮬레이션을 다시 실행하세요.',
-  },
-  range: {
-    title: '예산 구간을 불러오지 못했습니다',
-    description: '예산별 도달 곡선과 비교표는 계산된 구간이 있을 때만 표시됩니다.',
-    ledger: '예산 구간',
-    action: '단일 KPI를 먼저 검토하고, 구간 판단은 재계산 후 확인하세요.',
-  },
-  scenario: {
-    title: '타겟 확장 시나리오를 불러오지 못했습니다',
-    description: '성별 또는 연령 확장 비교가 준비되지 않아 현재 타겟 기준만 유지합니다.',
-    ledger: '타겟 확장',
-    action: '현재 타겟 기준을 먼저 검토하고 필요하면 조건을 단순화해 다시 확인하세요.',
-  },
-  mlBaseline: {
-    title: '보조 기준선을 불러오지 못했습니다',
-    description: '보조 기준선은 참고 지표입니다. 기본 예측과 예산 구간을 우선 검토하세요.',
-    ledger: '보조 기준선',
-    action: '기본 예측 결과가 있으면 해당 기준으로 검토를 이어가세요.',
-  },
-} as const;
-
-type SimulatorProductSafeErrorKey = keyof typeof SIMULATOR_PRODUCT_SAFE_ERRORS;
-
-function buildSimulatorErrorPanel(key: SimulatorProductSafeErrorKey, detail: string) {
-  const error = SIMULATOR_PRODUCT_SAFE_ERRORS[key];
-
-  return {
-    ...error,
-    ledger: [
-      {
-        label: error.ledger,
-        value: '확인 필요',
-        detail,
-        tone: 'risk' as const,
-      },
-    ],
-    nextActions: [error.action],
-  };
 }
 
 export default function SimulatorPage() {

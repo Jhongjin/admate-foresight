@@ -28,10 +28,19 @@ describe('simulator product-safe error states', () => {
     join(process.cwd(), 'app', 'SimulatorPageClient.tsx'),
     'utf8',
   );
+  const helperSource = readFileSync(
+    join(process.cwd(), 'lib', 'foresightSimulatorProductSafeErrorViewModel.ts'),
+    'utf8',
+  );
 
   it('keeps every simulator fetch failure on bounded Korean copy', () => {
-    expect(source).toContain('const SIMULATOR_PRODUCT_SAFE_ERRORS');
-    expect(source).toContain('function buildSimulatorErrorPanel');
+    expect(source).toContain("from '@/lib/foresightSimulatorProductSafeErrorViewModel'");
+    expect(source).toContain('buildSimulatorErrorPanel');
+    expect(source).toContain('SIMULATOR_PRODUCT_SAFE_ERRORS');
+    expect(source).not.toContain('const SIMULATOR_PRODUCT_SAFE_ERRORS = {');
+    expect(source).not.toContain('function buildSimulatorErrorPanel');
+    expect(helperSource).toContain('export const SIMULATOR_PRODUCT_SAFE_ERRORS');
+    expect(helperSource).toContain('export function buildSimulatorErrorPanel');
     expect(source).toContain('setFiltersError(true)');
     expect(source).toContain('setPredictionError(true)');
     expect(source).toContain('setRangeError(true)');
@@ -39,7 +48,7 @@ describe('simulator product-safe error states', () => {
     expect(source).toContain('setMlError(SIMULATOR_PRODUCT_SAFE_ERRORS.mlBaseline.title)');
 
     for (const copy of SIMULATOR_ERROR_COPY) {
-      expect(source).toContain(copy);
+      expect(helperSource).toContain(copy);
     }
   });
 

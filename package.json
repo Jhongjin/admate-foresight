@@ -20,6 +20,7 @@
     "check:simulator-kpi-benchmark-view-model": "vitest run tests/benchmark/simulator-kpi-benchmark-view-model.test.ts",
     "check:simulator-ml-baseline-view-model": "vitest run tests/benchmark/simulator-ml-baseline-view-model.test.ts",
     "check:simulator-optimization-view-model": "vitest run tests/benchmark/simulator-optimization-view-model.test.ts",
+    "check:simulator-product-safe-error-view-model": "vitest run tests/benchmark/simulator-product-safe-error-view-model.test.ts tests/benchmark/simulator-product-safe-error-states.test.ts",
     "check:simulator-prediction-evidence-view-model": "vitest run tests/benchmark/simulator-prediction-evidence-view-model.test.ts",
     "check:simulator-scenario-view-model": "vitest run tests/benchmark/simulator-scenario-view-model.test.ts",
     "check:simulator-performance-flow-contract": "vitest run tests/benchmark/simulator-performance-flow-contract.test.ts",
