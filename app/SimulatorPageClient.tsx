@@ -25,6 +25,10 @@ import {
   type ForesightSimulatorMlBaselineResult,
 } from '@/lib/foresightSimulatorMlBaselineViewModel';
 import {
+  normalizePredictResult,
+  type PredictResult,
+} from '@/lib/foresightSimulatorPredictResultContract';
+import {
   buildSimulatorErrorPanel,
   SIMULATOR_PRODUCT_SAFE_ERRORS,
 } from '@/lib/foresightSimulatorProductSafeErrorViewModel';
@@ -70,38 +74,6 @@ const FIXED_OBJECTIVES = [
 
 const ALL_AGE_RANGES = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
 
-interface MarketAvg {
-  cpm: number; cpc: number; cpcLink: number; cpv: number; vtr: number; count: number;
-  score: number; grade: 'A' | 'B' | 'C' | 'D' | 'F';
-  cpmDiff: number; cpcDiff: number; cpcLinkDiff: number; cpvDiff: number; vtrDiff: number;
-  top20pctCpm: number;
-  top20pctCpc: number;
-  industrySelected: boolean;
-}
-
-interface PredictResult {
-  reach: number;
-  cpm: number;
-  cpc: number;
-  cpcLink: number;
-  cpv: number;
-  vtr: number;
-  frequency: number;
-  matchedCount: number;
-  r2Cpm?: number;
-  r2Cpc?: number;
-  r2Vtr?: number;
-  predictionMethod?: 'regression' | 'weighted_avg' | 'fallback';
-  marketAvg?: MarketAvg;
-  // 고도화 필드
-  insights?: string[];
-  seasonalityMultiplier?: number;
-  seasonalityReason?: string;
-  qualityIndex?: number;
-  qualityPenaltyPct?: number;
-  saturationWarning?: boolean;
-}
-
 interface ScenarioResult {
   label: string;
   description: string;
@@ -115,125 +87,6 @@ type RangePoint = ForecastRangeConfirmationPoint;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function readFiniteNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function readPredictionMethod(value: unknown): PredictResult['predictionMethod'] | undefined {
-  return value === 'regression' || value === 'weighted_avg' || value === 'fallback'
-    ? value
-    : undefined;
-}
-
-function normalizeMarketAvg(value: unknown): MarketAvg | undefined {
-  if (!isRecord(value)) return undefined;
-
-  const cpm = readFiniteNumber(value.cpm);
-  const cpc = readFiniteNumber(value.cpc);
-  const cpcLink = readFiniteNumber(value.cpcLink);
-  const cpv = readFiniteNumber(value.cpv);
-  const vtr = readFiniteNumber(value.vtr);
-  const count = readFiniteNumber(value.count);
-  const score = readFiniteNumber(value.score);
-  const cpmDiff = readFiniteNumber(value.cpmDiff);
-  const cpcDiff = readFiniteNumber(value.cpcDiff);
-  const cpcLinkDiff = readFiniteNumber(value.cpcLinkDiff);
-  const cpvDiff = readFiniteNumber(value.cpvDiff);
-  const vtrDiff = readFiniteNumber(value.vtrDiff);
-  const top20pctCpm = readFiniteNumber(value.top20pctCpm);
-  const top20pctCpc = readFiniteNumber(value.top20pctCpc);
-  const grade = value.grade === 'A' || value.grade === 'B' || value.grade === 'C' || value.grade === 'D' || value.grade === 'F'
-    ? value.grade
-    : null;
-  const industrySelected = typeof value.industrySelected === 'boolean'
-    ? value.industrySelected
-    : null;
-
-  if (
-    cpm == null || cpc == null || cpcLink == null || cpv == null || vtr == null ||
-    count == null || score == null || grade == null || cpmDiff == null ||
-    cpcDiff == null || cpcLinkDiff == null || cpvDiff == null || vtrDiff == null ||
-    top20pctCpm == null || top20pctCpc == null || industrySelected == null
-  ) {
-    return undefined;
-  }
-
-  return {
-    cpm,
-    cpc,
-    cpcLink,
-    cpv,
-    vtr,
-    count,
-    score,
-    grade,
-    cpmDiff,
-    cpcDiff,
-    cpcLinkDiff,
-    cpvDiff,
-    vtrDiff,
-    top20pctCpm,
-    top20pctCpc,
-    industrySelected,
-  };
-}
-
-function normalizePredictResult(value: unknown): PredictResult | null {
-  if (!isRecord(value)) return null;
-
-  const reach = readFiniteNumber(value.reach);
-  const cpm = readFiniteNumber(value.cpm);
-  const cpc = readFiniteNumber(value.cpc);
-  const cpcLink = readFiniteNumber(value.cpcLink);
-  const cpv = readFiniteNumber(value.cpv);
-  const vtr = readFiniteNumber(value.vtr);
-  const frequency = readFiniteNumber(value.frequency);
-  const matchedCount = readFiniteNumber(value.matchedCount);
-
-  if (
-    reach == null || cpm == null || cpc == null || cpcLink == null ||
-    cpv == null || vtr == null || frequency == null || matchedCount == null
-  ) {
-    return null;
-  }
-
-  const result: PredictResult = {
-    reach,
-    cpm,
-    cpc,
-    cpcLink,
-    cpv,
-    vtr,
-    frequency,
-    matchedCount,
-  };
-
-  const r2Cpm = readFiniteNumber(value.r2Cpm);
-  if (r2Cpm != null) result.r2Cpm = r2Cpm;
-  const r2Cpc = readFiniteNumber(value.r2Cpc);
-  if (r2Cpc != null) result.r2Cpc = r2Cpc;
-  const r2Vtr = readFiniteNumber(value.r2Vtr);
-  if (r2Vtr != null) result.r2Vtr = r2Vtr;
-  const seasonalityMultiplier = readFiniteNumber(value.seasonalityMultiplier);
-  if (seasonalityMultiplier != null) result.seasonalityMultiplier = seasonalityMultiplier;
-  const qualityIndex = readFiniteNumber(value.qualityIndex);
-  if (qualityIndex != null) result.qualityIndex = qualityIndex;
-  const qualityPenaltyPct = readFiniteNumber(value.qualityPenaltyPct);
-  if (qualityPenaltyPct != null) result.qualityPenaltyPct = qualityPenaltyPct;
-
-  const predictionMethod = readPredictionMethod(value.predictionMethod);
-  if (predictionMethod) result.predictionMethod = predictionMethod;
-  const marketAvg = normalizeMarketAvg(value.marketAvg);
-  if (marketAvg) result.marketAvg = marketAvg;
-  if (Array.isArray(value.insights)) {
-    result.insights = value.insights.filter((item): item is string => typeof item === 'string');
-  }
-  if (typeof value.seasonalityReason === 'string') result.seasonalityReason = value.seasonalityReason;
-  if (typeof value.saturationWarning === 'boolean') result.saturationWarning = value.saturationWarning;
-
-  return result;
 }
 
 async function readJsonOrNull(response: Response): Promise<unknown | null> {
