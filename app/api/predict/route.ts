@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
+import { normalizePredictResult } from '@/lib/foresightSimulatorPredictResultContract';
 import { predict } from '@/lib/predictor';
 import { normalizePredictionRequest, PredictionRequestValidationError } from '@/lib/predictionRequest';
 import { ensureDataLoaded } from '@/lib/xlsxLoader';
@@ -20,7 +21,13 @@ export async function POST(req: NextRequest) {
     const input = normalizePredictionRequest(body, { defaultBudget: 10_000_000 });
 
     const result = predict(input);
-    return jsonNoStore(result);
+    const normalizedResult = normalizePredictResult(result);
+    if (!normalizedResult) {
+      console.error('[predict] invalid prediction result');
+      return jsonNoStore({ error: 'Prediction failed' }, { status: 500 });
+    }
+
+    return jsonNoStore(normalizedResult);
   } catch (err) {
     if (err instanceof PredictionRequestValidationError) {
       return jsonNoStore({ error: 'Invalid prediction request.' }, { status: 400 });

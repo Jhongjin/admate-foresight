@@ -79,6 +79,10 @@ async function importRouteWithLocalPredictor(route: 'predict' | 'predict-range')
   });
   const routePath = join(process.cwd(), 'app', 'api', route, 'route.ts');
   const predictionRequest = loadLocalTsModule(['lib', 'predictionRequest.ts']);
+  const predictResultContract = loadLocalTsModule([
+    'lib',
+    'foresightSimulatorPredictResultContract.ts',
+  ]);
   const predictRangeLevels = loadLocalTsModule(['lib', 'predictRangeLevels.ts']);
   const forecastRangeConfirmation = loadLocalTsModule(['lib', 'forecastRangeConfirmation.ts']);
   const source = readFileSync(routePath, 'utf8');
@@ -113,6 +117,7 @@ async function importRouteWithLocalPredictor(route: 'predict' | 'predict-range')
         loadXlsxData: vi.fn(() => [{ 날짜: '2025-06-01' }]),
       };
     }
+    if (id === '@/lib/foresightSimulatorPredictResultContract') return predictResultContract;
     if (id === '@/lib/predictor') return { predict };
     if (id === '@/lib/predictionRequest') return predictionRequest;
     if (id === '@/lib/predictRangeLevels') return predictRangeLevels;

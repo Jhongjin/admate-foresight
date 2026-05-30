@@ -228,6 +228,34 @@ function assertExternalLookupFailClosed(source, target) {
   }
 }
 
+function assertPredictRouteResultContract(source) {
+  const relative = 'app/api/predict/route.ts'
+
+  assertIncludes(
+    source,
+    'normalizePredictResult',
+    'predict route aggregate-only result contract',
+  )
+
+  if (!/const\s+normalizedResult\s*=\s*normalizePredictResult\s*\(\s*result\s*\)/.test(source)) {
+    fail(`${relative} must normalize predictor output before responding`)
+  }
+
+  if (!/return\s+jsonNoStore\s*\(\s*normalizedResult\s*\)/.test(source)) {
+    fail(`${relative} must return only normalized prediction output`)
+  }
+
+  for (const pattern of [
+    /return\s+jsonNoStore\s*\(\s*result\s*[,)]/,
+    /return\s+noStoreJson\s*\(\s*result\s*[,)]/,
+    /return\s+NextResponse\.json\s*\(\s*result\s*[,)]/,
+  ]) {
+    if (pattern.test(source)) {
+      fail(`${relative} must not return raw predictor result`)
+    }
+  }
+}
+
 for (const route of targetRoutes) {
   const source = read(route)
   assertRouteNoStore(source, route)
@@ -241,6 +269,8 @@ for (const route of externalLookupRoutes) {
 for (const route of diagnosticLogRoutes) {
   assertBoundedDiagnosticLogging(read(route), route)
 }
+
+assertPredictRouteResultContract(read(file('app', 'api', 'predict', 'route.ts')))
 
 const metaAdsSource = read(file('app', 'api', 'meta-ads', 'route.ts'))
 assertIncludes(metaAdsSource, 'function safeMetaSnapshotUrl', 'meta-ads snapshot URL allowlist')
