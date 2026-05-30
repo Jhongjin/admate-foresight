@@ -1,4 +1,7 @@
-import { buildForesightPredictionEvidenceViewModel } from './foresightPredictionEvidenceViewModel';
+import {
+  buildForesightSimulatorResultHeaderBadgeViewModel,
+  type SimulatorResultHeaderBadgeSampleStatus,
+} from './foresightSimulatorResultHeaderBadgeViewModel';
 import {
   buildSimulatorRangeReviewCopy,
   type SimulatorRangeReviewTone,
@@ -36,11 +39,7 @@ export interface SimulatorReadinessCheck {
   value: string;
 }
 
-export interface SimulatorSampleStatus {
-  label: string;
-  detail: string;
-  tone: string;
-}
+export type SimulatorSampleStatus = SimulatorResultHeaderBadgeSampleStatus;
 
 export interface SimulatorEvidencePanelTone {
   shell: string;
@@ -167,35 +166,29 @@ function buildDataSufficiencyToneClassName(status: string): string {
 export function buildForesightSimulatorDecisionViewModel(
   input: BuildForesightSimulatorDecisionViewModelInput,
 ): ForesightSimulatorDecisionViewModel {
-  const predictionEvidence = buildForesightPredictionEvidenceViewModel({
+  const resultHeaderBadge = buildForesightSimulatorResultHeaderBadgeViewModel({
+    hasResult: Boolean(input.result),
+    loading: input.loading,
+    isCalculated: input.isCalculated,
+    marketSelected: input.marketSelected,
+    matchedSampleCount: input.matchedSampleCount,
     predictionMethod: input.result?.predictionMethod,
     r2Cpm: input.result?.r2Cpm,
     r2Cpc: input.result?.r2Cpc,
     r2Vtr: input.result?.r2Vtr,
-    matchedCount: input.matchedSampleCount,
-    marketSelected: input.marketSelected,
-    loading: input.loading,
-    isCalculated: input.isCalculated,
   });
-  const confidenceScore = predictionEvidence.score;
-  const evidenceBasisLabel = predictionEvidence.basisLabel;
-  const confidenceDisplay = predictionEvidence.display;
-  const confidenceGateStatus = predictionEvidence.gateStatus;
-  const confidenceGateTone = predictionEvidence.gateTone;
-  const readinessTone = input.loading
-    ? 'border-sky-200 bg-sky-50 text-sky-700'
-    : !input.isCalculated
-      ? 'border-gray-200 bg-gray-50 text-gray-600'
-      : input.result
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-        : 'border-amber-200 bg-amber-50 text-amber-700';
-  const readinessLabel = input.loading
-    ? '계산 중'
-    : !input.isCalculated
-      ? '설정 대기'
-      : input.result
-        ? '예측 준비'
-        : '결과 대기';
+  const {
+    readinessTone,
+    readinessLabel,
+    confidenceScore,
+    evidenceBasisLabel,
+    confidenceDisplay,
+    confidenceGateStatus,
+    confidenceGateTone,
+    confidenceTone,
+    sampleStatus,
+    sampleStatusLegend,
+  } = resultHeaderBadge;
   const benchmarkLabel = !input.isCalculated
     ? '시뮬레이션 후 확인'
     : input.loading
@@ -217,18 +210,6 @@ export function buildForesightSimulatorDecisionViewModel(
       : input.result
         ? '결과를 검토하고 필요하면 예산/타겟을 조정하세요.'
         : '조건을 넓히거나 다시 실행해 결과를 확인하세요.';
-  const sampleStatus = !input.result || input.loading
-    ? { label: '주의', detail: input.loading ? '계산 중' : '실행 전', tone: 'border-amber-200 bg-amber-50 text-amber-800' }
-    : confidenceGateStatus === '근거 보강' || input.matchedSampleCount < 20
-      ? { label: '부족', detail: input.matchedSampleCount > 0 ? `매칭 ${input.matchedSampleCount.toLocaleString()}건` : '매칭 없음', tone: 'border-red-200 bg-red-50 text-red-700' }
-      : input.marketSelected && input.matchedSampleCount >= 50 && (confidenceScore == null || confidenceScore >= 66)
-        ? { label: '데이터 충분', detail: `매칭 ${input.matchedSampleCount.toLocaleString()}건`, tone: 'border-emerald-200 bg-emerald-50 text-emerald-700' }
-        : { label: '주의', detail: input.matchedSampleCount > 0 ? `매칭 ${input.matchedSampleCount.toLocaleString()}건` : '전체 기준', tone: 'border-amber-200 bg-amber-50 text-amber-800' };
-  const sampleStatusLegend = [
-    { label: '데이터 충분', detail: '업종 매칭과 기준 점수가 안정적일 때 표시합니다.' },
-    { label: '주의', detail: '전체 기준 또는 일부 근거만으로 검토할 때 표시합니다.' },
-    { label: '확인 필요', detail: '데이터가 적거나 보강이 필요할 때 표시합니다.' },
-  ];
   const rangeReviewCopy = buildSimulatorRangeReviewCopy({
     confirmation: input.rangeConfirmation,
     isCalculated: input.isCalculated,
@@ -237,7 +218,6 @@ export function buildForesightSimulatorDecisionViewModel(
   const rangeReviewLabel = rangeReviewCopy.label;
   const rangeReviewDetail = rangeReviewCopy.detail;
   const rangeReviewTone = rangeReviewCopy.tone;
-  const confidenceTone = predictionEvidence.textToneClassName;
   const predictionRangeSpread = input.result
     ? confidenceScore == null
       ? input.result.predictionMethod === 'fallback'
