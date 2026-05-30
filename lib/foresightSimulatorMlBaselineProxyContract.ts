@@ -2,6 +2,15 @@ export type ForesightSimulatorMlBaselineProxyModelType =
   | 'random_forest'
   | 'linear_regression';
 
+export interface ForesightSimulatorMlBaselineProxyRequest {
+  업종: string;
+  목표: string;
+  성별: string;
+  연령: string;
+  예산: number;
+  기간: number;
+}
+
 export interface ForesightSimulatorMlBaselineProxySuccessResponse {
   cpm?: number;
   ctr?: number;
@@ -32,8 +41,41 @@ export type ForesightSimulatorMlBaselineProxyContractResult =
 export const FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_ERROR =
   'ML service returned an invalid prediction.';
 
+export const FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_REQUEST_ERROR =
+  'ML baseline prediction request is invalid.';
+
+export class ForesightSimulatorMlBaselineProxyRequestValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ForesightSimulatorMlBaselineProxyRequestValidationError';
+  }
+}
+
 const AGGREGATE_METRIC_KEYS = ['cpm', 'ctr', 'cpc', 'reach'] as const;
 const R2_KEYS = ['r2_cpm', 'r2_ctr', 'cv_r2'] as const;
+const MAX_REQUEST_STRING_LENGTH = 120;
+const DEFAULT_REQUEST_BUDGET = 10_000_000;
+const DEFAULT_REQUEST_DURATION = 30;
+
+const FORBIDDEN_REQUEST_VALUE_PATTERNS = [
+  /https?:\/\//i,
+  /\bwww\./i,
+  /\bact_\d+\b/i,
+  /\b(?:account|campaign|adset|provider|creative)\b/i,
+  /\b(?:account|campaign|adset|provider|creative)[_-]?(?:id|token|secret|cookie|session)\b/i,
+  /\bad[_-]?id\b/i,
+  /\b(?:account|campaign|adset|provider|creative)[_-][a-z0-9][a-z0-9_-]{2,}\b/i,
+  /\bad[_-][a-z0-9][a-z0-9_-]{2,}\b/i,
+  /\b(?:access|refresh|id)?[_-]?token\b/i,
+  /\bbearer\s+\S+/i,
+  /\bcookie\b/i,
+  /\bsession\b/i,
+  /\bsecret\b/i,
+  /\bcredential\b/i,
+  /\b(?:raw|source)[_-]?(?:row|rows|record|records|data)?\b/i,
+] as const;
+
+type RequestStringKey = '업종' | '목표' | '성별' | '연령';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -66,6 +108,94 @@ function readNonNegativeInteger(value: unknown): number | null {
 function readModelType(value: unknown): ForesightSimulatorMlBaselineProxyModelType | null {
   if (value === 'random_forest' || value === 'linear_regression') return value;
   return null;
+}
+
+function hasForbiddenRequestValue(value: string): boolean {
+  return FORBIDDEN_REQUEST_VALUE_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+function readOptionalRequestString(
+  body: Record<string, unknown>,
+  key: RequestStringKey,
+): string {
+  const value = body[key];
+  if (value === undefined || value === null) return '';
+
+  if (typeof value !== 'string') {
+    throw new ForesightSimulatorMlBaselineProxyRequestValidationError(`${key} must be a string`);
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.length > MAX_REQUEST_STRING_LENGTH) {
+    throw new ForesightSimulatorMlBaselineProxyRequestValidationError(
+      `${key} must be at most ${MAX_REQUEST_STRING_LENGTH} characters`,
+    );
+  }
+
+  if (hasForbiddenRequestValue(trimmed)) {
+    throw new ForesightSimulatorMlBaselineProxyRequestValidationError(
+      `${key} must not contain source identifiers or secrets`,
+    );
+  }
+
+  return trimmed;
+}
+
+function readBoundedRequestNumber(
+  body: Record<string, unknown>,
+  key: '예산' | '기간',
+  bounds: {
+    defaultValue: number;
+    min: number;
+    max?: number;
+  },
+): number {
+  const value = body[key];
+  if (value === undefined || value === null) return bounds.defaultValue;
+
+  const numberValue = readFiniteNumber(value);
+  if (numberValue === null) {
+    throw new ForesightSimulatorMlBaselineProxyRequestValidationError(
+      `${key} must be a finite number`,
+    );
+  }
+
+  if (numberValue < bounds.min || (bounds.max !== undefined && numberValue > bounds.max)) {
+    const message = bounds.max === undefined
+      ? `${key} must be greater than or equal to ${bounds.min}`
+      : `${key} must be between ${bounds.min} and ${bounds.max}`;
+    throw new ForesightSimulatorMlBaselineProxyRequestValidationError(message);
+  }
+
+  return numberValue;
+}
+
+export function normalizeForesightSimulatorMlBaselineProxyRequest(
+  value: unknown,
+): ForesightSimulatorMlBaselineProxyRequest {
+  if (!isRecord(value)) {
+    throw new ForesightSimulatorMlBaselineProxyRequestValidationError(
+      'request body must be an object',
+    );
+  }
+
+  return {
+    업종: readOptionalRequestString(value, '업종'),
+    목표: readOptionalRequestString(value, '목표'),
+    성별: readOptionalRequestString(value, '성별'),
+    연령: readOptionalRequestString(value, '연령'),
+    예산: readBoundedRequestNumber(value, '예산', {
+      defaultValue: DEFAULT_REQUEST_BUDGET,
+      min: 1_000,
+    }),
+    기간: readBoundedRequestNumber(value, '기간', {
+      defaultValue: DEFAULT_REQUEST_DURATION,
+      min: 1,
+      max: 365,
+    }),
+  };
 }
 
 export function allowlistForesightSimulatorMlBaselineProxySuccessResponse(

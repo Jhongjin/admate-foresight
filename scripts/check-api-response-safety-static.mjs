@@ -262,18 +262,36 @@ assertIncludes(
 )
 assertIncludes(
   pyPredictSource,
+  'normalizeForesightSimulatorMlBaselineProxyRequest',
+  'py-predict ML baseline proxy request allowlist',
+)
+assertIncludes(
+  pyPredictSource,
+  'FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_REQUEST_ERROR',
+  'py-predict bounded invalid ML baseline request error',
+)
+assertIncludes(
+  pyPredictSource,
   'FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_ERROR',
   'py-predict bounded invalid ML baseline error',
 )
 if (/return\s+jsonNoStore\s*\(\s*data\s*\)/.test(pyPredictSource)) {
   fail('app/api/py-predict/route.ts must not return raw Python success data')
 }
+if (/JSON\.stringify\s*\(\s*body\s*\)/.test(pyPredictSource)) {
+  fail('app/api/py-predict/route.ts must not forward the parsed request body to Python')
+}
 
 const mlBaselineProxyContractSource = read(sharedHelpers.mlBaselineProxyContract)
 for (const marker of [
+  'ForesightSimulatorMlBaselineProxyRequestValidationError',
+  'normalizeForesightSimulatorMlBaselineProxyRequest',
   'allowlistForesightSimulatorMlBaselineProxySuccessResponse',
   'normalizeForesightSimulatorMlBaselineProxySuccessResponse',
+  'ML baseline prediction request is invalid.',
   'ML service returned an invalid prediction.',
+  "'예산'",
+  "'기간'",
   "'random_forest'",
   "'linear_regression'",
 ]) {

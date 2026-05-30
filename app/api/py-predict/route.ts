@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import {
   FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_ERROR,
+  FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_REQUEST_ERROR,
+  normalizeForesightSimulatorMlBaselineProxyRequest,
   normalizeForesightSimulatorMlBaselineProxySuccessResponse,
 } from '@/lib/foresightSimulatorMlBaselineProxyContract';
 
@@ -45,11 +47,21 @@ export async function POST(req: NextRequest) {
     return jsonNoStore({ error: '요청 본문 파싱 오류' }, { status: 400 });
   }
 
+  let predictionRequest: ReturnType<typeof normalizeForesightSimulatorMlBaselineProxyRequest>;
+  try {
+    predictionRequest = normalizeForesightSimulatorMlBaselineProxyRequest(body);
+  } catch {
+    return jsonNoStore(
+      { error: FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_REQUEST_ERROR },
+      { status: 400 },
+    );
+  }
+
   try {
     const res = await fetch(`${PY_API}/predict`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body),
+      body:    JSON.stringify(predictionRequest),
       signal:  AbortSignal.timeout(10_000), // 10초 타임아웃
     });
 

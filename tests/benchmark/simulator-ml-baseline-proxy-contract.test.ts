@@ -2,10 +2,17 @@ import { describe, expect, it } from 'vitest';
 
 import {
   FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_ERROR,
+  ForesightSimulatorMlBaselineProxyRequestValidationError,
   allowlistForesightSimulatorMlBaselineProxySuccessResponse,
+  normalizeForesightSimulatorMlBaselineProxyRequest,
   normalizeForesightSimulatorMlBaselineProxySuccessResponse,
+  type ForesightSimulatorMlBaselineProxyRequest,
   type ForesightSimulatorMlBaselineProxySuccessResponse,
 } from '../../lib/foresightSimulatorMlBaselineProxyContract';
+
+function requestBody(value: unknown): ForesightSimulatorMlBaselineProxyRequest {
+  return normalizeForesightSimulatorMlBaselineProxyRequest(value);
+}
 
 function successBody(value: unknown): ForesightSimulatorMlBaselineProxySuccessResponse {
   const result = normalizeForesightSimulatorMlBaselineProxySuccessResponse(value);
@@ -48,7 +55,142 @@ function expectNoSourceIdentifierOrSecretLeak(value: unknown) {
   expect(JSON.stringify(value)).not.toMatch(forbiddenValuePattern);
 }
 
+function expectRequestValidationError(body: unknown): string {
+  expect(() => normalizeForesightSimulatorMlBaselineProxyRequest(body))
+    .toThrow(ForesightSimulatorMlBaselineProxyRequestValidationError);
+
+  try {
+    normalizeForesightSimulatorMlBaselineProxyRequest(body);
+  } catch (error) {
+    expect(error).toBeInstanceOf(ForesightSimulatorMlBaselineProxyRequestValidationError);
+    return (error as Error).message;
+  }
+
+  throw new Error('Expected request validation error');
+}
+
 describe('foresight simulator ML baseline proxy contract', () => {
+  it('normalizes the approved Python PredictRequest aggregate schema only', () => {
+    const body = requestBody({
+      업종: ' 뷰티 ',
+      목표: ' OUTCOME_AWARENESS ',
+      성별: ' female ',
+      연령: ' 25-34 ',
+      예산: '2500000.5',
+      기간: '14',
+    });
+
+    expect(body).toEqual({
+      업종: '뷰티',
+      목표: 'OUTCOME_AWARENESS',
+      성별: 'female',
+      연령: '25-34',
+      예산: 2500000.5,
+      기간: 14,
+    });
+    expect(Object.keys(body)).toEqual(['업종', '목표', '성별', '연령', '예산', '기간']);
+  });
+
+  it('defaults omitted optional request fields to the Python PredictRequest defaults', () => {
+    expect(requestBody({})).toEqual({
+      업종: '',
+      목표: '',
+      성별: '',
+      연령: '',
+      예산: 10_000_000,
+      기간: 30,
+    });
+
+    expect(requestBody({
+      업종: null,
+      목표: undefined,
+      성별: '',
+      연령: '   ',
+      예산: 1_000,
+      기간: 1,
+    })).toEqual({
+      업종: '',
+      목표: '',
+      성별: '',
+      연령: '',
+      예산: 1_000,
+      기간: 1,
+    });
+  });
+
+  it('fails closed when request numeric bounds do not match Python PredictRequest constraints', () => {
+    expect(expectRequestValidationError({ 예산: 999, 기간: 30 }))
+      .toBe('예산 must be greater than or equal to 1000');
+    expect(expectRequestValidationError({ 예산: Number.POSITIVE_INFINITY, 기간: 30 }))
+      .toBe('예산 must be a finite number');
+    expect(expectRequestValidationError({ 예산: 1_000, 기간: 0 }))
+      .toBe('기간 must be between 1 and 365');
+    expect(expectRequestValidationError({ 예산: 1_000, 기간: 366 }))
+      .toBe('기간 must be between 1 and 365');
+    expect(expectRequestValidationError({ 예산: 1_000, 기간: 'not-a-duration' }))
+      .toBe('기간 must be a finite number');
+  });
+
+  it('strips extra unsafe request fields before the Python boundary', () => {
+    const body = requestBody({
+      업종: '교육',
+      목표: 'OUTCOME_LEADS',
+      성별: 'male',
+      연령: '35-44',
+      예산: 4_500_000,
+      기간: 45,
+      sourceRows: [{ id: 'source-row' }],
+      rawRecords: [{ accountId: 'act_123' }],
+      accountId: 'act_123',
+      campaignId: 'campaign-123',
+      adsetId: 'adset-123',
+      adId: 'ad-123',
+      providerId: 'provider-123',
+      url: 'https://example.test/path',
+      token: 'opaque-token-value',
+      cookie: 'opaque-cookie-value',
+      session: 'opaque-session-value',
+      secret: 'opaque-secret-value',
+      credential: 'opaque-secret-value',
+    });
+
+    expect(body).toEqual({
+      업종: '교육',
+      목표: 'OUTCOME_LEADS',
+      성별: 'male',
+      연령: '35-44',
+      예산: 4_500_000,
+      기간: 45,
+    });
+    expectNoSourceIdentifierOrSecretLeak(body);
+  });
+
+  it('rejects unsafe approved request string values instead of forwarding them', () => {
+    for (const field of ['업종', '목표', '성별', '연령'] as const) {
+      const message = expectRequestValidationError({
+        업종: '교육',
+        목표: 'OUTCOME_LEADS',
+        성별: 'female',
+        연령: '25-34',
+        예산: 2_000_000,
+        기간: 30,
+        [field]: 'https://example.test/path?access_token=opaque-token-value',
+      });
+
+      expect(message).toBe(`${field} must not contain source identifiers or secrets`);
+    }
+  });
+
+  it.each([
+    ['null', null],
+    ['array', []],
+    ['string', 'https://example.test/path?access_token=opaque-token-value'],
+    ['number', 123],
+    ['boolean', true],
+  ])('rejects non-object request bodies: %s', (_label, body) => {
+    expect(expectRequestValidationError(body)).toBe('request body must be an object');
+  });
+
   it('allow-lists only aggregate ML baseline success fields', () => {
     const body = successBody({
       cpm: 5120,
