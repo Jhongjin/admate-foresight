@@ -28,6 +28,7 @@
     "check:simulator-forecast-readiness-contract": "vitest run tests/benchmark/simulator-forecast-readiness-contract.test.ts",
     "check:simulator-decision-view-model": "vitest run tests/benchmark/simulator-decision-view-model.test.ts",
     "check:simulator-kpi-benchmark-view-model": "vitest run tests/benchmark/simulator-kpi-benchmark-view-model.test.ts",
+    "check:simulator-ml-baseline-proxy-contract": "vitest run tests/benchmark/simulator-ml-baseline-proxy-contract.test.ts",
     "check:simulator-ml-baseline-view-model": "vitest run tests/benchmark/simulator-ml-baseline-view-model.test.ts",
     "check:simulator-optimization-view-model": "vitest run tests/benchmark/simulator-optimization-view-model.test.ts",
     "check:simulator-product-safe-error-view-model": "vitest run tests/benchmark/simulator-product-safe-error-view-model.test.ts tests/benchmark/simulator-product-safe-error-states.test.ts",

@@ -33,6 +33,7 @@ const diagnosticLogRoutes = [
 
 const sharedHelpers = {
   authGuard: file('lib', 'auth', 'foresightApiGuard.ts'),
+  mlBaselineProxyContract: file('lib', 'foresightSimulatorMlBaselineProxyContract.ts'),
   security: file('lib', 'security.ts'),
   rateLimit: file('lib', 'rateLimit.ts'),
 }
@@ -252,6 +253,36 @@ assertIncludes(metaScrapeSource, 'function safeMetaSnapshotUrl', 'meta scrape sn
 assertIncludes(metaScrapeSource, 'snapshot_url:  safeMetaSnapshotUrl', 'meta scrape API snapshot URL allowlist')
 assertIncludes(metaScrapeSource, 'image_url: safeMetaExternalUrl(imageUrl)', 'meta scrape image URL allowlist')
 assertIncludes(metaScrapeSource, 'profile_image: safeMetaExternalUrl(profileImage)', 'meta scrape profile URL allowlist')
+
+const pyPredictSource = read(file('app', 'api', 'py-predict', 'route.ts'))
+assertIncludes(
+  pyPredictSource,
+  'normalizeForesightSimulatorMlBaselineProxySuccessResponse',
+  'py-predict ML baseline proxy success allowlist',
+)
+assertIncludes(
+  pyPredictSource,
+  'FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_ERROR',
+  'py-predict bounded invalid ML baseline error',
+)
+if (/return\s+jsonNoStore\s*\(\s*data\s*\)/.test(pyPredictSource)) {
+  fail('app/api/py-predict/route.ts must not return raw Python success data')
+}
+
+const mlBaselineProxyContractSource = read(sharedHelpers.mlBaselineProxyContract)
+for (const marker of [
+  'allowlistForesightSimulatorMlBaselineProxySuccessResponse',
+  'normalizeForesightSimulatorMlBaselineProxySuccessResponse',
+  'ML service returned an invalid prediction.',
+  "'random_forest'",
+  "'linear_regression'",
+]) {
+  assertIncludes(
+    mlBaselineProxyContractSource,
+    marker,
+    'ML baseline proxy aggregate-only contract',
+  )
+}
 
 const authGuardSource = read(sharedHelpers.authGuard)
 if (!authGuardSource.includes("'Cache-Control': 'no-store'")) {

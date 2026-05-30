@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
+import {
+  FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_ERROR,
+  normalizeForesightSimulatorMlBaselineProxySuccessResponse,
+} from '@/lib/foresightSimulatorMlBaselineProxyContract';
 
 function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
   const headers = new Headers(init.headers);
@@ -17,7 +21,7 @@ function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
  *   { 업종, 목표, 성별, 연령, 예산, 기간 }
  *
  * Response (Python 서비스가 정상일 때):
- *   { cpm, ctr, cpc, reach, r2_cpm, r2_ctr, cv_r2, model_type, trained_at, n_samples }
+ *   { cpm, ctr, cpc, reach, r2_cpm, r2_ctr, cv_r2, model_type, n_samples }
  */
 export async function POST(req: NextRequest) {
   const authResponse = await requireForesightApiSession();
@@ -49,8 +53,6 @@ export async function POST(req: NextRequest) {
       signal:  AbortSignal.timeout(10_000), // 10초 타임아웃
     });
 
-    const data = await res.json();
-
     if (!res.ok) {
       return jsonNoStore(
         { error: 'ML 서비스 오류', status: res.status },
@@ -58,7 +60,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return jsonNoStore(data);
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {
+      return jsonNoStore(
+        { error: FORESIGHT_SIMULATOR_ML_BASELINE_PROXY_INVALID_ERROR },
+        { status: 502 },
+      );
+    }
+
+    const safePrediction = normalizeForesightSimulatorMlBaselineProxySuccessResponse(data);
+    if (!safePrediction.ok) {
+      return jsonNoStore(safePrediction.body, { status: safePrediction.status });
+    }
+
+    return jsonNoStore(safePrediction.body);
   } catch (err) {
     const isTimeout = err instanceof DOMException && (err.name === 'TimeoutError' || err.name === 'AbortError');
     return jsonNoStore(
