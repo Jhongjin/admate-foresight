@@ -259,15 +259,16 @@ function normalizeDataSufficiency(value: unknown): DataSufficiency | null {
   }
   if (!isNonNegativeNumber(value.matchedCount)) return null;
   if (!isPositiveNumber(value.minimumRequired)) return null;
-  if (!Array.isArray(value.warningCodes)) return null;
-  if (!value.warningCodes.every((code) => typeof code === 'string')) return null;
+
+  const warningCodes = normalizeSafeCodeArray(value.warningCodes);
+  if (warningCodes === null) return null;
 
   return {
     status: value.status as DataSufficiencyStatus,
     basis: value.basis as DataSufficiencyBasis,
     matchedCount: value.matchedCount,
     minimumRequired: value.minimumRequired,
-    warningCodes: [...value.warningCodes],
+    warningCodes,
   };
 }
 

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
-import { buildForecastRangeConfirmation } from '@/lib/forecastRangeConfirmation';
+import {
+  buildForecastRangeConfirmation,
+  normalizeForecastRangeResponse,
+} from '@/lib/forecastRangeConfirmation';
 import { buildPredictRangeLevels } from '@/lib/predictRangeLevels';
 import { predict } from '@/lib/predictor';
 import { normalizePredictionRequest, PredictionRequestValidationError } from '@/lib/predictionRequest';
@@ -51,7 +54,19 @@ export async function POST(req: NextRequest) {
     const dataLoaded = loadedRowCount > 0;
     console.log(`[predict-range] complete: rangeCount=${results.length}, dataLoaded=${dataLoaded}, loadedRowCount=${loadedRowCount}`);
 
-    return jsonNoStore({ range: results, confirmation });
+    const normalizedResponse = normalizeForecastRangeResponse({
+      range: results,
+      confirmation,
+    });
+    if (!normalizedResponse.rangeData || !normalizedResponse.confirmation) {
+      console.error('[predict-range] invalid range response');
+      return jsonNoStore({ error: 'Prediction failed' }, { status: 500 });
+    }
+
+    return jsonNoStore({
+      range: normalizedResponse.rangeData,
+      confirmation: normalizedResponse.confirmation,
+    });
   } catch (err) {
     if (err instanceof PredictionRequestValidationError) {
       return jsonNoStore({ error: 'Invalid prediction request.' }, { status: 400 });

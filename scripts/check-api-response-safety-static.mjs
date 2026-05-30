@@ -256,6 +256,42 @@ function assertPredictRouteResultContract(source) {
   }
 }
 
+function assertPredictRangeRouteResultContract(source) {
+  const relative = 'app/api/predict-range/route.ts'
+
+  assertIncludes(
+    source,
+    'normalizeForecastRangeResponse',
+    'predict-range route aggregate-only result contract',
+  )
+
+  if (!/const\s+normalizedResponse\s*=\s*normalizeForecastRangeResponse\s*\(\s*\{\s*range\s*:\s*results,\s*confirmation,\s*\}\s*\)/s.test(source)) {
+    fail(`${relative} must normalize range and confirmation before responding`)
+  }
+
+  if (!/if\s*\(\s*!normalizedResponse\.rangeData\s*\|\|\s*!normalizedResponse\.confirmation\s*\)/.test(source)) {
+    fail(`${relative} must fail closed when normalized response is malformed`)
+  }
+
+  if (!/console\.error\s*\(\s*'\[predict-range\] invalid range response'\s*\)/.test(source)) {
+    fail(`${relative} must log only bounded invalid response detail`)
+  }
+
+  if (!/return\s+jsonNoStore\s*\(\s*\{\s*range\s*:\s*normalizedResponse\.rangeData,\s*confirmation\s*:\s*normalizedResponse\.confirmation,\s*\}\s*\)/s.test(source)) {
+    fail(`${relative} must return only normalized range response output`)
+  }
+
+  for (const pattern of [
+    /return\s+jsonNoStore\s*\(\s*\{\s*range\s*:\s*results,\s*confirmation\s*\}\s*\)/,
+    /return\s+noStoreJson\s*\(\s*\{\s*range\s*:\s*results,\s*confirmation\s*\}\s*\)/,
+    /return\s+NextResponse\.json\s*\(\s*\{\s*range\s*:\s*results,\s*confirmation\s*\}\s*\)/,
+  ]) {
+    if (pattern.test(source)) {
+      fail(`${relative} must not return raw predict-range results`)
+    }
+  }
+}
+
 for (const route of targetRoutes) {
   const source = read(route)
   assertRouteNoStore(source, route)
@@ -271,6 +307,7 @@ for (const route of diagnosticLogRoutes) {
 }
 
 assertPredictRouteResultContract(read(file('app', 'api', 'predict', 'route.ts')))
+assertPredictRangeRouteResultContract(read(file('app', 'api', 'predict-range', 'route.ts')))
 
 const metaAdsSource = read(file('app', 'api', 'meta-ads', 'route.ts'))
 assertIncludes(metaAdsSource, 'function safeMetaSnapshotUrl', 'meta-ads snapshot URL allowlist')

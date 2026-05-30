@@ -113,11 +113,16 @@ describe('predict-range levels contract', () => {
     );
 
     expect(source).toContain("import { buildPredictRangeLevels } from '@/lib/predictRangeLevels'");
-    expect(source).toContain("import { buildForecastRangeConfirmation } from '@/lib/forecastRangeConfirmation'");
+    expect(source).toContain('buildForecastRangeConfirmation,');
+    expect(source).toContain('normalizeForecastRangeResponse,');
+    expect(source).toContain("} from '@/lib/forecastRangeConfirmation'");
     expect(source).toContain('buildPredictRangeLevels(currentMonthlyBudget)');
     expect(source).toContain('buildForecastRangeConfirmation({');
     expect(source).toContain('currentBudget: input.budget');
-    expect(source).toContain('return jsonNoStore({ range: results, confirmation })');
+    expect(source).toContain('normalizeForecastRangeResponse({');
+    expect(source).toContain('range: normalizedResponse.rangeData');
+    expect(source).toContain('confirmation: normalizedResponse.confirmation');
+    expect(source).not.toContain('return jsonNoStore({ range: results, confirmation })');
     expect(source).not.toMatch(/\bfunction\s+buildLevels\b/);
     expect(source).not.toMatch(/\bconst\s+BASE_LEVELS\b/);
     expect(source).not.toMatch(/\bconst\s+HIGHER_LEVELS\b/);
