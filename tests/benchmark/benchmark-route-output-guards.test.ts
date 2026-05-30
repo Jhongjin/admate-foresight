@@ -4,7 +4,10 @@ import {
   buildForesightBenchmarkUiStateFixtures,
   type BenchmarkTrustState,
 } from '../../lib/benchmark/uiStateFixtures.mts';
-import { buildBenchmarkRouteOutputGuardResults } from '../../lib/benchmark/routeOutputGuards';
+import {
+  BENCHMARK_ROUTE_SAFE_OUTPUT_KEYS,
+  buildBenchmarkRouteOutputGuardResults,
+} from '../../lib/benchmark/routeOutputGuards';
 
 const REQUIRED_BLOCKED_OUTPUTS: Record<BenchmarkTrustState, string[]> = {
   'benchmark-ready': [
@@ -58,6 +61,43 @@ const FORBIDDEN_RENDERED_OUTPUTS = [
   /\/users\//i,
 ];
 
+const FORBIDDEN_SAFE_OUTPUT_KEY_PATTERNS = [
+  /source[_-]?case/i,
+  /reviewer[_-]?actions/i,
+  /primary[_-]?surface/i,
+  /(?:raw|source)[_-]?(?:rows?|records?|data)/i,
+  /url/i,
+  /provider/i,
+  /token/i,
+  /session/i,
+  /cookie/i,
+  /secret/i,
+  /credential/i,
+];
+
+function collectKeyPaths(output: unknown, path = 'safeOutput'): string[] {
+  if (output === null || typeof output !== 'object') {
+    return [];
+  }
+
+  if (Array.isArray(output)) {
+    return output.flatMap((item, index) =>
+      collectKeyPaths(item, `${path}[${index}]`),
+    );
+  }
+
+  return Object.entries(output as Record<string, unknown>).flatMap(
+    ([key, value]) => {
+      const keyPath = `${path}.${key}`;
+
+      return [
+        keyPath,
+        ...collectKeyPaths(value, keyPath),
+      ];
+    },
+  );
+}
+
 describe('benchmark route output guards', () => {
   it('keeps every route-facing fixture output aggregate-only and local', () => {
     const results = buildBenchmarkRouteOutputGuardResults(
@@ -66,10 +106,20 @@ describe('benchmark route output guards', () => {
 
     for (const result of results) {
       const serialized = JSON.stringify(result.safeOutput);
+      const keyPaths = collectKeyPaths(result.safeOutput);
+      const forbiddenKeyPaths = keyPaths.filter((keyPath) =>
+        FORBIDDEN_SAFE_OUTPUT_KEY_PATTERNS.some((pattern) =>
+          pattern.test(keyPath),
+        ),
+      );
 
       expect(result.reportReady).toBe(false);
       expect(result.promotionReady).toBe(false);
       expect(result.unsafeFindings).toEqual([]);
+      expect(Object.keys(result.safeOutput)).toEqual(
+        BENCHMARK_ROUTE_SAFE_OUTPUT_KEYS,
+      );
+      expect(forbiddenKeyPaths).toEqual([]);
       expect(result.safeOutput.syntheticContextLabel).toBe(
         '로컬 검증용 예시 데이터',
       );
