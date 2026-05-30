@@ -33,6 +33,7 @@
     "check:simulator-product-safe-error-view-model": "vitest run tests/benchmark/simulator-product-safe-error-view-model.test.ts tests/benchmark/simulator-product-safe-error-states.test.ts",
     "check:simulator-prediction-evidence-view-model": "vitest run tests/benchmark/simulator-prediction-evidence-view-model.test.ts",
     "check:simulator-predict-result-contract": "vitest run tests/benchmark/simulator-predict-result-contract.test.ts",
+    "check:simulator-scenario-expansion-request-contract": "vitest run tests/benchmark/simulator-scenario-expansion-request-contract.test.ts",
     "check:simulator-scenario-view-model": "vitest run tests/benchmark/simulator-scenario-view-model.test.ts",
     "check:simulator-performance-flow-contract": "vitest run tests/benchmark/simulator-performance-flow-contract.test.ts",
     "check:simulator-range-normalization": "vitest run tests/benchmark/simulator-range-normalization.test.ts",

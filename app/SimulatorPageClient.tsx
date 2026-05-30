@@ -28,6 +28,7 @@ import {
   normalizePredictResult,
   type PredictResult,
 } from '@/lib/foresightSimulatorPredictResultContract';
+import { buildForesightSimulatorScenarioExpansionRequests } from '@/lib/foresightSimulatorScenarioExpansionRequestContract';
 import {
   buildSimulatorErrorPanel,
   SIMULATOR_PRODUCT_SAFE_ERRORS,
@@ -303,25 +304,14 @@ export default function SimulatorPage() {
     if (!isCalculated) return;
     if (scenarioDebounceRef.current) clearTimeout(scenarioDebounceRef.current);
     scenarioDebounceRef.current = setTimeout(async () => {
-      const hasFilter = genders.length > 0 || ageRanges.length > 0 || industries.length > 0;
-      if (!hasFilter) { setScenarios([]); setScenarioError(false); return; }
-
-      const expansions: Array<{ label: string; description: string; body: object }> = [];
-      if (genders.length > 0) {
-        expansions.push({
-          label: '성별 전체 확장',
-          description: `${genders.map(g => g === 'male' ? '남성' : '여성').join('/')} → 전체`,
-          body: { industries, genders: [], ageRanges, objectives, budget: monthlyBudget },
-        });
-      }
-      if (ageRanges.length > 0) {
-        expansions.push({
-          label: '연령 전체 확장',
-          description: `${ageRanges.join(', ')} → 전체`,
-          body: { industries, genders, ageRanges: [], objectives, budget: monthlyBudget },
-        });
-      }
-      // 업종 확장은 캠페인 대전제이므로 시나리오에서 제외
+      const expansions = buildForesightSimulatorScenarioExpansionRequests({
+        industries,
+        genders,
+        ageRanges,
+        objectives,
+        monthlyBudget,
+      });
+      if (expansions.length === 0) { setScenarios([]); setScenarioError(false); return; }
 
       setScenarioLoading(true);
       setScenarioError(false);
