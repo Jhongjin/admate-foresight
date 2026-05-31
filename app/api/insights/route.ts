@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { ensureDataLoaded } from '@/lib/xlsxLoader';
 import { getSeasonInsights } from '@/lib/trendsData';
+import { normalizeInsightsRouteOutput } from '@/lib/foresightInsightsRouteOutputContract';
 
 function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
   const headers = new Headers(init.headers);
@@ -16,7 +17,8 @@ export async function GET() {
   try {
     await ensureDataLoaded();
     const data = getSeasonInsights();
-    return jsonNoStore(data);
+    const normalizedData = normalizeInsightsRouteOutput(data);
+    return jsonNoStore(normalizedData);
   } catch {
     console.error('[insights] failed');
     return jsonNoStore({ error: 'Failed to load insights' }, { status: 500 });

@@ -18,6 +18,7 @@
     "check:benchmark-ui-state-rendering": "vitest run tests/benchmark/benchmark-ui-state-rendering.test.tsx --environment jsdom",
     "check:external-lookup-fail-closed-contract": "vitest run tests/benchmark/external-lookup-fail-closed-contract.test.ts",
     "check:forecast-range-confirmation-contract": "vitest run tests/benchmark/forecast-range-confirmation-contract.test.ts",
+    "check:insights-route-output-contract": "vitest run tests/benchmark/insights-route-output-contract.test.ts",
     "check:prediction-data-sufficiency-contract": "vitest run tests/benchmark/prediction-data-sufficiency-contract.test.ts",
     "check:prediction-request-contract": "vitest run tests/benchmark/prediction-request-contract.test.ts",
     "check:prediction-route-objectives-contract": "vitest run tests/benchmark/prediction-route-objectives-contract.test.ts",
