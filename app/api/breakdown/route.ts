@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { ensureDataLoaded } from '@/lib/xlsxLoader';
 import { getBreakdown } from '@/lib/trendsData';
+import { normalizeBreakdownRouteOutput } from '@/lib/foresightBreakdownRouteOutputContract';
 
 function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
   const headers = new Headers(init.headers);
@@ -27,7 +28,8 @@ export async function GET(req: NextRequest) {
 
     await ensureDataLoaded();
     const data = getBreakdown(industries, genders, ageRanges, objectives);
-    return jsonNoStore(data);
+    const normalizedData = normalizeBreakdownRouteOutput(data);
+    return jsonNoStore(normalizedData);
   } catch {
     console.error('[breakdown] failed');
     return jsonNoStore({ error: 'Failed' }, { status: 500 });

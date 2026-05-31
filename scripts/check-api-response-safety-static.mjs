@@ -320,6 +320,34 @@ function assertTrendsRouteResultContract(source) {
   }
 }
 
+function assertBreakdownRouteResultContract(source) {
+  const relative = 'app/api/breakdown/route.ts'
+
+  assertIncludes(
+    source,
+    'normalizeBreakdownRouteOutput',
+    'breakdown route aggregate-only output contract',
+  )
+
+  if (!/const\s+normalizedData\s*=\s*normalizeBreakdownRouteOutput\s*\(\s*data\s*\)/.test(source)) {
+    fail(`${relative} must normalize breakdown output before responding`)
+  }
+
+  if (!/return\s+jsonNoStore\s*\(\s*normalizedData\s*\)/.test(source)) {
+    fail(`${relative} must return only normalized breakdown output`)
+  }
+
+  for (const pattern of [
+    /return\s+jsonNoStore\s*\(\s*data\s*[,)]/,
+    /return\s+noStoreJson\s*\(\s*data\s*[,)]/,
+    /return\s+NextResponse\.json\s*\(\s*data\s*[,)]/,
+  ]) {
+    if (pattern.test(source)) {
+      fail(`${relative} must not return raw breakdown data`)
+    }
+  }
+}
+
 function assertInsightsRouteResultContract(source) {
   const relative = 'app/api/insights/route.ts'
 
@@ -393,6 +421,7 @@ for (const route of diagnosticLogRoutes) {
 assertPredictRouteResultContract(read(file('app', 'api', 'predict', 'route.ts')))
 assertPredictRangeRouteResultContract(read(file('app', 'api', 'predict-range', 'route.ts')))
 assertTrendsRouteResultContract(read(file('app', 'api', 'trends', 'route.ts')))
+assertBreakdownRouteResultContract(read(file('app', 'api', 'breakdown', 'route.ts')))
 assertInsightsRouteResultContract(read(file('app', 'api', 'insights', 'route.ts')))
 assertSeasonalityRouteResultContract(read(file('app', 'api', 'seasonality', 'route.ts')))
 
