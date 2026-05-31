@@ -120,7 +120,7 @@ describe('benchmark UI state rendering adapter', () => {
   );
 
   it.each(buildForesightBenchmarkUiStateFixtures())(
-    'exposes benchmark trust semantics for %s',
+    'exposes benchmark evidence review semantics for %s',
     (fixture) => {
       const viewModel = buildBenchmarkUiStateViewModel(fixture);
 

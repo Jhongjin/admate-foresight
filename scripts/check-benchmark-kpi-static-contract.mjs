@@ -38,6 +38,7 @@ const requiredKpiSnippets = [
   'benchmarkStatusLabel?: string',
   'benchmarkBasisLines?: string[]',
   'benchmarkConfidenceLabel?: string',
+  'benchmarkEvidenceLabel?: string',
   'benchmarkVisibleCopy?: string[]',
   'benchmarkSyntheticContextLabel?: string',
   'benchmarkBlockedOutputs?: string[]',
@@ -45,13 +46,20 @@ const requiredKpiSnippets = [
   'benchmarkVisibleCopy = []',
   'benchmarkBlockedOutputs = []',
   'const hasBenchmarkDisplay = !loading && Boolean(',
-  'aria-label={`${title} 벤치마크 신뢰도 세부 정보`}',
+  'aria-label={`${title} 벤치마크 검토 근거 세부 정보`}',
   'aria-label={`벤치마크 상태: ${benchmarkStatusLabel}`}',
-  'aria-label={`벤치마크 신뢰도: ${benchmarkConfidenceLabel}`}',
+  'aria-label={`벤치마크 검토 근거: ${benchmarkConfidenceLabel}`}',
+  'aria-label={`벤치마크 근거: ${benchmarkEvidenceLabel}`}',
   'aria-label={`${title} 벤치마크 안내`}',
   'aria-label={`${title} 벤치마크 기준`}',
   'aria-label={`${title} 제한된 벤치마크 출력`}',
   '제한된 출력',
+]
+
+const forbiddenKpiUserFacingSnippets = [
+  '벤치마크 신뢰도',
+  '벤치마크 확신',
+  '성과 보장',
 ]
 
 const requiredViewModelSnippets = [
@@ -124,9 +132,11 @@ const requiredUiTestSnippets = [
   'buildBenchmarkUiStateViewModel',
   'KPICard',
   '벤치마크 상태:',
-  '벤치마크 신뢰도 세부 정보',
+  '벤치마크 검토 근거 세부 정보',
   '벤치마크 기준',
   '제한된 벤치마크 출력',
+  'FORBIDDEN_RENDERED_OPERATOR_COPY',
+  'confidence|신뢰도|확신|확정|보장|promise|certainty',
   'report ready:\\s*true',
   'promotion ready:\\s*true',
   '로컬 검증용 예시 데이터',
@@ -182,6 +192,9 @@ for (const expected of requiredKpiSnippets) {
 }
 for (const forbidden of forbiddenKpiSnippets) {
   assertDoesNotInclude(kpiSource, forbidden, 'KPICard presentational boundary')
+}
+for (const forbidden of forbiddenKpiUserFacingSnippets) {
+  assertDoesNotInclude(kpiSource, forbidden, 'KPICard evidence/review copy contract')
 }
 
 const viewModelSource = readSource(files.viewModel)
