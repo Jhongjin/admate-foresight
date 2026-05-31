@@ -67,8 +67,8 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       return jsonNoStore(
-        { error: 'ML 서비스 오류', status: res.status },
-        { status: res.status },
+        { error: 'ML 서비스 오류' },
+        { status: 502 },
       );
     }
 

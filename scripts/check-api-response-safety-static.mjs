@@ -348,6 +348,12 @@ if (/return\s+jsonNoStore\s*\(\s*data\s*\)/.test(pyPredictSource)) {
 if (/JSON\.stringify\s*\(\s*body\s*\)/.test(pyPredictSource)) {
   fail('app/api/py-predict/route.ts must not forward the parsed request body to Python')
 }
+if (/status\s*:\s*res\.status/.test(pyPredictSource)) {
+  fail('app/api/py-predict/route.ts must not expose upstream ML provider status in JSON')
+}
+if (/\{\s*status\s*:\s*res\.status\s*\}/.test(pyPredictSource)) {
+  fail('app/api/py-predict/route.ts must not propagate upstream ML provider status as the response status')
+}
 
 const mlBaselineProxyContractSource = read(sharedHelpers.mlBaselineProxyContract)
 for (const marker of [
