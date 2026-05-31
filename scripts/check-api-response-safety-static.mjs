@@ -320,6 +320,34 @@ function assertTrendsRouteResultContract(source) {
   }
 }
 
+function assertFiltersRouteResultContract(source) {
+  const relative = 'app/api/filters/route.ts'
+
+  assertIncludes(
+    source,
+    'normalizeFiltersRouteOutput',
+    'filters route aggregate-only output contract',
+  )
+
+  if (!/const\s+normalizedFilters\s*=\s*normalizeFiltersRouteOutput\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*\}\s*\)/s.test(source)) {
+    fail(`${relative} must normalize filter arrays before responding`)
+  }
+
+  if (!/return\s+jsonNoStore\s*\(\s*normalizedFilters\s*\)/.test(source)) {
+    fail(`${relative} must return only normalized filters output`)
+  }
+
+  for (const pattern of [
+    /return\s+jsonNoStore\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*\}\s*\)/s,
+    /return\s+noStoreJson\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*\}\s*\)/s,
+    /return\s+NextResponse\.json\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*\}\s*\)/s,
+  ]) {
+    if (pattern.test(source)) {
+      fail(`${relative} must not return raw filter helper output`)
+    }
+  }
+}
+
 function assertBreakdownRouteResultContract(source) {
   const relative = 'app/api/breakdown/route.ts'
 
@@ -420,6 +448,7 @@ for (const route of diagnosticLogRoutes) {
 
 assertPredictRouteResultContract(read(file('app', 'api', 'predict', 'route.ts')))
 assertPredictRangeRouteResultContract(read(file('app', 'api', 'predict-range', 'route.ts')))
+assertFiltersRouteResultContract(read(file('app', 'api', 'filters', 'route.ts')))
 assertTrendsRouteResultContract(read(file('app', 'api', 'trends', 'route.ts')))
 assertBreakdownRouteResultContract(read(file('app', 'api', 'breakdown', 'route.ts')))
 assertInsightsRouteResultContract(read(file('app', 'api', 'insights', 'route.ts')))

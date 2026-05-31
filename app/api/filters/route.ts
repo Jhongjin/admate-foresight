@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { getIndustries, getAgeRanges } from '@/lib/csvLoader';
 import { getObjectives, getXlsxIndustries, getAvailableMonths, ensureDataLoaded } from '@/lib/xlsxLoader';
+import { normalizeFiltersRouteOutput } from '@/lib/foresightFiltersRouteOutputContract';
 
 // 업종 그룹 순서 정의 (비슷한 업종끼리 묶음, 기타는 맨 마지막)
 const INDUSTRY_ORDER: string[] = [
@@ -56,19 +57,23 @@ function sortIndustries(industries: string[]): string[] {
   return result;
 }
 
+function stringArrayOrEmpty(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
 export async function GET() {
   const authResponse = await requireForesightApiSession();
   if (authResponse) return authResponse;
 
   try {
     await ensureDataLoaded();
-    const csvIndustries = getIndustries();
-    const xlsxIndustries = getXlsxIndustries();
+    const csvIndustries = stringArrayOrEmpty(getIndustries());
+    const xlsxIndustries = stringArrayOrEmpty(getXlsxIndustries());
     const allIndustries = sortIndustries([...new Set([...csvIndustries, ...xlsxIndustries])]);
-    const ageRanges = getAgeRanges();
+    const ageRanges = stringArrayOrEmpty(getAgeRanges());
     const genders = ['male', 'female'];
-    const objectives = getObjectives();
-    const months = getAvailableMonths();
+    const objectives = stringArrayOrEmpty(getObjectives());
+    const months = stringArrayOrEmpty(getAvailableMonths());
 
     // 진단 로그는 집계 카운터/불리언만 남긴다.
     const hasXlsxIndustries = xlsxIndustries.length > 0;
@@ -79,7 +84,15 @@ export async function GET() {
       console.warn('[filters] ⚠️  Supabase 업종 데이터 없음 — xlsxIndustries 비어있음');
     }
 
-    return jsonNoStore({ industries: allIndustries, ageRanges, genders, objectives, months });
+    const normalizedFilters = normalizeFiltersRouteOutput({
+      industries: allIndustries,
+      ageRanges,
+      genders,
+      objectives,
+      months,
+    });
+
+    return jsonNoStore(normalizedFilters);
   } catch {
     console.error('[filters] failed');
     return jsonNoStore({ error: 'Failed to load filters' }, { status: 500 });
