@@ -192,7 +192,7 @@ describe('forecast range confirmation contract', () => {
     }
   });
 
-  it('uses range terminology without certainty claims', () => {
+  it('uses Korean service terminology without certainty or stale English operator claims', () => {
     const outcomes = [
       buildForecastRangeConfirmation({
         currentBudget: 5_000_000,
@@ -220,11 +220,19 @@ describe('forecast range confirmation contract', () => {
     for (const result of outcomes) {
       const serialized = JSON.stringify(result);
 
-      expect(result.terminology.rangeLabel).toBe('Forecast range');
+      expect(result.terminology).toEqual({
+        rangeLabel: '예상 구간',
+        reviewLabel: '운영자 검토',
+        basisLabel: '집계 충분성',
+        description:
+          '집계 기반 예상 구간은 운영자 검토용입니다. 보고서, 내보내기, 승격, 적용은 후속 게이트 전까지 차단됩니다.',
+      });
       expect(serialized).not.toMatch(/confidence/i);
       expect(serialized).not.toMatch(/statistical/i);
       expect(serialized).not.toMatch(/interval/i);
       expect(serialized).not.toMatch(/95%/i);
+      expect(serialized).not.toMatch(/Forecast range|Operator review|Aggregate sufficiency/i);
+      expect(serialized).not.toMatch(/reports?, exports?, promotion, or apply actions/i);
     }
   });
 });

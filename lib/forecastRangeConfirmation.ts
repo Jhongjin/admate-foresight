@@ -67,9 +67,9 @@ export interface ForecastRangeSufficiencySummary {
 }
 
 export interface ForecastRangeTerminology {
-  rangeLabel: 'Forecast range';
-  reviewLabel: 'Operator review';
-  basisLabel: 'Aggregate sufficiency';
+  rangeLabel: '예상 구간';
+  reviewLabel: '운영자 검토';
+  basisLabel: '집계 충분성';
   description: string;
 }
 
@@ -458,11 +458,11 @@ function buildSideEffectSummary(): ForecastRangeSideEffectSummary {
 
 function buildTerminology(): ForecastRangeTerminology {
   return {
-    rangeLabel: 'Forecast range',
-    reviewLabel: 'Operator review',
-    basisLabel: 'Aggregate sufficiency',
+    rangeLabel: '예상 구간',
+    reviewLabel: '운영자 검토',
+    basisLabel: '집계 충분성',
     description:
-      'Directional aggregate forecast range for operator review; later gates are required before reports, exports, promotion, or apply actions.',
+      '집계 기반 예상 구간은 운영자 검토용입니다. 보고서, 내보내기, 승격, 적용은 후속 게이트 전까지 차단됩니다.',
   };
 }
 

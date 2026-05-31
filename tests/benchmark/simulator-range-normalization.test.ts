@@ -250,7 +250,7 @@ describe('simulator range normalization contract', () => {
       'dataSufficiency',
     ]);
     expect(normalized.confirmation?.terminology.description).toBe(
-      'Directional aggregate forecast range for operator review; later gates are required before reports, exports, promotion, or apply actions.',
+      '집계 기반 예상 구간은 운영자 검토용입니다. 보고서, 내보내기, 승격, 적용은 후속 게이트 전까지 차단됩니다.',
     );
     expectNoUnsafeConfirmationFields(normalized.confirmation);
   });

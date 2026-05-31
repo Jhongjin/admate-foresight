@@ -76,10 +76,13 @@ describe('simulator forecast readiness contract', () => {
     ];
 
     for (const outcome of outcomes) {
-      expect(outcome.terminology.description).toContain('operator review');
-      expect(outcome.terminology.description).toContain(
-        'later gates are required before reports, exports, promotion, or apply actions',
-      );
+      expect(outcome.terminology).toEqual({
+        rangeLabel: '예상 구간',
+        reviewLabel: '운영자 검토',
+        basisLabel: '집계 충분성',
+        description:
+          '집계 기반 예상 구간은 운영자 검토용입니다. 보고서, 내보내기, 승격, 적용은 후속 게이트 전까지 차단됩니다.',
+      });
 
       for (const flag of BLOCKED_READY_FLAGS) {
         expect(outcome.readiness[flag]).toBe(false);

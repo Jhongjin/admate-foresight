@@ -202,6 +202,13 @@ describe('simulator predict-range route output contract', () => {
         exportWrites: 0,
         promotionApplyCalls: 0,
       },
+      terminology: {
+        rangeLabel: '예상 구간',
+        reviewLabel: '운영자 검토',
+        basisLabel: '집계 충분성',
+        description:
+          '집계 기반 예상 구간은 운영자 검토용입니다. 보고서, 내보내기, 승격, 적용은 후속 게이트 전까지 차단됩니다.',
+      },
     });
 
     const serialized = JSON.stringify(responseBody);
@@ -222,6 +229,7 @@ describe('simulator predict-range route output contract', () => {
     ];
     expect(keys.some((key) => forbiddenKeyPatterns.some((pattern) => pattern.test(key)))).toBe(false);
     expect(serialized).not.toMatch(/act_123|campaign-123|adset-123|ad-123|provider-123|source-row|https:\/\/example\.test|opaque-token-value|opaque-cookie-value|opaque-session-value|opaque-secret-value|TOKEN_LEAK/i);
+    expect(serialized).not.toMatch(/Forecast range|Operator review|Aggregate sufficiency/i);
   });
 
   it('fails closed with a bounded error when range output is malformed', async () => {
