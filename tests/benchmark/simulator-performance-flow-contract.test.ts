@@ -163,6 +163,22 @@ describe('simulator performance flow confirmation contract', () => {
         },
       ]),
     );
+    expect(viewModel.decisionCues).toEqual(
+      expect.arrayContaining([
+        {
+          key: 'current_budget_anchor',
+          tone: 'ok',
+          title: '현재 예산 기준점',
+          summary: '1400만 예산을 구간 안의 비교 기준으로 봅니다.',
+        },
+        {
+          key: 'no_single_kpi_decision',
+          tone: 'watch',
+          title: '단일 KPI 판단 금지',
+          summary: '도달, 비용, 근거 상태를 함께 보고 예산 결정을 검토합니다.',
+        },
+      ]),
+    );
     expectAggregateOnlyOutput(serializedContract);
   });
 
@@ -176,6 +192,12 @@ describe('simulator performance flow confirmation contract', () => {
       currentBudget: basis.monthlyBudget,
       range: rangeWithoutCurrentBudget,
     });
+    const viewModel = buildSimulatorRangeViewModel({
+      rangeData: rangeWithoutCurrentBudget,
+      campaignDays: basis.campaignDays,
+      selectedBudget: basis.campaignBudget,
+      confirmation,
+    });
 
     expect(confirmation.state).toBe('blocked_by_current_range');
     expect(confirmation.acceptedForReview).toBe(false);
@@ -184,6 +206,12 @@ describe('simulator performance flow confirmation contract', () => {
     expect(confirmation.sideEffectSummary).toEqual(NO_SIDE_EFFECTS);
     expect(confirmation.range.currentBudgetPresent).toBe(false);
     expect(confirmation.warningCodes).toContain('CURRENT_BUDGET_NOT_CONFIRMED');
+    expect(viewModel.decisionCues[0]).toEqual({
+      key: 'current_budget_anchor',
+      tone: 'risk',
+      title: '현재 예산 기준점 확인',
+      summary: '현재 예산이 검토 구간에 없어 증감 판단 전 범위를 다시 맞춥니다.',
+    });
     expectAggregateOnlyOutput(confirmation);
   });
 

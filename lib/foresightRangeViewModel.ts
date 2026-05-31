@@ -23,9 +23,22 @@ export interface SimulatorRangeTrendBriefItem {
   detail: string;
 }
 
+export interface SimulatorRangeDecisionCue {
+  key:
+    | 'current_budget_anchor'
+    | 'range_spread_coverage'
+    | 'marginal_efficiency'
+    | 'basis_status'
+    | 'no_single_kpi_decision';
+  tone: SimulatorRangeReviewTone;
+  title: string;
+  summary: string;
+}
+
 export interface SimulatorRangeViewModel {
   chartData: SimulatorRangeChartRow[];
   rangeTrendBrief: SimulatorRangeTrendBriefItem[];
+  decisionCues: SimulatorRangeDecisionCue[];
 }
 
 export type SimulatorRangeReviewTone = 'ok' | 'watch' | 'risk' | 'idle';
@@ -112,10 +125,161 @@ export function buildSimulatorRangeReviewCopy(input: {
   };
 }
 
+function buildCurrentBudgetCue(input: {
+  confirmation: ForecastRangeConfirmation | null;
+  selected: SimulatorRangeChartRow;
+  selectedBudgetExact: boolean;
+}): SimulatorRangeDecisionCue {
+  if (input.confirmation?.state === 'blocked_by_current_range') {
+    return {
+      key: 'current_budget_anchor',
+      tone: 'risk',
+      title: '현재 예산 기준점 확인',
+      summary: '현재 예산이 검토 구간에 없어 증감 판단 전 범위를 다시 맞춥니다.',
+    };
+  }
+
+  if (input.confirmation?.range.currentBudget === null) {
+    return {
+      key: 'current_budget_anchor',
+      tone: 'watch',
+      title: '현재 예산 기준점 대기',
+      summary: '현재 예산 기준이 확인되면 구간 안의 위치를 함께 봅니다.',
+    };
+  }
+
+  if (!input.selectedBudgetExact) {
+    return {
+      key: 'current_budget_anchor',
+      tone: 'watch',
+      title: '가까운 예산 기준',
+      summary: `${input.selected.label} 구간을 선택 예산과 가장 가까운 기준으로 봅니다.`,
+    };
+  }
+
+  return {
+    key: 'current_budget_anchor',
+    tone: 'ok',
+    title: '현재 예산 기준점',
+    summary: `${input.selected.label} 예산을 구간 안의 비교 기준으로 봅니다.`,
+  };
+}
+
+function buildRangeSpreadCue(input: {
+  confirmation: ForecastRangeConfirmation | null;
+  first: SimulatorRangeChartRow;
+  last: SimulatorRangeChartRow;
+  pointCount: number;
+}): SimulatorRangeDecisionCue {
+  const tone: SimulatorRangeReviewTone = input.confirmation?.state === 'rejected_invalid_range'
+    ? 'risk'
+    : input.pointCount >= 3
+      ? 'ok'
+      : 'watch';
+
+  return {
+    key: 'range_spread_coverage',
+    tone,
+    title: '구간 폭 확인',
+    summary: `${input.first.label}~${input.last.label}, ${input.pointCount}개 예산대를 비교 범위로 봅니다.`,
+  };
+}
+
+function buildMarginalEfficiencyCue(input: {
+  first: SimulatorRangeChartRow;
+  last: SimulatorRangeChartRow;
+  efficiencySignal: string;
+}): SimulatorRangeDecisionCue {
+  if (input.last.reachEfficiency < input.first.reachEfficiency) {
+    return {
+      key: 'marginal_efficiency',
+      tone: 'watch',
+      title: '한계 효율 체감',
+      summary: '예산이 커질수록 만원당 도달은 낮아지는 흐름입니다.',
+    };
+  }
+
+  if (input.last.reachEfficiency > input.first.reachEfficiency) {
+    return {
+      key: 'marginal_efficiency',
+      tone: 'ok',
+      title: '한계 효율 개선',
+      summary: '예산 상단에서 만원당 도달이 더 나은 흐름입니다.',
+    };
+  }
+
+  return {
+    key: 'marginal_efficiency',
+    tone: 'idle',
+    title: input.efficiencySignal,
+    summary: '구간 안에서 만원당 도달 흐름이 크게 달라지지 않습니다.',
+  };
+}
+
+function buildBasisCue(
+  confirmation: ForecastRangeConfirmation | null,
+): SimulatorRangeDecisionCue {
+  if (!confirmation) {
+    return {
+      key: 'basis_status',
+      tone: 'idle',
+      title: '근거 상태 대기',
+      summary: '구간 결과가 들어오면 근거 충분 여부를 함께 표시합니다.',
+    };
+  }
+
+  const matchedCount = confirmation.sufficiency.minimumMatchedCount.toLocaleString();
+  const requiredCount = confirmation.sufficiency.minimumRequired.toLocaleString();
+
+  if (confirmation.state === 'accepted_for_operator_review') {
+    return {
+      key: 'basis_status',
+      tone: 'ok',
+      title: '근거 상태 충분',
+      summary: `최소 매칭 ${matchedCount}건으로 구간 검토가 가능합니다.`,
+    };
+  }
+
+  if (confirmation.state === 'blocked_by_sufficiency') {
+    return {
+      key: 'basis_status',
+      tone: 'risk',
+      title: '근거 보강 필요',
+      summary: `최소 매칭 ${matchedCount}건, 기준 ${requiredCount}건으로 보강 후 봅니다.`,
+    };
+  }
+
+  if (confirmation.state === 'blocked_by_current_range') {
+    return {
+      key: 'basis_status',
+      tone: confirmation.sufficiency.blockedByInsufficientData ? 'risk' : 'watch',
+      title: confirmation.sufficiency.blockedByInsufficientData ? '근거 보강 필요' : '근거 상태 확인',
+      summary: `최소 매칭 ${matchedCount}건이며 현재 예산 포함 여부를 먼저 맞춥니다.`,
+    };
+  }
+
+  return {
+    key: 'basis_status',
+    tone: 'risk',
+    title: '구간 근거 없음',
+    summary: '유효한 예산 구간이 없어 재계산 후 검토합니다.',
+  };
+}
+
+function buildGuardrailCue(): SimulatorRangeDecisionCue {
+  return {
+    key: 'no_single_kpi_decision',
+    tone: 'watch',
+    title: '단일 KPI 판단 금지',
+    summary: '도달, 비용, 근거 상태를 함께 보고 예산 결정을 검토합니다.',
+  };
+}
+
 export function buildSimulatorRangeViewModel(input: {
   rangeData: MonthlyRangePoint[];
   campaignDays: number;
   selectedBudget: number;
+  confirmation?: ForecastRangeConfirmation | null;
 }): SimulatorRangeViewModel {
   const chartData = input.rangeData.map((point) => {
     const campaignPoint = buildCampaignRangePoint(point, input.campaignDays);
@@ -129,11 +293,13 @@ export function buildSimulatorRangeViewModel(input: {
     return {
       chartData,
       rangeTrendBrief: [],
+      decisionCues: [],
     };
   }
 
   const first = chartData[0];
   const last = chartData[chartData.length - 1];
+  const selectedBudgetExact = chartData.some((row) => row.budget === input.selectedBudget);
   const selected = chartData.find((row) => row.budget === input.selectedBudget)
     ?? chartData.reduce((closest, row) => (
       Math.abs(row.budget - input.selectedBudget) < Math.abs(closest.budget - input.selectedBudget)
@@ -167,6 +333,26 @@ export function buildSimulatorRangeViewModel(input: {
         value: efficiencySignal,
         detail: `구간 끝 CPM ₩${last.cpm.toLocaleString()}`,
       },
+    ],
+    decisionCues: [
+      buildCurrentBudgetCue({
+        confirmation: input.confirmation ?? null,
+        selected,
+        selectedBudgetExact,
+      }),
+      buildRangeSpreadCue({
+        confirmation: input.confirmation ?? null,
+        first,
+        last,
+        pointCount: chartData.length,
+      }),
+      buildMarginalEfficiencyCue({
+        first,
+        last,
+        efficiencySignal,
+      }),
+      buildBasisCue(input.confirmation ?? null),
+      buildGuardrailCue(),
     ],
   };
 }

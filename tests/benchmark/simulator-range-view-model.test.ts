@@ -154,6 +154,186 @@ describe('simulator range view model', () => {
         detail: '구간 끝 CPM ₩5,500',
       },
     ]);
+    expect(viewModel.decisionCues).toEqual([
+      {
+        key: 'current_budget_anchor',
+        tone: 'watch',
+        title: '가까운 예산 기준',
+        summary: '1000만 구간을 선택 예산과 가장 가까운 기준으로 봅니다.',
+      },
+      {
+        key: 'range_spread_coverage',
+        tone: 'watch',
+        title: '구간 폭 확인',
+        summary: '1000만~2000만, 2개 예산대를 비교 범위로 봅니다.',
+      },
+      {
+        key: 'marginal_efficiency',
+        tone: 'watch',
+        title: '한계 효율 체감',
+        summary: '예산이 커질수록 만원당 도달은 낮아지는 흐름입니다.',
+      },
+      {
+        key: 'basis_status',
+        tone: 'idle',
+        title: '근거 상태 대기',
+        summary: '구간 결과가 들어오면 근거 충분 여부를 함께 표시합니다.',
+      },
+      {
+        key: 'no_single_kpi_decision',
+        tone: 'watch',
+        title: '단일 KPI 판단 금지',
+        summary: '도달, 비용, 근거 상태를 함께 보고 예산 결정을 검토합니다.',
+      },
+    ]);
+  });
+
+  it('builds accepted range decision cues without promising outcomes', () => {
+    const viewModel = buildSimulatorRangeViewModel({
+      rangeData: [
+        { budget: 10_000_000, reach: 100_000, cpm: 4_800, cpc: 480 },
+        { budget: 20_000_000, reach: 180_000, cpm: 5_000, cpc: 500 },
+        { budget: 30_000_000, reach: 240_000, cpm: 5_400, cpc: 540 },
+      ],
+      campaignDays: 30,
+      selectedBudget: 20_000_000,
+      confirmation: buildConfirmation('accepted_for_operator_review'),
+    });
+
+    expect(viewModel.decisionCues).toEqual([
+      {
+        key: 'current_budget_anchor',
+        tone: 'ok',
+        title: '현재 예산 기준점',
+        summary: '2000만 예산을 구간 안의 비교 기준으로 봅니다.',
+      },
+      {
+        key: 'range_spread_coverage',
+        tone: 'ok',
+        title: '구간 폭 확인',
+        summary: '1000만~3000만, 3개 예산대를 비교 범위로 봅니다.',
+      },
+      {
+        key: 'marginal_efficiency',
+        tone: 'watch',
+        title: '한계 효율 체감',
+        summary: '예산이 커질수록 만원당 도달은 낮아지는 흐름입니다.',
+      },
+      {
+        key: 'basis_status',
+        tone: 'ok',
+        title: '근거 상태 충분',
+        summary: '최소 매칭 42건으로 구간 검토가 가능합니다.',
+      },
+      {
+        key: 'no_single_kpi_decision',
+        tone: 'watch',
+        title: '단일 KPI 판단 금지',
+        summary: '도달, 비용, 근거 상태를 함께 보고 예산 결정을 검토합니다.',
+      },
+    ]);
+  });
+
+  it('flags current-budget missing range cues before budget decisions', () => {
+    const viewModel = buildSimulatorRangeViewModel({
+      rangeData: [
+        { budget: 10_000_000, reach: 100_000, cpm: 4_800, cpc: 480 },
+        { budget: 30_000_000, reach: 240_000, cpm: 5_400, cpc: 540 },
+      ],
+      campaignDays: 30,
+      selectedBudget: 20_000_000,
+      confirmation: buildConfirmation('blocked_by_current_range', {
+        range: {
+          ...buildConfirmation('blocked_by_current_range').range,
+          currentBudget: 20_000_000,
+          currentBudgetPresent: false,
+          budgets: [10_000_000, 30_000_000],
+        },
+        sufficiency: {
+          ...buildConfirmation('accepted_for_operator_review').sufficiency,
+          blockedByInsufficientData: false,
+        },
+      }),
+    });
+
+    expect(viewModel.decisionCues).toEqual([
+      {
+        key: 'current_budget_anchor',
+        tone: 'risk',
+        title: '현재 예산 기준점 확인',
+        summary: '현재 예산이 검토 구간에 없어 증감 판단 전 범위를 다시 맞춥니다.',
+      },
+      {
+        key: 'range_spread_coverage',
+        tone: 'watch',
+        title: '구간 폭 확인',
+        summary: '1000만~3000만, 2개 예산대를 비교 범위로 봅니다.',
+      },
+      {
+        key: 'marginal_efficiency',
+        tone: 'watch',
+        title: '한계 효율 체감',
+        summary: '예산이 커질수록 만원당 도달은 낮아지는 흐름입니다.',
+      },
+      {
+        key: 'basis_status',
+        tone: 'watch',
+        title: '근거 상태 확인',
+        summary: '최소 매칭 42건이며 현재 예산 포함 여부를 먼저 맞춥니다.',
+      },
+      {
+        key: 'no_single_kpi_decision',
+        tone: 'watch',
+        title: '단일 KPI 판단 금지',
+        summary: '도달, 비용, 근거 상태를 함께 보고 예산 결정을 검토합니다.',
+      },
+    ]);
+  });
+
+  it('keeps insufficient and rejected range cues conservative', () => {
+    const insufficientViewModel = buildSimulatorRangeViewModel({
+      rangeData: [
+        { budget: 10_000_000, reach: 100_000, cpm: 4_800, cpc: 480 },
+        { budget: 20_000_000, reach: 180_000, cpm: 5_000, cpc: 500 },
+        { budget: 30_000_000, reach: 240_000, cpm: 5_400, cpc: 540 },
+      ],
+      campaignDays: 30,
+      selectedBudget: 20_000_000,
+      confirmation: buildConfirmation('blocked_by_sufficiency'),
+    });
+    const rejectedViewModel = buildSimulatorRangeViewModel({
+      rangeData: [
+        { budget: 10_000_000, reach: 100_000, cpm: 4_800, cpc: 480 },
+      ],
+      campaignDays: 30,
+      selectedBudget: 10_000_000,
+      confirmation: buildConfirmation('rejected_invalid_range'),
+    });
+
+    expect(insufficientViewModel.decisionCues[3]).toEqual({
+      key: 'basis_status',
+      tone: 'risk',
+      title: '근거 보강 필요',
+      summary: '최소 매칭 42건, 기준 20건으로 보강 후 봅니다.',
+    });
+    expect(insufficientViewModel.decisionCues.at(-1)).toEqual({
+      key: 'no_single_kpi_decision',
+      tone: 'watch',
+      title: '단일 KPI 판단 금지',
+      summary: '도달, 비용, 근거 상태를 함께 보고 예산 결정을 검토합니다.',
+    });
+    expect(rejectedViewModel.decisionCues[1]).toEqual({
+      key: 'range_spread_coverage',
+      tone: 'risk',
+      title: '구간 폭 확인',
+      summary: '1000만~1000만, 1개 예산대를 비교 범위로 봅니다.',
+    });
+    expect(rejectedViewModel.decisionCues[3]).toEqual({
+      key: 'basis_status',
+      tone: 'risk',
+      title: '구간 근거 없음',
+      summary: '유효한 예산 구간이 없어 재계산 후 검토합니다.',
+    });
   });
 
   it('returns aggregate display rows only and does not expose source identifiers or secrets', () => {
@@ -213,6 +393,7 @@ describe('simulator range view model', () => {
     })).toEqual({
       chartData: [],
       rangeTrendBrief: [],
+      decisionCues: [],
     });
   });
 
