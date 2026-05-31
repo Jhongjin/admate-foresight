@@ -292,6 +292,34 @@ function assertPredictRangeRouteResultContract(source) {
   }
 }
 
+function assertTrendsRouteResultContract(source) {
+  const relative = 'app/api/trends/route.ts'
+
+  assertIncludes(
+    source,
+    'normalizeTrendsRouteOutput',
+    'trends route aggregate-only output contract',
+  )
+
+  if (!/const\s+normalizedData\s*=\s*normalizeTrendsRouteOutput\s*\(\s*data\s*\)/.test(source)) {
+    fail(`${relative} must normalize trends output before responding`)
+  }
+
+  if (!/return\s+jsonNoStore\s*\(\s*normalizedData\s*\)/.test(source)) {
+    fail(`${relative} must return only normalized trends output`)
+  }
+
+  for (const pattern of [
+    /return\s+jsonNoStore\s*\(\s*data\s*[,)]/,
+    /return\s+noStoreJson\s*\(\s*data\s*[,)]/,
+    /return\s+NextResponse\.json\s*\(\s*data\s*[,)]/,
+  ]) {
+    if (pattern.test(source)) {
+      fail(`${relative} must not return raw trends data`)
+    }
+  }
+}
+
 for (const route of targetRoutes) {
   const source = read(route)
   assertRouteNoStore(source, route)
@@ -308,6 +336,7 @@ for (const route of diagnosticLogRoutes) {
 
 assertPredictRouteResultContract(read(file('app', 'api', 'predict', 'route.ts')))
 assertPredictRangeRouteResultContract(read(file('app', 'api', 'predict-range', 'route.ts')))
+assertTrendsRouteResultContract(read(file('app', 'api', 'trends', 'route.ts')))
 
 const metaAdsSource = read(file('app', 'api', 'meta-ads', 'route.ts'))
 assertIncludes(metaAdsSource, 'function safeMetaSnapshotUrl', 'meta-ads snapshot URL allowlist')

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { ensureDataLoaded } from '@/lib/xlsxLoader';
 import { getTrends } from '@/lib/trendsData';
+import { normalizeTrendsRouteOutput } from '@/lib/foresightTrendRouteOutputContract';
 
 function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
   const headers = new Headers(init.headers);
@@ -27,7 +28,8 @@ export async function GET(req: NextRequest) {
 
     await ensureDataLoaded();
     const data = getTrends(industries, genders, ageRanges, objectives);
-    return jsonNoStore(data);
+    const normalizedData = normalizeTrendsRouteOutput(data);
+    return jsonNoStore(normalizedData);
   } catch {
     console.error('[trends] failed');
     return jsonNoStore({ error: 'Failed to load trends' }, { status: 500 });

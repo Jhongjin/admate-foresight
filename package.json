@@ -42,6 +42,7 @@
     "check:simulator-performance-flow-contract": "vitest run tests/benchmark/simulator-performance-flow-contract.test.ts",
     "check:simulator-range-normalization": "vitest run tests/benchmark/simulator-range-normalization.test.ts",
     "check:simulator-range-view-model": "vitest run tests/benchmark/simulator-range-view-model.test.ts",
+    "check:trends-route-output-contract": "vitest run tests/benchmark/trends-route-output-contract.test.ts",
     "test:benchmark-ui": "vitest run tests/benchmark --environment jsdom",
     "start": "next start",
     "lint": "eslint"
