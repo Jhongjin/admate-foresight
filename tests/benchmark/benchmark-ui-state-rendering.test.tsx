@@ -14,21 +14,24 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+const FORBIDDEN_RENDERED_OPERATOR_COPY = /confidence|신뢰도|확신|확정|보장|promise|certainty/i;
+
 const REQUIRED_RENDER_CONCEPTS: Record<BenchmarkTrustState, RegExp[]> = {
   'benchmark-ready': [
     /예시 벤치마크 cpm/i,
     /검토자 승인 대기/i,
-    /신뢰도 높음/i,
+    /검토 근거 충분/i,
     /최근 6개월 기준 기간/i,
     /로컬 검증용 예시 데이터/i,
     /벤치마크 가져오기/i,
     /데이터베이스 반영/i,
   ],
   'low-confidence': [
-    /신뢰도 낮음/i,
+    /운영자 검토 필요/i,
+    /검토 근거 부족/i,
     /표본 범위 부족/i,
-    /보고서 또는 내보내기 전에 낮은 신뢰도 사유/i,
-    /과도한 예측 확정 표현/i,
+    /보고서 또는 내보내기 전에 검토 근거 부족 사유/i,
+    /성과 단정 표현/i,
   ],
   'long-term-trend-only': [
     /장기 추세 참고 전용/i,
@@ -112,6 +115,7 @@ describe('benchmark UI state rendering adapter', () => {
 
       expect(renderedText).not.toMatch(/report ready:\s*true/i);
       expect(renderedText).not.toMatch(/promotion ready:\s*true/i);
+      expect(renderedText).not.toMatch(FORBIDDEN_RENDERED_OPERATOR_COPY);
     },
   );
 
@@ -124,7 +128,7 @@ describe('benchmark UI state rendering adapter', () => {
 
       const article = screen.getByRole('article', { name: fixture.state });
       const card = within(article).getByRole('region', {
-        name: new RegExp(`${escapeRegExp(viewModel.metricLabel)} 벤치마크 신뢰도 세부 정보`, 'i'),
+        name: new RegExp(`${escapeRegExp(viewModel.metricLabel)} 벤치마크 검토 근거 세부 정보`, 'i'),
       });
 
       expect(within(card).getByRole('status')).toHaveAccessibleName(
@@ -183,7 +187,7 @@ describe('benchmark UI state rendering adapter', () => {
     );
 
     const card = screen.getByRole('region', {
-      name: /예시 벤치마크 cpm 벤치마크 신뢰도 세부 정보/i,
+      name: /예시 벤치마크 cpm 벤치마크 검토 근거 세부 정보/i,
     });
     const context = screen.getByText(longContextLabel);
     const blockedOutputs = within(card).getByRole('list', {

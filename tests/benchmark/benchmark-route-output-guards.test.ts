@@ -16,8 +16,8 @@ const REQUIRED_BLOCKED_OUTPUTS: Record<BenchmarkTrustState, string[]> = {
     '외부 생성 요청',
   ],
   'low-confidence': [
-    '과도한 예측 확정 표현',
-    '신뢰도 사유 없는 보고서 내보내기',
+    '성과 단정 표현',
+    '검토 근거 사유 없는 보고서 내보내기',
   ],
   'long-term-trend-only': [
     '기본 벤치마크 적용',
@@ -75,6 +75,8 @@ const FORBIDDEN_SAFE_OUTPUT_KEY_PATTERNS = [
   /credential/i,
 ];
 
+const FORBIDDEN_USER_FACING_ROUTE_COPY = /confidence|신뢰도|확신|확정|보장|promise|certainty/i;
+
 function collectKeyPaths(output: unknown, path = 'safeOutput'): string[] {
   if (output === null || typeof output !== 'object') {
     return [];
@@ -96,6 +98,24 @@ function collectKeyPaths(output: unknown, path = 'safeOutput'): string[] {
       ];
     },
   );
+}
+
+function collectStringValues(output: unknown): string[] {
+  if (typeof output === 'string') {
+    return [output];
+  }
+
+  if (Array.isArray(output)) {
+    return output.flatMap(collectStringValues);
+  }
+
+  if (output !== null && typeof output === 'object') {
+    return Object.values(output as Record<string, unknown>).flatMap(
+      collectStringValues,
+    );
+  }
+
+  return [];
 }
 
 describe('benchmark route output guards', () => {
@@ -122,6 +142,9 @@ describe('benchmark route output guards', () => {
       expect(forbiddenKeyPaths).toEqual([]);
       expect(result.safeOutput.syntheticContextLabel).toBe(
         '로컬 검증용 예시 데이터',
+      );
+      expect(collectStringValues(result.safeOutput).join(' ')).not.toMatch(
+        FORBIDDEN_USER_FACING_ROUTE_COPY,
       );
 
       for (const pattern of FORBIDDEN_RENDERED_OUTPUTS) {

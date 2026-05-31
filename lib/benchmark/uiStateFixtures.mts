@@ -71,6 +71,16 @@ const FORBIDDEN_OUTPUT_PATTERNS = [
   /https?:\/\//i,
 ];
 
+const FORBIDDEN_USER_FACING_COPY_PATTERNS = [
+  /confidence/i,
+  /신뢰도/i,
+  /확신/i,
+  /확정/i,
+  /보장/i,
+  /promise/i,
+  /certainty/i,
+];
+
 function getReport(reports: BenchmarkDryRunReport[], caseName: string): BenchmarkDryRunReport {
   const report = reports.find((candidate) => candidate.case_name === caseName);
   if (!report) {
@@ -113,6 +123,26 @@ function reviewerActionLabels(report: BenchmarkDryRunReport): string[] {
   return report.reviewer_action_required.map((action) => action.action_type);
 }
 
+function userFacingCopyForFixture(fixture: BenchmarkUiStateFixture): string[] {
+  return [
+    fixture.status_label,
+    fixture.metric?.label,
+    fixture.metric?.value_label,
+    fixture.metric?.confidence_label,
+    fixture.metric?.basis_label,
+    fixture.basis.platform,
+    fixture.basis.objective,
+    fixture.basis.metric,
+    fixture.basis.date_window,
+    fixture.basis.recent_data_policy,
+    fixture.basis.sample_or_coverage,
+    fixture.basis.currency_basis,
+    ...fixture.visible_copy,
+    ...fixture.redaction_expectations,
+    ...fixture.blocked_outputs,
+  ].filter((value): value is string => typeof value === 'string');
+}
+
 export function buildForesightBenchmarkUiStateFixtures(): BenchmarkUiStateFixture[] {
   const reports = runBenchmarkDryRunMockCases().reports;
   const good = getReport(reports, 'good_sample');
@@ -130,7 +160,7 @@ export function buildForesightBenchmarkUiStateFixtures(): BenchmarkUiStateFixtur
       metric: {
         label: '예시 벤치마크 CPM',
         value_label: formatAggregateMetric(good.derived_metric_preview),
-        confidence_label: '신뢰도 높음',
+        confidence_label: '검토 근거 충분',
         basis_label: '최근 집계 예시, KRW 순매체비 기준 명시',
       },
       basis: baseBasis(good),
@@ -151,12 +181,12 @@ export function buildForesightBenchmarkUiStateFixtures(): BenchmarkUiStateFixtur
     {
       state: 'low-confidence',
       source_case: 'synthetic_low_confidence_overlay',
-      status_label: '신뢰도 낮음',
+      status_label: '운영자 검토 필요',
       primary_surface: 'forecast_panel',
       metric: {
         label: '예시 예측 CPM',
         value_label: 'CPM 범위 표시 제한',
-        confidence_label: '신뢰도 낮음: 표본 범위 부족',
+        confidence_label: '검토 근거 부족: 표본 범위 부족',
         basis_label: '지표 옆 표본 범위 주의 안내',
       },
       basis: baseBasis(good, {
@@ -164,15 +194,15 @@ export function buildForesightBenchmarkUiStateFixtures(): BenchmarkUiStateFixtur
       }),
       visible_copy: [
         '이 범위의 벤치마크 기준은 제한적입니다.',
-        '보고서 또는 내보내기 전에 낮은 신뢰도 사유를 표시합니다.',
+        '보고서 또는 내보내기 전에 검토 근거 부족 사유를 표시합니다.',
       ],
       reviewer_actions: ['review_basis_before_export'],
       redaction_expectations: [
         '실제 볼륨, 지출, 전환, 매출, 비공개 벤치마크 값은 표시하지 않습니다.',
       ],
       blocked_outputs: [
-        '과도한 예측 확정 표현',
-        '신뢰도 사유 없는 보고서 내보내기',
+        '성과 단정 표현',
+        '검토 근거 사유 없는 보고서 내보내기',
       ],
     },
     {
@@ -316,6 +346,12 @@ export function validateForesightBenchmarkUiStateFixtures(fixtures = buildForesi
     for (const pattern of FORBIDDEN_OUTPUT_PATTERNS) {
       if (pattern.test(serialized)) {
         sanitizer_failures.push(`${fixture.state} contains forbidden output pattern ${pattern}`);
+      }
+    }
+    const userFacingCopy = userFacingCopyForFixture(fixture).join(' ');
+    for (const pattern of FORBIDDEN_USER_FACING_COPY_PATTERNS) {
+      if (pattern.test(userFacingCopy)) {
+        sanitizer_failures.push(`${fixture.state} contains forbidden user-facing copy pattern ${pattern}`);
       }
     }
     if (fixture.basis.mock_status !== 'synthetic_local_fixture') {

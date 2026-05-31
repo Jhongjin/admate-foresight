@@ -66,6 +66,16 @@ const UNSAFE_OUTPUT_VALUE_PATTERNS: RegExp[] = [
   /secret\s*[:=]/i,
 ];
 
+const FORBIDDEN_USER_FACING_COPY_PATTERNS: RegExp[] = [
+  /confidence/i,
+  /신뢰도/i,
+  /확신/i,
+  /확정/i,
+  /보장/i,
+  /promise/i,
+  /certainty/i,
+];
+
 const UNSAFE_OUTPUT_KEY_PATTERNS: RegExp[] = [
   /source[_-]?case/i,
   /reviewer[_-]?actions/i,
@@ -139,16 +149,39 @@ function collectUnsafeKeyFindings(
   );
 }
 
+function collectStringValues(output: unknown): string[] {
+  if (typeof output === 'string') {
+    return [output];
+  }
+
+  if (Array.isArray(output)) {
+    return output.flatMap(collectStringValues);
+  }
+
+  if (output !== null && typeof output === 'object') {
+    return Object.values(output as Record<string, unknown>).flatMap(
+      collectStringValues,
+    );
+  }
+
+  return [];
+}
+
 function collectUnsafeFindings(output: unknown): string[] {
   const serialized = JSON.stringify(output) ?? '';
   const valueFindings = UNSAFE_OUTPUT_VALUE_PATTERNS
     .filter((pattern) => pattern.test(serialized))
     .map((pattern) => `Unsafe route output value pattern matched: ${pattern}`);
+  const userFacingCopy = collectStringValues(output).join(' ');
+  const copyFindings = FORBIDDEN_USER_FACING_COPY_PATTERNS
+    .filter((pattern) => pattern.test(userFacingCopy))
+    .map((pattern) => `Forbidden user-facing route copy matched: ${pattern}`);
 
   return [
     ...collectSafeOutputShapeFindings(output),
     ...collectUnsafeKeyFindings(output),
     ...valueFindings,
+    ...copyFindings,
   ];
 }
 
