@@ -22,6 +22,7 @@
     "check:breakdown-route-output-contract": "vitest run tests/benchmark/breakdown-route-output-contract.test.ts",
     "check:insights-route-output-contract": "vitest run tests/benchmark/insights-route-output-contract.test.ts",
     "check:seasonality-route-output-contract": "vitest run tests/benchmark/seasonality-route-output-contract.test.ts",
+    "check:sentinel-prediction-evidence-manifest": "vitest run tests/benchmark/sentinel-prediction-evidence-manifest-contract.test.ts",
     "check:prediction-data-sufficiency-contract": "vitest run tests/benchmark/prediction-data-sufficiency-contract.test.ts",
     "check:prediction-request-contract": "vitest run tests/benchmark/prediction-request-contract.test.ts",
     "check:prediction-route-objectives-contract": "vitest run tests/benchmark/prediction-route-objectives-contract.test.ts",
