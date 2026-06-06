@@ -11,6 +11,7 @@
     "check:auth-handoff-static": "node scripts/check-auth-handoff-static.mjs",
     "check:benchmark-kpi-static-contract": "node scripts/check-benchmark-kpi-static-contract.mjs",
     "check:benchmark-source-static-contract": "node --experimental-strip-types scripts/check-benchmark-source-static-contract.mjs",
+    "check:foresight-prelaunch-offline-contracts": "node scripts/check-foresight-prelaunch-offline-contracts.mjs",
     "check:benchmark-route-output-guards": "vitest run tests/benchmark/benchmark-route-output-guards.test.ts",
     "check:benchmark-source-metadata-contract": "vitest run tests/benchmark/benchmark-source-metadata-contract.test.ts",
     "check:benchmark-ui-runner-smoke": "vitest run tests/benchmark/benchmark-ui-runner-smoke.test.ts --environment jsdom",
@@ -49,6 +50,7 @@
     "check:simulator-range-view-model": "vitest run tests/benchmark/simulator-range-view-model.test.ts",
     "check:trends-route-output-contract": "vitest run tests/benchmark/trends-route-output-contract.test.ts",
     "test:benchmark-ui": "vitest run tests/benchmark --environment jsdom",
+    "verify:prelaunch-local": "npm run check:foresight-prelaunch-offline-contracts",
     "start": "next start",
     "lint": "eslint"
   },
