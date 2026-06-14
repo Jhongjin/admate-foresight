@@ -235,7 +235,7 @@ export default function Navigation({
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between gap-2 sm:gap-3">
           <Link
-            href="/"
+            href="/login?next=%2F"
             aria-label="AdMate Foresight 홈"
             className="flex min-w-0 shrink items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 sm:gap-3"
           >
