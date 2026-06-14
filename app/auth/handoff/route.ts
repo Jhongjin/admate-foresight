@@ -53,7 +53,10 @@ export async function GET(request: NextRequest) {
     return redirectToLogin(request, fallbackNextPath, 'expired');
   }
 
-  const response = NextResponse.redirect(new URL(session.returnPath, request.url));
+  const loginUrl = new URL('/login', request.url);
+  loginUrl.searchParams.set('next', session.returnPath);
+  loginUrl.searchParams.set('auth', 'success');
+  const response = NextResponse.redirect(loginUrl);
   if (!setForesightSessionCookie(response, session)) {
     return redirectToLogin(request, session.returnPath, 'invalid');
   }
