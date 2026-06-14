@@ -35,6 +35,20 @@ function hasExactlyOneCodeQuery(searchParams: URLSearchParams): boolean {
   return keys.length === 1 && keys[0] === 'code';
 }
 
+function resolveSiteSwitchReturnPath(request: NextRequest, returnPath: string): string | null {
+  try {
+    const target = new URL(returnPath, request.nextUrl.origin);
+    if (target.origin !== request.nextUrl.origin) return null;
+    if (target.searchParams.get('admate_entry') !== 'site-switch') return null;
+
+    target.searchParams.delete('admate_entry');
+    const query = target.searchParams.toString();
+    return `${target.pathname}${query ? `?${query}` : ''}${target.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const fallbackNextPath = sanitizeForesightNextPath(undefined);
   const codeValues = request.nextUrl.searchParams.getAll('code');
@@ -51,6 +65,16 @@ export async function GET(request: NextRequest) {
   const session = await redeemForesightHandoffCode(code);
   if (!session) {
     return redirectToLogin(request, fallbackNextPath, 'expired');
+  }
+
+  const siteSwitchReturnPath = resolveSiteSwitchReturnPath(request, session.returnPath);
+  if (siteSwitchReturnPath) {
+    const response = NextResponse.redirect(new URL(siteSwitchReturnPath, request.url));
+    if (!setForesightSessionCookie(response, session)) {
+      return redirectToLogin(request, session.returnPath, 'invalid');
+    }
+
+    return applyHandoffRedirectHeaders(response);
   }
 
   const loginUrl = new URL('/login', request.url);

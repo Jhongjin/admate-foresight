@@ -148,6 +148,7 @@ const siteItems = [
     description: '광고 화면 확인과 기록',
     directHref: 'https://lens.admate.ai.kr',
     handoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=lens&next=/',
+    authenticatedHandoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=lens&next=%2F%3Fadmate_entry%3Dsite-switch',
     icon: 'lens',
     active: false,
   },
@@ -156,6 +157,7 @@ const siteItems = [
     description: '성과 예측과 기준선 관리',
     directHref: 'https://foresight.admate.ai.kr',
     handoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=foresight&next=/',
+    authenticatedHandoffHref: 'https://sentinel.admate.ai.kr/auth/product/start?product=foresight&next=%2F%3Fadmate_entry%3Dsite-switch',
     icon: 'foresight',
     active: true,
   },
@@ -163,6 +165,7 @@ const siteItems = [
   href?: string;
   directHref?: string;
   handoffHref?: string;
+  authenticatedHandoffHref?: string;
   label: string;
   description: string;
   icon: SiteIconName;
@@ -276,7 +279,9 @@ export default function Navigation({
                   <div className="mb-1.5 h-px bg-[#D8DEE6]" />
                   {siteItems.map((site) => (
                     (() => {
-                      const href = site.handoffHref ?? site.directHref ?? site.href ?? '#';
+                      const href = isAuthenticated && site.authenticatedHandoffHref
+                        ? site.authenticatedHandoffHref
+                        : site.handoffHref ?? site.directHref ?? site.href ?? '#';
                       return (
                     <Link
                       key={site.label}
