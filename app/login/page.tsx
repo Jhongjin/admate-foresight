@@ -318,26 +318,49 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </p>
             ) : null}
 
-            <div className="space-y-3 rounded-lg border border-stone-200 bg-[#f7f7f2] p-4">
-              <p className="text-sm font-bold text-slate-950">
-                Foresight 이용 권한이 필요하신가요?
-              </p>
-              <p className="text-xs leading-5 text-stone-500">
-                권한이 없거나 처음 이용하는 경우, AdMate에서 Foresight 이용 권한을 요청해주세요.
-              </p>
-              <a
-                href={FORESIGHT_ACCESS_REQUEST_URL}
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
-              >
-                AdMate 이용 권한 요청
-              </a>
-              <a
-                href="https://home.admate.ai.kr"
-                className="inline-flex w-full items-center justify-center text-sm font-semibold text-stone-500 transition-colors hover:text-slate-950"
-              >
-                AdMate 홈페이지로 이동
-              </a>
-            </div>
+            {isAuthenticated ? (
+              <div className="space-y-3 rounded-lg border border-stone-200 bg-[#f7f7f2] p-4">
+                <p className="text-sm font-bold text-slate-950">
+                  Foresight 계정 연결이 완료되었습니다
+                </p>
+                <p className="text-xs leading-5 text-stone-500">
+                  상단 계정 메뉴에서 내 계정과 로그아웃을 관리하고, Foresight 작업 공간에서 성과 예측을 이어갈 수 있습니다.
+                </p>
+                <a
+                  href="https://sentinel.admate.ai.kr/account"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
+                >
+                  내 AdMate 계정 보기
+                </a>
+                <a
+                  href="https://home.admate.ai.kr"
+                  className="inline-flex w-full items-center justify-center text-sm font-semibold text-stone-500 transition-colors hover:text-slate-950"
+                >
+                  AdMate 홈페이지로 이동
+                </a>
+              </div>
+            ) : (
+              <div className="space-y-3 rounded-lg border border-stone-200 bg-[#f7f7f2] p-4">
+                <p className="text-sm font-bold text-slate-950">
+                  Foresight 이용 권한이 필요하신가요?
+                </p>
+                <p className="text-xs leading-5 text-stone-500">
+                  권한이 없거나 처음 이용하는 경우, AdMate에서 Foresight 이용 권한을 요청해주세요.
+                </p>
+                <a
+                  href={FORESIGHT_ACCESS_REQUEST_URL}
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-teal-700/30 hover:bg-white active:scale-[0.98]"
+                >
+                  AdMate 이용 권한 요청
+                </a>
+                <a
+                  href="https://home.admate.ai.kr"
+                  className="inline-flex w-full items-center justify-center text-sm font-semibold text-stone-500 transition-colors hover:text-slate-950"
+                >
+                  AdMate 홈페이지로 이동
+                </a>
+              </div>
+            )}
           </aside>
 
           <ForesightTextMaterialCanvas />

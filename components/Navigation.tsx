@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 interface NavigationProps {
@@ -183,14 +182,12 @@ export default function Navigation({
   sessionProfile = null,
   adminNavigation = null,
 }: NavigationProps) {
-  const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [siteOpen, setSiteOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const siteRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
-  const isAuthRoute = pathname === '/login' || pathname === '/reset-password';
-  const showSignedIn = isAuthenticated && !isAuthRoute;
+  const showSignedIn = isAuthenticated;
   const displayName = sessionProfile?.displayName || 'AdMate 계정';
   const profileEmail = sessionProfile?.email || '';
   const accessLabel = sessionProfile?.accessLabel || 'Foresight 이용 권한';
