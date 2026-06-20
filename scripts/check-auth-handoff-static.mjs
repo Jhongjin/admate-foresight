@@ -100,6 +100,17 @@ function assertNoIncludes(source, marker, label) {
   if (source.includes(marker)) fail(`${label}: must not include ${marker}`)
 }
 
+function assertOrder(source, before, after, label) {
+  const beforeIndex = source.indexOf(before)
+  const afterIndex = source.indexOf(after)
+  if (beforeIndex === -1 || afterIndex === -1) {
+    fail(`${label}: missing order marker`)
+    return
+  }
+
+  if (beforeIndex >= afterIndex) fail(`${label}: ${before} must appear before ${after}`)
+}
+
 const authSource = read(files.auth)
 const accessCopySource = read(files.accessCopy)
 const pageGuardSource = read(files.pageGuard)
@@ -173,13 +184,37 @@ for (const marker of [
   "const codeValues = request.nextUrl.searchParams.getAll('code')",
   'isValidForesightHandoffCode(code)',
   'redeemForesightHandoffCode(code)',
-  'new URL(session.returnPath, request.url)',
+  'resolveSiteSwitchReturnPath(request, session.returnPath)',
+  'new URL(siteSwitchReturnPath, request.url)',
+  "const loginUrl = new URL('/login', request.url)",
+  "loginUrl.searchParams.set('next', session.returnPath)",
+  "loginUrl.searchParams.set('auth', 'success')",
   'setForesightSessionCookie(response, session)',
   "redirectToLogin(request, fallbackNextPath, 'disabled')",
   "redirectToLogin(request, fallbackNextPath, 'invalid')",
   "redirectToLogin(request, fallbackNextPath, 'expired')",
 ]) {
   assertIncludes(handoffRouteSource, marker, 'handoff route fail-closed/no-store contract')
+}
+
+for (const [before, after, label] of [
+  [
+    'redeemForesightHandoffCode(code)',
+    'resolveSiteSwitchReturnPath(request, session.returnPath)',
+    'handoff route must redeem before resolving return path',
+  ],
+  [
+    'resolveSiteSwitchReturnPath(request, session.returnPath)',
+    "const loginUrl = new URL('/login', request.url)",
+    'handoff route must prefer site-switch return before login success redirect',
+  ],
+  [
+    "loginUrl.searchParams.set('auth', 'success')",
+    'const response = NextResponse.redirect(loginUrl)',
+    'handoff route must set success state before issuing login redirect',
+  ],
+]) {
+  assertOrder(handoffRouteSource, before, after, label)
 }
 
 for (const marker of [
