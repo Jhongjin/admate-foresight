@@ -6,6 +6,7 @@ import {
   normalizeForesightSimulatorMlBaselineProxyRequest,
   normalizeForesightSimulatorMlBaselineProxySuccessResponse,
 } from '@/lib/foresightSimulatorMlBaselineProxyContract';
+import { getConfiguredInternalKey, INTERNAL_KEY_HEADER } from '@/lib/security';
 
 function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
   const headers = new Headers(init.headers);
@@ -40,6 +41,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const internalKey = getConfiguredInternalKey();
+  if (!internalKey) {
+    return jsonNoStore(
+      {
+        error: 'ML 서비스 인증 미설정',
+      },
+      { status: 503 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -60,7 +71,10 @@ export async function POST(req: NextRequest) {
   try {
     const res = await fetch(`${PY_API}/predict`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        [INTERNAL_KEY_HEADER]: internalKey,
+      },
       body:    JSON.stringify(predictionRequest),
       signal:  AbortSignal.timeout(10_000), // 10초 타임아웃
     });

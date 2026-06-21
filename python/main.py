@@ -102,7 +102,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", INTERNAL_KEY_HEADER],
 )
 
 
@@ -170,7 +170,10 @@ class ModelInfoResponse(BaseModel):
 # ══════════════════════════════════════════════════════════════
 
 @app.post("/predict", response_model=PredictResponse, summary="광고 성과 예측")
-def predict(req: PredictRequest):
+def predict(
+    req: PredictRequest,
+    x_admate_internal_key: Optional[str] = Header(default=None),
+):
     """
     [업종 / 타겟 / 기간 / 예산] → [CPM, CTR, CPC, 도달 추정]
 
@@ -179,6 +182,7 @@ def predict(req: PredictRequest):
     - **cpc**: 클릭당 비용 (원)
     - **reach**: 예산 대비 도달 추정 수 (명)
     """
+    _require_internal_key(x_admate_internal_key)
     if not m.is_loaded():
         raise HTTPException(
             status_code=503,

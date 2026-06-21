@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 describe('python ML model contract', () => {
   const source = readFileSync(join(process.cwd(), 'python', 'model.py'), 'utf8');
+  const mainSource = readFileSync(join(process.cwd(), 'python', 'main.py'), 'utf8');
+  const proxyRouteSource = readFileSync(join(process.cwd(), 'app', 'api', 'py-predict', 'route.ts'), 'utf8');
 
   it('keeps the sklearn boosting candidate optional and dependency-light', () => {
     expect(source).toContain('HistGradientBoostingRegressor');
@@ -21,5 +23,17 @@ describe('python ML model contract', () => {
     expect(source).toContain('0.03');
     expect(source).toContain('0.97');
     expect(source).toContain('work = df.copy()');
+  });
+
+  it('keeps Python prediction traffic behind the same internal key boundary', () => {
+    expect(proxyRouteSource).toContain('getConfiguredInternalKey');
+    expect(proxyRouteSource).toContain('INTERNAL_KEY_HEADER');
+    expect(proxyRouteSource).toContain('[INTERNAL_KEY_HEADER]: internalKey');
+    expect(proxyRouteSource).toContain('ML 서비스 인증 미설정');
+
+    expect(mainSource).toContain('INTERNAL_KEY_HEADER = "x-admate-internal-key"');
+    expect(mainSource).toContain('allow_headers=["Content-Type", "Authorization", INTERNAL_KEY_HEADER]');
+    expect(mainSource).toContain('x_admate_internal_key: Optional[str] = Header(default=None)');
+    expect(mainSource).toContain('_require_internal_key(x_admate_internal_key)');
   });
 });
