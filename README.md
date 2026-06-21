@@ -131,8 +131,8 @@ When running Next.js locally, set `PYTHON_API_URL` to the Python API base URL, f
 
 Python endpoints:
 
-- `POST /predict`
-- `POST /retrain`
+- `POST /predict` (requires `x-admate-internal-key`)
+- `POST /retrain` (requires `x-admate-internal-key`)
 - `GET /model-info`
 - `GET /health`
 
@@ -184,6 +184,9 @@ Python ML:
 - `PYTHON_API_URL`
 - `ALLOWED_ORIGINS`
 - `MODELS_DIR`
+- `ADMATE_INTERNAL_KEY`
+- `FORESIGHT_INTERNAL_KEY`
+- `INTERNAL_API_KEY`
 
 Meta and competitor monitoring:
 
@@ -273,8 +276,10 @@ Current safeguards:
 
 - `/api/debug-env` and `/api/debug-data` return disabled/not-found responses.
 - `/api/export` is disabled.
+- `/api/py-predict` forwards the configured internal key to the Python service.
 - `/api/py-retrain` requires an internal key.
 - `/api/meta-sync` requires an internal key.
+- Python `/predict` and `/retrain` require the same internal key header.
 - The optional Meta scrape Playwright fallback requires an internal key in production runtime.
 
 Remaining operating requirements:
