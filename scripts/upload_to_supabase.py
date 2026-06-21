@@ -79,7 +79,7 @@ endpoint = f'{SUPABASE_URL}/rest/v1/ad_data'
 
 for i in range(0, total, BATCH):
     batch = rows[i:i+BATCH]
-    resp = requests.post(endpoint, headers=HEADERS, json=batch, timeout=30, verify=False)
+    resp = requests.post(endpoint, headers=HEADERS, json=batch, timeout=30)
     if resp.status_code not in (200, 201):
         print(f'❌ 오류 (배치 {i}~): {resp.status_code} {resp.text[:200]}')
         sys.exit(1)
