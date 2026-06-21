@@ -15,6 +15,8 @@ describe('Foresight aggregate refresh script contract', () => {
     expect(script).toContain('dry run');
     expect(script).toContain('add --apply to execute refresh RPCs');
     expect(script).toContain('FORESIGHT_SUPABASE_SERVICE_ROLE_KEY is required for --apply');
+    expect(script).toContain("function readEnv(name)");
+    expect(script).toContain('[Environment]::GetEnvironmentVariable');
   });
 
   it('refreshes only approved aggregate cache RPCs and never logs secret values', () => {

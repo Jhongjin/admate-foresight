@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { execFileSync } from 'node:child_process';
 import { URL } from 'node:url';
 
 const MONTHLY_REFRESH_RPC = 'refresh_foresight_monthly_aggregates_window';
@@ -45,10 +46,10 @@ if (!apply) {
 }
 
 const supabaseUrl =
-  process.env.FORESIGHT_SUPABASE_URL ||
-  process.env.NEXT_PUBLIC_FORESIGHT_SUPABASE_URL ||
+  readEnv('FORESIGHT_SUPABASE_URL') ||
+  readEnv('NEXT_PUBLIC_FORESIGHT_SUPABASE_URL') ||
   '';
-const serviceRoleKey = process.env.FORESIGHT_SUPABASE_SERVICE_ROLE_KEY || '';
+const serviceRoleKey = readEnv('FORESIGHT_SUPABASE_SERVICE_ROLE_KEY') || '';
 
 if (!supabaseUrl) {
   fail('FORESIGHT_SUPABASE_URL is required for --apply');
@@ -158,6 +159,36 @@ async function callRpc(baseUrl, key, rpc, body) {
   } catch {
     return text;
   }
+}
+
+function readEnv(name) {
+  const processValue = process.env[name];
+  if (processValue) return processValue;
+
+  if (process.platform !== 'win32') return '';
+
+  return readWindowsEnv(name, 'User') || readWindowsEnv(name, 'Machine');
+}
+
+function readWindowsEnv(name, target) {
+  try {
+    return execFileSync('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      `[Environment]::GetEnvironmentVariable('${escapePowerShellSingleQuoted(name)}', '${target}')`,
+    ], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 5000,
+    }).trim();
+  } catch {
+    return '';
+  }
+}
+
+function escapePowerShellSingleQuoted(value) {
+  return value.replace(/'/g, "''");
 }
 
 function printUsage() {
