@@ -272,6 +272,39 @@ function calcFromRecords(records: XlsxRecord[], budget: number) {
   };
 }
 
+function regressionSurfaceAdjustment(
+  data: XlsxRecord[],
+  industries: string[],
+  objectives: string[],
+  placements: string[],
+  creativeTypes: string[],
+): number {
+  if (placements.length === 0 && creativeTypes.length === 0) return 1;
+
+  const baselineRows = filterXlsx(data, industries, [], [], objectives);
+  const baseCPM = weightedCPM(baselineRows.length >= MINIMUM_MATCHED_RECORDS ? baselineRows : data);
+  if (baseCPM <= 0) return 1;
+
+  let factor = 1;
+  if (placements.length > 0) {
+    const placementRows = filterXlsx(data, industries, [], [], objectives, placements);
+    if (placementRows.length >= 5) {
+      const placementCPM = weightedCPM(placementRows);
+      if (placementCPM > 0) factor *= 1 + (placementCPM / baseCPM - 1) * 0.65;
+    }
+  }
+
+  if (creativeTypes.length > 0) {
+    const creativeRows = filterXlsx(data, industries, [], [], objectives, [], creativeTypes);
+    if (creativeRows.length >= 5) {
+      const creativeCPM = weightedCPM(creativeRows);
+      if (creativeCPM > 0) factor *= 1 + (creativeCPM / baseCPM - 1) * 0.65;
+    }
+  }
+
+  return Math.max(0.5, Math.min(1.5, factor));
+}
+
 function buildDataSufficiency(
   basis: DataSufficiencyBasis,
   matchedCount: number,
@@ -546,6 +579,19 @@ export function predict(input: PredictInput): PredictResult {
     }
     r2Cpm = regResult.r2Cpm; r2Cpc = regResult.r2Cpc; r2Vtr = regResult.r2VTR;
     predictionMethod = 'regression';
+    const surfaceAdjustment = regressionSurfaceAdjustment(
+      xlsxData,
+      industries,
+      objectives,
+      placements,
+      creativeTypes,
+    );
+    if (Math.abs(surfaceAdjustment - 1) > 0.005) {
+      cpm = Math.round(cpm * surfaceAdjustment);
+      const costAdjustment = 1 + (surfaceAdjustment - 1) * 0.75;
+      cpc = Math.round(cpc * costAdjustment);
+      cpcLink = cpcLink > 0 ? Math.round(cpcLink * costAdjustment) : 0;
+    }
   } else if (matched.length > 0) {
     const avg = calcFromRecords(matched, budget);
     ({ cpm, cpc, cpcLink, cpv, vtr } = avg);

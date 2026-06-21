@@ -44,10 +44,10 @@ function records(count: number, overrides: Partial<XlsxRecord> = {}): XlsxRecord
   return Array.from({ length: count }, () => record(overrides));
 }
 
-async function predictWithData(data: XlsxRecord[]) {
+async function predictWithData(data: XlsxRecord[], regressionResult = regressionFallback) {
   vi.resetModules();
   vi.doMock('../../lib/regression', () => ({
-    predictByRegression: vi.fn(() => regressionFallback),
+    predictByRegression: vi.fn(() => regressionResult),
   }));
 
   const loader = await import('../../lib/xlsxLoader');
@@ -216,6 +216,52 @@ describe('prediction data sufficiency contract', () => {
       basis: 'exact_cohort',
       matchedCount: 10,
     });
+  });
+
+  it('applies bounded placement and creative surface adjustment to regression predictions', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-06-21T00:00:00Z'));
+      const predict = await predictWithData([
+        ...records(20, {
+          노출위치: 'Facebook 피드',
+          소재형태: '이미지',
+          CPM: 1_000,
+          CPC: 100,
+          CPC링크: 80,
+        }),
+        ...records(5, {
+          노출위치: 'Instagram 릴스',
+          소재형태: '이미지',
+          CPM: 3_000,
+          CPC: 300,
+          CPC링크: 240,
+        }),
+      ], {
+        cpm: 2_000,
+        cpc: 200,
+        cpcLink: 160,
+        vtr: 20,
+        r2Cpm: 0.8,
+        r2Cpc: 0.7,
+        r2VTR: 0.6,
+      });
+      const result = predict({
+        industries: ['교육'],
+        genders: [],
+        ageRanges: [],
+        objectives: ['OUTCOME_TRAFFIC'],
+        placements: ['Instagram 릴스'],
+        budget: 10_000_000,
+      });
+
+      expect(result.predictionMethod).toBe('regression');
+      expect(result.cpm).toBe(3_000);
+      expect(result.cpc).toBe(275);
+      expect(result.cpcLink).toBe(220);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('calculates CPC from summed spend over inferred clicks instead of averaging row CPCs', async () => {
