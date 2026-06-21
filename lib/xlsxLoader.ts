@@ -1,3 +1,8 @@
+import {
+  getForesightSupabaseAnonKey,
+  getForesightSupabaseUrl,
+} from './foresightSupabaseEnv';
+
 export interface XlsxRecord {
   업종: string;
   목표: string;
@@ -137,6 +142,34 @@ export async function ensureDataLoaded(): Promise<void> {
 async function fetchRpcAllPages<T>(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   client: any,
+  fnNames: string | string[],
+  args: Record<string, unknown> = {},
+): Promise<T[]> {
+  const candidates = Array.isArray(fnNames) ? fnNames : [fnNames];
+  let missingRpcError: Error | null = null;
+  for (const fnName of candidates) {
+    try {
+      return await fetchRpcAllPagesForFunction<T>(client, fnName, args);
+    } catch (error) {
+      if (isMissingRpcError(error) && candidates.length > 1) {
+        missingRpcError = error instanceof Error ? error : new Error(String(error));
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw missingRpcError ?? new Error(`RPC ${candidates.join(', ')} 오류`);
+}
+
+function isMissingRpcError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /PGRST202|could not find.*function|function .* does not exist/i.test(message);
+}
+
+async function fetchRpcAllPagesForFunction<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
   fnName: string,
   args: Record<string, unknown> = {},
 ): Promise<T[]> {
@@ -162,8 +195,8 @@ async function fetchRpcAllPages<T>(
 export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo: XlsxRecord[] }> {
   const { createClient } = await import('@supabase/supabase-js');
   const client = createClient(
-    (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL)!,
-    (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY)!,
+    getForesightSupabaseUrl(),
+    getForesightSupabaseAnonKey(),
   );
 
   type MonthRow = { 업종:string; 목표:string; 최적화목표:string; 노출위치:string; 소재형태:string; 날짜:string;
@@ -173,10 +206,10 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
     avg_cpm:number; avg_cpc:number; sum_도달:number; sum_노출:number; sum_지출금액:number;
     sum_영상조회수:number; };
 
-  const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '(없음)';
+  const supaUrl = getForesightSupabaseUrl() || '(없음)';
   console.log('[xlsxLoader] 집계 데이터 병렬 로딩 시작... URL:', supaUrl.slice(0, 30));
   const [monthRows, demoRows] = await Promise.all([
-    fetchRpcAllPages<MonthRow>(client, 'get_monthly_aggregates'),
+    fetchRpcAllPages<MonthRow>(client, ['get_monthly_aggregates_fast', 'get_monthly_aggregates']),
     fetchRpcAllPages<DemoRow>(client,  'get_demographic_aggregates'),
   ]);
   console.log(`[xlsxLoader] 로딩 완료 — monthly:${monthRows.length}행, demo:${demoRows.length}행`);

@@ -22,8 +22,33 @@ if env_file.exists():
             k, v = line.split('=', 1)
             os.environ.setdefault(k.strip(), v.strip())
 
-SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL')
-SUPABASE_KEY = os.environ.get('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+DEDICATED_FORESIGHT_ENV = any(
+    os.environ.get(name)
+    for name in (
+        'FORESIGHT_SUPABASE_URL',
+        'NEXT_PUBLIC_FORESIGHT_SUPABASE_URL',
+        'FORESIGHT_SUPABASE_SERVICE_ROLE_KEY',
+        'FORESIGHT_SUPABASE_ANON_KEY',
+        'NEXT_PUBLIC_FORESIGHT_SUPABASE_ANON_KEY',
+    )
+)
+
+if DEDICATED_FORESIGHT_ENV:
+    SUPABASE_URL = (
+        os.environ.get('FORESIGHT_SUPABASE_URL')
+        or os.environ.get('NEXT_PUBLIC_FORESIGHT_SUPABASE_URL')
+    )
+    SUPABASE_KEY = (
+        os.environ.get('FORESIGHT_SUPABASE_SERVICE_ROLE_KEY')
+        or os.environ.get('FORESIGHT_SUPABASE_ANON_KEY')
+        or os.environ.get('NEXT_PUBLIC_FORESIGHT_SUPABASE_ANON_KEY')
+    )
+else:
+    SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL')
+    SUPABASE_KEY = (
+        os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+        or os.environ.get('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    )
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print('❌ .env.local에 SUPABASE_URL / SUPABASE_ANON_KEY 없음')

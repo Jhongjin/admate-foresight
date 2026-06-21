@@ -21,6 +21,8 @@
     "check:external-foresight-porting-guardrails-contract": "vitest run tests/benchmark/external-foresight-porting-guardrails-contract.test.ts",
     "check:forecast-range-confirmation-contract": "vitest run tests/benchmark/forecast-range-confirmation-contract.test.ts",
     "check:filters-route-output-contract": "vitest run tests/benchmark/filters-route-output-contract.test.ts",
+    "check:foresight-supabase-env-contract": "vitest run tests/benchmark/foresight-supabase-env-contract.test.ts",
+    "check:foresight-monthly-aggregate-rpc-contract": "vitest run tests/benchmark/foresight-monthly-aggregate-rpc-contract.test.ts",
     "check:breakdown-route-output-contract": "vitest run tests/benchmark/breakdown-route-output-contract.test.ts",
     "check:insights-route-output-contract": "vitest run tests/benchmark/insights-route-output-contract.test.ts",
     "check:meta-sync-date-range-contract": "vitest run tests/benchmark/meta-sync-date-range-contract.test.ts",

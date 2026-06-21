@@ -11,6 +11,10 @@
  */
 
 import { extractIndustry } from './xlsxLoader';
+import {
+  getForesightSupabaseUrl,
+  getForesightSupabaseWriteKey,
+} from './foresightSupabaseEnv';
 import { maskIdentifier, sanitizeError } from './security';
 
 const GRAPH_API = 'https://graph.facebook.com/v21.0';
@@ -340,10 +344,8 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
   // ── Supabase 저장 ────────────────────────────────────────
   const { createClient } = await import('@supabase/supabase-js');
   const supabase = createClient(
-    (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL)!,
-    (process.env.SUPABASE_SERVICE_ROLE_KEY
-      ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      ?? process.env.SUPABASE_ANON_KEY)!,
+    getForesightSupabaseUrl(),
+    getForesightSupabaseWriteKey(),
   );
 
   let inserted = 0;
