@@ -199,9 +199,17 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
     getForesightSupabaseAnonKey(),
   );
 
-  type MonthRow = { 업종:string; 목표:string; 최적화목표:string; 노출위치:string; 소재형태:string; 날짜:string;
-    avg_cpm:number; avg_cpc:number; avg_cpc_link:number; avg_영상조회비용:number;
-    sum_도달:number; sum_노출:number; sum_지출금액:number; avg_빈도:number; sum_영상조회수:number; };
+  type MonthRow = {
+    업종?: string; 목표?: string; 최적화목표?: string; 노출위치?: string; 소재형태?: string; 날짜?: string;
+    industry?: string; objective?: string; optimization_goal?: string; placement?: string; creative_format?: string; metric_date?: string;
+    avg_cpm?: number | string; avg_cpc?: number | string; avg_cpc_link?: number | string;
+    avg_영상조회비용?: number | string; avg_video_view_cost?: number | string;
+    sum_도달?: number | string; sum_reach?: number | string;
+    sum_노출?: number | string; sum_impressions?: number | string;
+    sum_지출금액?: number | string; sum_spend?: number | string;
+    avg_빈도?: number | string; avg_frequency?: number | string;
+    sum_영상조회수?: number | string; sum_video_views?: number | string;
+  };
   type DemoRow  = { 업종:string; 목표:string; 최적화목표:string; 성별:string; 연령:string;
     avg_cpm:number; avg_cpc:number; sum_도달:number; sum_노출:number; sum_지출금액:number;
     sum_영상조회수:number; };
@@ -219,16 +227,25 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
     const v = (raw ?? '').trim();
     return INDUSTRY_NORMALIZE[v] ?? v;
   };
+  const textValue = (...values: Array<string | null | undefined>): string =>
+    values.find((value) => (value ?? '').trim() !== '')?.trim() ?? '';
+  const numberValue = (...values: Array<number | string | null | undefined>): number => {
+    const found = values.find((value) => value !== null && value !== undefined && `${value}`.trim() !== '');
+    return Number(found) || 0;
+  };
 
   const monthly: XlsxRecord[] = monthRows.map((r) => ({
-    업종: normalizeIndustry(r.업종), 목표: r.목표 ?? '', 최적화목표: r.최적화목표 ?? '',
-    노출위치: r.노출위치 ?? '', 소재형태: r.소재형태 ?? '',
-    성별: '', 연령: '', 날짜: r.날짜 ?? '',
-    CPM: Number(r.avg_cpm) || 0, CPC: Number(r.avg_cpc) || 0,
-    CPC링크: Number(r.avg_cpc_link) || 0, 영상조회비용: Number(r.avg_영상조회비용) || 0,
-    도달: Number(r.sum_도달) || 0, 노출: Number(r.sum_노출) || 0,
-    지출금액: Number(r.sum_지출금액) || 0, 빈도: Number(r.avg_빈도) || 0,
-    영상조회수: Number(r.sum_영상조회수) || 0,
+    업종: normalizeIndustry(textValue(r.업종, r.industry)),
+    목표: textValue(r.목표, r.objective),
+    최적화목표: textValue(r.최적화목표, r.optimization_goal),
+    노출위치: textValue(r.노출위치, r.placement),
+    소재형태: textValue(r.소재형태, r.creative_format),
+    성별: '', 연령: '', 날짜: textValue(r.날짜, r.metric_date),
+    CPM: numberValue(r.avg_cpm), CPC: numberValue(r.avg_cpc),
+    CPC링크: numberValue(r.avg_cpc_link), 영상조회비용: numberValue(r.avg_영상조회비용, r.avg_video_view_cost),
+    도달: numberValue(r.sum_도달, r.sum_reach), 노출: numberValue(r.sum_노출, r.sum_impressions),
+    지출금액: numberValue(r.sum_지출금액, r.sum_spend), 빈도: numberValue(r.avg_빈도, r.avg_frequency),
+    영상조회수: numberValue(r.sum_영상조회수, r.sum_video_views),
   }));
 
   const demo: XlsxRecord[] = demoRows.map((r) => ({

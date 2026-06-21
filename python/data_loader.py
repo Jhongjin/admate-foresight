@@ -115,6 +115,20 @@ def load_monthly_data() -> pd.DataFrame:
         raise RuntimeError("Supabase에서 월별 데이터를 불러오지 못했습니다.")
 
     df = pd.DataFrame(rows)
+    df = df.rename(columns={
+        "industry": "업종",
+        "objective": "목표",
+        "optimization_goal": "최적화목표",
+        "placement": "노출위치",
+        "creative_format": "소재형태",
+        "metric_date": "날짜",
+        "avg_video_view_cost": "avg_영상조회비용",
+        "sum_reach": "sum_도달",
+        "sum_impressions": "sum_노출",
+        "sum_spend": "sum_지출금액",
+        "avg_frequency": "avg_빈도",
+        "sum_video_views": "sum_영상조회수",
+    })
 
     # 숫자 컬럼 타입 보정
     num_cols = [
