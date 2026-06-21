@@ -132,6 +132,49 @@ describe('foresight simulator scenario expansion request contract', () => {
     requests.forEach(expectAggregateOnlyBody);
   });
 
+  it('builds placement and creative type expansions after demographic expansions', () => {
+    const requests = buildForesightSimulatorScenarioExpansionRequests(buildInput({
+      genders: ['female'],
+      ageRanges: ['25-34'],
+      placements: ['Instagram 피드'],
+      creativeTypes: ['이미지'],
+    }));
+
+    expect(requests.map((request) => request.label)).toEqual([
+      '성별 전체 확장',
+      '연령 전체 확장',
+      '노출 위치 전체 확장',
+      '소재 형태 전체 확장',
+    ]);
+    expect(requests[2]).toEqual({
+      label: '노출 위치 전체 확장',
+      description: 'Instagram 피드 → 전체',
+      body: {
+        industries: ['교육'],
+        genders: ['female'],
+        ageRanges: ['25-34'],
+        objectives: ['OUTCOME_TRAFFIC'],
+        placements: [],
+        creativeTypes: ['이미지'],
+        budget: 5_000_000,
+      },
+    });
+    expect(requests[3]).toEqual({
+      label: '소재 형태 전체 확장',
+      description: '이미지 → 전체',
+      body: {
+        industries: ['교육'],
+        genders: ['female'],
+        ageRanges: ['25-34'],
+        objectives: ['OUTCOME_TRAFFIC'],
+        placements: ['Instagram 피드'],
+        creativeTypes: [],
+        budget: 5_000_000,
+      },
+    });
+    requests.forEach(expectAggregateOnlyBody);
+  });
+
   it('does not create an industry-only expansion', () => {
     const requests = buildForesightSimulatorScenarioExpansionRequests(buildInput({
       industries: ['교육', '금융'],
@@ -222,7 +265,7 @@ describe('foresight simulator scenario expansion request contract', () => {
       monthlyBudget: 7_000_000,
     }));
 
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(4);
     expect(requests[0]).toEqual({
       label: '성별 전체 확장',
       description: '여성 → 전체',
@@ -246,6 +289,32 @@ describe('foresight simulator scenario expansion request contract', () => {
         objectives: ['OUTCOME_TRAFFIC'],
         placements: ['Instagram 피드'],
         creativeTypes: ['이미지'],
+        budget: 7_000_000,
+      },
+    });
+    expect(requests[2]).toEqual({
+      label: '노출 위치 전체 확장',
+      description: 'Instagram 피드 → 전체',
+      body: {
+        industries: ['교육'],
+        genders: ['female'],
+        ageRanges: ['25-34'],
+        objectives: ['OUTCOME_TRAFFIC'],
+        placements: [],
+        creativeTypes: ['이미지'],
+        budget: 7_000_000,
+      },
+    });
+    expect(requests[3]).toEqual({
+      label: '소재 형태 전체 확장',
+      description: '이미지 → 전체',
+      body: {
+        industries: ['교육'],
+        genders: ['female'],
+        ageRanges: ['25-34'],
+        objectives: ['OUTCOME_TRAFFIC'],
+        placements: ['Instagram 피드'],
+        creativeTypes: [],
         budget: 7_000_000,
       },
     });

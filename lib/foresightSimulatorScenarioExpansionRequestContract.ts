@@ -9,7 +9,7 @@ export interface ForesightSimulatorScenarioExpansionRequestBody {
 }
 
 export interface ForesightSimulatorScenarioExpansionRequest {
-  label: '성별 전체 확장' | '연령 전체 확장';
+  label: '성별 전체 확장' | '연령 전체 확장' | '노출 위치 전체 확장' | '소재 형태 전체 확장';
   description: string;
   body: ForesightSimulatorScenarioExpansionRequestBody;
 }
@@ -135,6 +135,38 @@ export function buildForesightSimulatorScenarioExpansionRequests(
         objectives: input.objectives,
         placements: input.placements ?? [],
         creativeTypes: input.creativeTypes ?? [],
+        budget: input.monthlyBudget,
+      }),
+    });
+  }
+
+  if ((input.placements ?? []).length > 0) {
+    requests.push({
+      label: '노출 위치 전체 확장',
+      description: `${describeValues(input.placements ?? [], '선택 위치')} → 전체`,
+      body: buildBody({
+        industries: input.industries,
+        genders: input.genders,
+        ageRanges: input.ageRanges,
+        objectives: input.objectives,
+        placements: [],
+        creativeTypes: input.creativeTypes ?? [],
+        budget: input.monthlyBudget,
+      }),
+    });
+  }
+
+  if ((input.creativeTypes ?? []).length > 0) {
+    requests.push({
+      label: '소재 형태 전체 확장',
+      description: `${describeValues(input.creativeTypes ?? [], '선택 소재')} → 전체`,
+      body: buildBody({
+        industries: input.industries,
+        genders: input.genders,
+        ageRanges: input.ageRanges,
+        objectives: input.objectives,
+        placements: input.placements ?? [],
+        creativeTypes: [],
         budget: input.monthlyBudget,
       }),
     });
