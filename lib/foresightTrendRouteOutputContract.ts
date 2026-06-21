@@ -3,6 +3,7 @@ export interface TrendRoutePoint {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
   totalSpend: number;
   totalImpressions: number;
@@ -69,6 +70,7 @@ function normalizeTrendPoint(value: unknown): TrendRoutePoint | null {
   const avgCPM = readNonNegativeFiniteNumber(value.avgCPM);
   const avgCPC = readNonNegativeFiniteNumber(value.avgCPC);
   const avgCTR = readNonNegativeFiniteNumber(value.avgCTR);
+  const avgVTR = readNonNegativeFiniteNumber(value.avgVTR);
   const totalReach = readNonNegativeFiniteNumber(value.totalReach);
   const totalSpend = readNonNegativeFiniteNumber(value.totalSpend);
   const totalImpressions = readNonNegativeFiniteNumber(value.totalImpressions);
@@ -80,6 +82,7 @@ function normalizeTrendPoint(value: unknown): TrendRoutePoint | null {
     avgCPM === null ||
     avgCPC === null ||
     avgCTR === null ||
+    avgVTR === null ||
     totalReach === null ||
     totalSpend === null ||
     totalImpressions === null ||
@@ -94,6 +97,7 @@ function normalizeTrendPoint(value: unknown): TrendRoutePoint | null {
     avgCPM,
     avgCPC,
     avgCTR,
+    avgVTR,
     totalReach,
     totalSpend,
     totalImpressions,

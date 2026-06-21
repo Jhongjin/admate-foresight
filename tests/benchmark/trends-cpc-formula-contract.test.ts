@@ -32,10 +32,10 @@ describe('trends CPC formula contract', () => {
     setDemoData([]);
   });
 
-  it('uses summed spend over inferred clicks for trends and breakdown CPC', () => {
+  it('uses summed spend over inferred clicks for CPC and exposes VTR from video views', () => {
     const rows = [
-      ...Array.from({ length: 5 }, () => record({ 지출금액: 1_000, CPC: 100 })),
-      ...Array.from({ length: 5 }, () => record({ 지출금액: 9_000, CPC: 900 })),
+      ...Array.from({ length: 5 }, () => record({ 지출금액: 1_000, CPC: 100, 영상조회수: 2_000 })),
+      ...Array.from({ length: 5 }, () => record({ 지출금액: 9_000, CPC: 900, 영상조회수: 2_000 })),
     ];
     setXlsxData(rows);
     setDemoData(rows);
@@ -44,6 +44,7 @@ describe('trends CPC formula contract', () => {
     expect(trends[0]?.trends[0]).toMatchObject({
       month: '2025-06',
       avgCPC: 500,
+      avgVTR: 20,
       totalSpend: 50_000,
       totalClicks: 100,
     });
@@ -52,10 +53,13 @@ describe('trends CPC formula contract', () => {
     expect(breakdown.byGender[0]).toMatchObject({
       group: 'female',
       avgCPC: 500,
+      avgVTR: 20,
     });
     expect(breakdown.efficiencyRanks[0]).toMatchObject({
       industry: '교육',
       avgCPC: 500,
+      avgVTR: 20,
+      vtrRank: 1,
     });
   });
 });

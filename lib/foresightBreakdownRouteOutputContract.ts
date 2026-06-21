@@ -4,6 +4,7 @@ export interface BreakdownRouteRow {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
   count?: number;
 }
@@ -13,10 +14,12 @@ export interface BreakdownRouteEfficiencyRank {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
   cpmRank: number;
   cpcRank: number;
   ctrRank: number;
+  vtrRank: number;
 }
 
 export interface BreakdownRouteOutput {
@@ -89,6 +92,7 @@ function normalizeBreakdownRow(value: unknown): BreakdownRouteRow | null {
   const avgCPM = readNonNegativeFiniteNumber(value.avgCPM);
   const avgCPC = readNonNegativeFiniteNumber(value.avgCPC);
   const avgCTR = readNonNegativeFiniteNumber(value.avgCTR);
+  const avgVTR = readNonNegativeFiniteNumber(value.avgVTR);
   const totalReach = readNonNegativeFiniteNumber(value.totalReach);
 
   if (
@@ -97,6 +101,7 @@ function normalizeBreakdownRow(value: unknown): BreakdownRouteRow | null {
     avgCPM === null ||
     avgCPC === null ||
     avgCTR === null ||
+    avgVTR === null ||
     totalReach === null
   ) {
     return null;
@@ -108,6 +113,7 @@ function normalizeBreakdownRow(value: unknown): BreakdownRouteRow | null {
     avgCPM,
     avgCPC,
     avgCTR,
+    avgVTR,
     totalReach,
   };
   const count = readPositiveInteger(value.count);
@@ -123,20 +129,24 @@ function normalizeEfficiencyRank(value: unknown): BreakdownRouteEfficiencyRank |
   const avgCPM = readNonNegativeFiniteNumber(value.avgCPM);
   const avgCPC = readNonNegativeFiniteNumber(value.avgCPC);
   const avgCTR = readNonNegativeFiniteNumber(value.avgCTR);
+  const avgVTR = readNonNegativeFiniteNumber(value.avgVTR);
   const totalReach = readNonNegativeFiniteNumber(value.totalReach);
   const cpmRank = readPositiveInteger(value.cpmRank);
   const cpcRank = readPositiveInteger(value.cpcRank);
   const ctrRank = readPositiveInteger(value.ctrRank);
+  const vtrRank = readPositiveInteger(value.vtrRank);
 
   if (
     !industry ||
     avgCPM === null ||
     avgCPC === null ||
     avgCTR === null ||
+    avgVTR === null ||
     totalReach === null ||
     cpmRank === null ||
     cpcRank === null ||
-    ctrRank === null
+    ctrRank === null ||
+    vtrRank === null
   ) {
     return null;
   }
@@ -146,10 +156,12 @@ function normalizeEfficiencyRank(value: unknown): BreakdownRouteEfficiencyRank |
     avgCPM,
     avgCPC,
     avgCTR,
+    avgVTR,
     totalReach,
     cpmRank,
     cpcRank,
     ctrRank,
+    vtrRank,
   };
 }
 

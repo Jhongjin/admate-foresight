@@ -5,6 +5,7 @@ export interface TrendPoint {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
   totalSpend: number;
   totalImpressions: number;
@@ -23,6 +24,7 @@ export interface SeasonInsight {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
   totalSpend: number;
   count: number;
@@ -48,6 +50,7 @@ function aggregateMonthRecords(records: XlsxRecord[]): Omit<TrendPoint, 'month'>
   const totalImpressions = records.reduce((s, r) => s + r.노출, 0);
   const totalReach = records.reduce((s, r) => s + r.도달, 0);
   const totalSpend = records.reduce((s, r) => s + r.지출금액, 0);
+  const totalVideoViews = records.reduce((s, r) => s + r.영상조회수, 0);
 
   // 가중평균 CPM (노출 기준)
   const avgCPM = totalImpressions > 0
@@ -58,11 +61,13 @@ function aggregateMonthRecords(records: XlsxRecord[]): Omit<TrendPoint, 'month'>
   const totalClicks = clickRecs.reduce((s, r) => s + r.지출금액 / r.CPC, 0);
   const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0;
   const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+  const avgVTR = totalImpressions > 0 ? (totalVideoViews / totalImpressions) * 100 : 0;
 
   return {
     avgCPM: Math.round(avgCPM),
     avgCPC: Math.round(avgCPC),
     avgCTR: parseFloat(avgCTR.toFixed(4)),
+    avgVTR: parseFloat(avgVTR.toFixed(3)),
     totalReach,
     totalSpend,
     totalImpressions,
@@ -109,6 +114,7 @@ export interface BreakdownRow {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
   count: number;
 }
@@ -118,10 +124,12 @@ export interface EfficiencyRank {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
   cpmRank: number;
   cpcRank: number;
   ctrRank: number;
+  vtrRank: number;
 }
 
 export function getBreakdown(
@@ -171,12 +179,14 @@ export function getBreakdown(
   const sortedByCPM = [...indStats].sort((a, b) => a.avgCPM - b.avgCPM);
   const sortedByCPC = [...indStats].sort((a, b) => a.avgCPC - b.avgCPC);
   const sortedByCTR = [...indStats].sort((a, b) => b.avgCTR - a.avgCTR);
+  const sortedByVTR = [...indStats].sort((a, b) => b.avgVTR - a.avgVTR);
 
   const efficiencyRanks: EfficiencyRank[] = indStats.map((s) => ({
     ...s,
     cpmRank: sortedByCPM.findIndex((x) => x.industry === s.industry) + 1,
     cpcRank: sortedByCPC.findIndex((x) => x.industry === s.industry) + 1,
     ctrRank: sortedByCTR.findIndex((x) => x.industry === s.industry) + 1,
+    vtrRank: sortedByVTR.findIndex((x) => x.industry === s.industry) + 1,
   }));
 
   const AGE_ORDER = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];

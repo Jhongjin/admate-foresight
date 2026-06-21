@@ -13,6 +13,7 @@ interface TrendPoint {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
   count: number;
 }
@@ -28,6 +29,7 @@ interface BreakdownRow {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
 }
 
@@ -36,10 +38,12 @@ interface EfficiencyRank {
   avgCPM: number;
   avgCPC: number;
   avgCTR: number;
+  avgVTR: number;
   totalReach: number;
   cpmRank: number;
   cpcRank: number;
   ctrRank: number;
+  vtrRank: number;
 }
 
 const OBJECTIVE_LABELS: Record<string, string> = {
@@ -59,12 +63,17 @@ const METRIC_OPTIONS = [
   { key: 'avgCPM',     label: 'CPM (원)',  format: (v: number) => `₩${v.toLocaleString()}` },
   { key: 'avgCPC',     label: 'CPC (원)',  format: (v: number) => `₩${v.toLocaleString()}` },
   { key: 'avgCTR',     label: 'CTR (%)',   format: (v: number) => `${v.toFixed(3)}%` },
+  { key: 'avgVTR',     label: 'VTR (%)',   format: (v: number) => `${v.toFixed(3)}%` },
   { key: 'totalReach', label: '총 도달',   format: (v: number) => v.toLocaleString() },
 ];
 
-// 지표별 상위 3개 추출 (CPM/CPC는 낮을수록, CTR/도달은 높을수록 좋음)
+function isHigherBetterMetric(metric: string) {
+  return metric === 'avgCTR' || metric === 'avgVTR' || metric === 'totalReach';
+}
+
+// 지표별 상위 3개 추출 (CPM/CPC는 낮을수록, CTR/VTR/도달은 높을수록 좋음)
 function getTop3(ranks: EfficiencyRank[], metric: string) {
-  const higherBetter = metric === 'avgCTR' || metric === 'totalReach';
+  const higherBetter = isHigherBetterMetric(metric);
   return [...ranks]
     .filter((r) => (r as unknown as Record<string, number>)[metric] > 0)
     .sort((a, b) => {
@@ -512,7 +521,7 @@ export default function TrendsPage() {
   const trendIndustryKeys = trendData.map((d) => d.industry);
   const summaryRows = trendData.map((d) => ({ industry: d.industry, ...(d.trends[d.trends.length - 1] ?? {}) }));
   const latestTrendMonth = trendChartData.length > 0 ? String(trendChartData[trendChartData.length - 1].month) : '월 기준 대기';
-  const metricPlanningRule = metric === 'avgCTR' || metric === 'totalReach' ? '높은 구간을 증액 후보로 검토' : '낮은 구간을 효율 기준으로 검토';
+  const metricPlanningRule = isHigherBetterMetric(metric) ? '높은 구간을 증액 후보로 검토' : '낮은 구간을 효율 기준으로 검토';
   const trendEvidenceLedger = [
     { label: '최신 기준월', value: latestTrendMonth, detail: '월별 추이의 마지막 집계 지점' },
     { label: '비교 대상', value: `${trendIndustryKeys.length.toLocaleString()}개 업종`, detail: trendIndustryContext },
@@ -792,7 +801,7 @@ export default function TrendsPage() {
       <SectionShell
         title="업종별 효율 랭킹"
         caption={`${objectiveContext} / ${metricConfig.label} / ${
-          metric === 'avgCTR' || metric === 'totalReach' ? '높을수록 효율적' : '낮을수록 효율적'
+          isHigherBetterMetric(metric) ? '높을수록 효율적' : '낮을수록 효율적'
         }`}
       >
         {top3.length > 0 ? (
@@ -812,7 +821,7 @@ export default function TrendsPage() {
                 <div className="mt-4 grid grid-cols-[76px_minmax(0,1fr)] gap-3 rounded-md border border-stone-200 bg-white px-3 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-500">효율 기준</p>
                   <p className="truncate text-[11px] font-semibold text-slate-700">
-                    {metric === 'avgCTR' || metric === 'totalReach' ? '확장 우선 검토' : '비용 압력 낮음'}
+                    {isHigherBetterMetric(metric) ? '확장 우선 검토' : '비용 압력 낮음'}
                   </p>
                 </div>
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-stone-200">
