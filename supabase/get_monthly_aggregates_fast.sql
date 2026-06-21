@@ -1,60 +1,114 @@
--- Optional fast monthly aggregate path for the Foresight data plane.
+-- Optional fast monthly aggregate cache for the Foresight data plane.
 -- Apply manually in the Foresight Supabase SQL Editor only after DB/admin approval.
 --
 -- Why:
--- - The legacy get_monthly_aggregates RPC can time out because LIMIT/OFFSET are
---   applied after a full GROUP BY over ad_data.
--- - This materialized view moves the heavy aggregate into an explicit refresh
---   step, then serves paginated reads from an indexed aggregate surface.
+-- - A full materialized-view refresh can exceed the Supabase SQL Editor timeout.
+-- - This cache can be filled in date windows, usually one month at a time.
+-- - Korean source column names are referenced with PostgreSQL Unicode escapes so
+--   the SQL remains safe to paste through environments that corrupt non-ASCII text.
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS foresight_monthly_aggregates_mv AS
-WITH normalized AS (
-  SELECT
-    row_data ->> U&'\C5C5\C885' AS industry,
-    row_data ->> U&'\BAA9\D45C' AS objective,
-    row_data ->> U&'\CD5C\C801\D654\BAA9\D45C' AS optimization_goal,
-    row_data ->> U&'\B178\CD9C\C704\CE58' AS placement,
-    row_data ->> U&'\C18C\C7AC\D615\D0DC' AS creative_format,
-    row_data ->> U&'\B0A0\C9DC' AS metric_date,
-    NULLIF(row_data ->> 'cpm', '')::numeric AS cpm,
-    NULLIF(row_data ->> 'cpc', '')::numeric AS cpc,
-    NULLIF(row_data ->> 'cpc_link', '')::numeric AS cpc_link,
-    NULLIF(row_data ->> U&'\C601\C0C1\C870\D68C\BE44\C6A9', '')::numeric AS video_view_cost,
-    NULLIF(row_data ->> U&'\B3C4\B2EC', '')::numeric AS reach,
-    NULLIF(row_data ->> U&'\B178\CD9C', '')::numeric AS impressions,
-    NULLIF(row_data ->> U&'\C9C0\CD9C\AE08\C561', '')::numeric AS spend,
-    NULLIF(row_data ->> U&'\BE48\B3C4', '')::numeric AS frequency,
-    NULLIF(row_data ->> U&'\C601\C0C1\C870\D68C\C218', '')::numeric AS video_views
-  FROM (
-    SELECT to_jsonb(d) AS row_data
-    FROM ad_data AS d
-  ) source
+CREATE INDEX IF NOT EXISTS ad_data_foresight_metric_date_idx
+  ON ad_data (U&"\B0A0\C9DC");
+
+CREATE TABLE IF NOT EXISTS foresight_monthly_aggregates_cache (
+  industry             TEXT NOT NULL,
+  objective            TEXT NOT NULL,
+  optimization_goal    TEXT NOT NULL DEFAULT '',
+  placement            TEXT NOT NULL DEFAULT '',
+  creative_format      TEXT NOT NULL DEFAULT '',
+  metric_date          TEXT NOT NULL,
+  avg_cpm              NUMERIC,
+  avg_cpc              NUMERIC,
+  avg_cpc_link         NUMERIC,
+  avg_video_view_cost  NUMERIC,
+  sum_reach            NUMERIC,
+  sum_impressions      NUMERIC,
+  sum_spend            NUMERIC,
+  avg_frequency        NUMERIC,
+  sum_video_views      NUMERIC,
+  refreshed_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (industry, objective, optimization_goal, placement, creative_format, metric_date)
+);
+
+CREATE INDEX IF NOT EXISTS foresight_monthly_aggregates_cache_order_idx
+  ON foresight_monthly_aggregates_cache (industry, metric_date, objective, optimization_goal, placement, creative_format);
+
+CREATE OR REPLACE FUNCTION refresh_foresight_monthly_aggregates_window(
+  p_start_date TEXT,
+  p_end_date   TEXT
 )
-SELECT
-  industry,
-  objective,
-  COALESCE(optimization_goal, '') AS optimization_goal,
-  COALESCE(placement, '') AS placement,
-  COALESCE(creative_format, '') AS creative_format,
-  metric_date,
-  AVG(cpm) AS avg_cpm,
-  AVG(cpc) AS avg_cpc,
-  AVG(cpc_link) AS avg_cpc_link,
-  AVG(video_view_cost) AS avg_video_view_cost,
-  SUM(reach) AS sum_reach,
-  SUM(impressions) AS sum_impressions,
-  SUM(spend) AS sum_spend,
-  AVG(frequency) AS avg_frequency,
-  SUM(video_views) AS sum_video_views
-FROM normalized
-WHERE industry IS NOT NULL AND industry <> ''
-  AND objective IS NOT NULL AND objective <> ''
-  AND metric_date IS NOT NULL AND metric_date <> ''
-GROUP BY industry, objective, COALESCE(optimization_goal, ''), COALESCE(placement, ''), COALESCE(creative_format, ''), metric_date
-WITH NO DATA;
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+AS $$
+DECLARE
+  inserted_count INTEGER;
+BEGIN
+  IF p_start_date IS NULL OR p_end_date IS NULL OR p_start_date >= p_end_date THEN
+    RAISE EXCEPTION 'Expected a non-empty [start, end) date window, got % to %', p_start_date, p_end_date;
+  END IF;
 
-CREATE INDEX IF NOT EXISTS foresight_monthly_aggregates_mv_order_idx
-  ON foresight_monthly_aggregates_mv (industry, metric_date, objective, optimization_goal, placement, creative_format);
+  DELETE FROM foresight_monthly_aggregates_cache
+  WHERE metric_date >= p_start_date
+    AND metric_date < p_end_date;
+
+  INSERT INTO foresight_monthly_aggregates_cache (
+    industry,
+    objective,
+    optimization_goal,
+    placement,
+    creative_format,
+    metric_date,
+    avg_cpm,
+    avg_cpc,
+    avg_cpc_link,
+    avg_video_view_cost,
+    sum_reach,
+    sum_impressions,
+    sum_spend,
+    avg_frequency,
+    sum_video_views,
+    refreshed_at
+  )
+  SELECT
+    U&"\C5C5\C885"::TEXT AS industry,
+    U&"\BAA9\D45C"::TEXT AS objective,
+    COALESCE(U&"\CD5C\C801\D654\BAA9\D45C"::TEXT, '') AS optimization_goal,
+    COALESCE(U&"\B178\CD9C\C704\CE58"::TEXT, '') AS placement,
+    COALESCE(U&"\C18C\C7AC\D615\D0DC"::TEXT, '') AS creative_format,
+    U&"\B0A0\C9DC"::TEXT AS metric_date,
+    AVG(cpm) AS avg_cpm,
+    AVG(cpc) AS avg_cpc,
+    AVG(cpc_link) AS avg_cpc_link,
+    AVG(U&"\C601\C0C1\C870\D68C\BE44\C6A9") AS avg_video_view_cost,
+    SUM(U&"\B3C4\B2EC") AS sum_reach,
+    SUM(U&"\B178\CD9C") AS sum_impressions,
+    SUM(U&"\C9C0\CD9C\AE08\C561") AS sum_spend,
+    AVG(U&"\BE48\B3C4") AS avg_frequency,
+    SUM(U&"\C601\C0C1\C870\D68C\C218") AS sum_video_views,
+    NOW() AS refreshed_at
+  FROM ad_data
+  WHERE U&"\B0A0\C9DC" >= p_start_date
+    AND U&"\B0A0\C9DC" < p_end_date
+    AND U&"\C5C5\C885" IS NOT NULL
+    AND U&"\C5C5\C885" <> ''
+    AND U&"\BAA9\D45C" IS NOT NULL
+    AND U&"\BAA9\D45C" <> ''
+    AND U&"\B0A0\C9DC" IS NOT NULL
+    AND U&"\B0A0\C9DC" <> ''
+  GROUP BY
+    U&"\C5C5\C885",
+    U&"\BAA9\D45C",
+    COALESCE(U&"\CD5C\C801\D654\BAA9\D45C"::TEXT, ''),
+    COALESCE(U&"\B178\CD9C\C704\CE58"::TEXT, ''),
+    COALESCE(U&"\C18C\C7AC\D615\D0DC"::TEXT, ''),
+    U&"\B0A0\C9DC";
+
+  GET DIAGNOSTICS inserted_count = ROW_COUNT;
+  RETURN inserted_count;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION refresh_foresight_monthly_aggregates()
 RETURNS VOID
@@ -63,7 +117,7 @@ SECURITY INVOKER
 SET search_path = public
 AS $$
 BEGIN
-  REFRESH MATERIALIZED VIEW foresight_monthly_aggregates_mv;
+  RAISE EXCEPTION 'Use refresh_foresight_monthly_aggregates_window(start_date, end_date) with a small date window.';
 END;
 $$;
 
@@ -109,11 +163,11 @@ AS $$
     sum_spend,
     avg_frequency,
     sum_video_views
-  FROM foresight_monthly_aggregates_mv
+  FROM foresight_monthly_aggregates_cache
   ORDER BY industry, metric_date, objective, optimization_goal, placement, creative_format
   LIMIT GREATEST(0, LEAST(p_limit, 5000))
   OFFSET GREATEST(0, p_offset);
 $$;
 
--- Run after creation and after each approved Meta/backfill batch:
--- SELECT refresh_foresight_monthly_aggregates();
+-- Run small windows after creation, for example:
+-- SELECT refresh_foresight_monthly_aggregates_window('2026-03-01', '2026-04-01');

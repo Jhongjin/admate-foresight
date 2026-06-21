@@ -17,21 +17,25 @@ describe('Foresight monthly aggregate fast RPC contract', () => {
     expect(pythonLoader).toContain('PGRST202');
   });
 
-  it('defines an explicit materialized aggregate read path without raw data exposure', () => {
-    expect(sql).toMatch(/CREATE MATERIALIZED VIEW IF NOT EXISTS foresight_monthly_aggregates_mv/i);
-    expect(sql).toMatch(/to_jsonb\(d\)/i);
-    expect(sql).toMatch(/U&'\\C5C5\\C885'/i);
+  it('defines an explicit windowed aggregate cache path without raw data exposure', () => {
+    expect(sql).toMatch(/CREATE INDEX IF NOT EXISTS ad_data_foresight_metric_date_idx/i);
+    expect(sql).toMatch(/CREATE TABLE IF NOT EXISTS foresight_monthly_aggregates_cache/i);
+    expect(sql).toMatch(/PRIMARY KEY \(industry, objective, optimization_goal, placement, creative_format, metric_date\)/i);
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION refresh_foresight_monthly_aggregates_window/i);
+    expect(sql).toMatch(/p_start_date TEXT/i);
+    expect(sql).toMatch(/p_end_date\s+TEXT/i);
+    expect(sql).toMatch(/U&"\\C5C5\\C885"/i);
+    expect(sql).toMatch(/U&"\\B0A0\\C9DC"/i);
     expect(sql).toMatch(/\bindustry\b/i);
     expect(sql).toMatch(/\bmetric_date\b/i);
-    expect(sql).toMatch(/WITH NO DATA/i);
-    expect(sql).toMatch(/CREATE INDEX IF NOT EXISTS foresight_monthly_aggregates_mv_order_idx/i);
-    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION refresh_foresight_monthly_aggregates/i);
-    expect(sql).toMatch(/REFRESH MATERIALIZED VIEW foresight_monthly_aggregates_mv/i);
+    expect(sql).toMatch(/DELETE FROM foresight_monthly_aggregates_cache/i);
+    expect(sql).toMatch(/INSERT INTO foresight_monthly_aggregates_cache/i);
     expect(sql).toMatch(/CREATE OR REPLACE FUNCTION get_monthly_aggregates_fast/i);
+    expect(sql).toMatch(/FROM foresight_monthly_aggregates_cache/i);
     expect(sql).toMatch(/SECURITY INVOKER/i);
     expect(sql).toMatch(/SET search_path = public/i);
     expect(sql).toMatch(/LIMIT GREATEST\(0, LEAST\(p_limit, 5000\)\)/i);
     expect(sql).not.toMatch(/[가-힣]/);
-    expect(sql).not.toMatch(/\bDROP\b|\bTRUNCATE\b|\bDELETE\b|\bUPDATE\b|\bINSERT\b/i);
+    expect(sql).not.toMatch(/\bDROP\b|\bTRUNCATE\b|\bUPDATE\b/i);
   });
 });
