@@ -33,7 +33,10 @@ describe('Foresight monthly aggregate fast RPC contract', () => {
     expect(sql).toMatch(/CREATE OR REPLACE FUNCTION get_monthly_aggregates_fast/i);
     expect(sql).toMatch(/FROM foresight_monthly_aggregates_cache/i);
     expect(sql).toMatch(/SECURITY INVOKER/i);
+    expect(sql).toMatch(/SECURITY DEFINER/i);
     expect(sql).toMatch(/SET search_path = public/i);
+    expect(sql).toMatch(/REVOKE ALL ON FUNCTION refresh_foresight_monthly_aggregates_window\(TEXT, TEXT\) FROM PUBLIC, anon, authenticated/i);
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION get_monthly_aggregates_fast\(INT, INT\) TO anon, authenticated/i);
     expect(sql).toMatch(/LIMIT GREATEST\(0, LEAST\(p_limit, 5000\)\)/i);
     expect(sql).not.toMatch(/[가-힣]/);
     expect(sql).not.toMatch(/\bDROP\b|\bTRUNCATE\b|\bUPDATE\b/i);

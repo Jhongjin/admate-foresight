@@ -144,7 +144,7 @@ RETURNS TABLE (
 )
 LANGUAGE SQL
 STABLE
-SECURITY INVOKER
+SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT
@@ -168,6 +168,10 @@ AS $$
   LIMIT GREATEST(0, LEAST(p_limit, 5000))
   OFFSET GREATEST(0, p_offset);
 $$;
+
+REVOKE ALL ON FUNCTION refresh_foresight_monthly_aggregates_window(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION refresh_foresight_monthly_aggregates() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_monthly_aggregates_fast(INT, INT) TO anon, authenticated;
 
 -- Run small windows after creation, for example:
 -- SELECT refresh_foresight_monthly_aggregates_window('2026-03-01', '2026-04-01');
