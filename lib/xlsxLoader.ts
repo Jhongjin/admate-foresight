@@ -228,7 +228,7 @@ async function fetchRpcPagesByCount<T>(
 ): Promise<T[]> {
   if (count === 0) return [];
 
-  const PARALLELISM = 6;
+  const PARALLELISM = 10;
   const offsets = Array.from({ length: Math.ceil(count / page) }, (_, i) => i * page);
   const chunks: T[][] = new Array(offsets.length);
 
