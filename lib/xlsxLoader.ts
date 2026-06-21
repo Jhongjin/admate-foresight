@@ -173,7 +173,7 @@ async function fetchRpcAllPagesForFunction<T>(
   fnName: string,
   args: Record<string, unknown> = {},
 ): Promise<T[]> {
-  const PAGE = fnName === 'get_monthly_aggregates_fast' ? 5_000 : 1_000;
+  const PAGE = 1_000;
   const count = await tryFetchRpcCount(client, fnName, args);
   if (count !== null) {
     return fetchRpcPagesByCount<T>(client, fnName, args, PAGE, count);
@@ -202,7 +202,7 @@ async function tryFetchRpcCount(
   fnName: string,
   args: Record<string, unknown>,
 ): Promise<number | null> {
-  if (fnName !== 'get_monthly_aggregates_fast' || Object.keys(args).length > 0) {
+  if (!fnName.endsWith('_fast') || Object.keys(args).length > 0) {
     return null;
   }
 
@@ -266,15 +266,21 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
     avg_빈도?: number | string; avg_frequency?: number | string;
     sum_영상조회수?: number | string; sum_video_views?: number | string;
   };
-  type DemoRow  = { 업종:string; 목표:string; 최적화목표:string; 성별:string; 연령:string;
-    avg_cpm:number; avg_cpc:number; sum_도달:number; sum_노출:number; sum_지출금액:number;
-    sum_영상조회수:number; };
+  type DemoRow  = {
+    업종?: string; 목표?: string; 최적화목표?: string; 성별?: string; 연령?: string;
+    industry?: string; objective?: string; optimization_goal?: string; gender?: string; age_range?: string;
+    avg_cpm?: number | string; avg_cpc?: number | string;
+    sum_도달?: number | string; sum_reach?: number | string;
+    sum_노출?: number | string; sum_impressions?: number | string;
+    sum_지출금액?: number | string; sum_spend?: number | string;
+    sum_영상조회수?: number | string; sum_video_views?: number | string;
+  };
 
   const supaUrl = getForesightSupabaseUrl() || '(없음)';
   console.log('[xlsxLoader] 집계 데이터 병렬 로딩 시작... URL:', supaUrl.slice(0, 30));
   const [monthRows, demoRows] = await Promise.all([
     fetchRpcAllPages<MonthRow>(client, ['get_monthly_aggregates_fast', 'get_monthly_aggregates']),
-    fetchRpcAllPages<DemoRow>(client,  'get_demographic_aggregates'),
+    fetchRpcAllPages<DemoRow>(client, ['get_demographic_aggregates_fast', 'get_demographic_aggregates']),
   ]);
   console.log(`[xlsxLoader] 로딩 완료 — monthly:${monthRows.length}행, demo:${demoRows.length}행`);
 
@@ -305,14 +311,16 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
   }));
 
   const demo: XlsxRecord[] = demoRows.map((r) => ({
-    업종: normalizeIndustry(r.업종), 목표: r.목표 ?? '', 최적화목표: r.최적화목표 ?? '',
+    업종: normalizeIndustry(textValue(r.업종, r.industry)),
+    목표: textValue(r.목표, r.objective),
+    최적화목표: textValue(r.최적화목표, r.optimization_goal),
     노출위치: '', 소재형태: '',
-    성별: r.성별 ?? '', 연령: r.연령 ?? '', 날짜: '',
-    CPM: Number(r.avg_cpm) || 0, CPC: Number(r.avg_cpc) || 0,
+    성별: textValue(r.성별, r.gender), 연령: textValue(r.연령, r.age_range), 날짜: '',
+    CPM: numberValue(r.avg_cpm), CPC: numberValue(r.avg_cpc),
     CPC링크: 0, 영상조회비용: 0,
-    도달: Number(r.sum_도달) || 0, 노출: Number(r.sum_노출) || 0,
-    지출금액: Number(r.sum_지출금액) || 0, 빈도: 0,
-    영상조회수: Number(r.sum_영상조회수) || 0,
+    도달: numberValue(r.sum_도달, r.sum_reach), 노출: numberValue(r.sum_노출, r.sum_impressions),
+    지출금액: numberValue(r.sum_지출금액, r.sum_spend), 빈도: 0,
+    영상조회수: numberValue(r.sum_영상조회수, r.sum_video_views),
   }));
 
   console.log(`[xlsxLoader] 완료 — monthly:${monthly.length}행, demo:${demo.length}행`);

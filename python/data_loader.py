@@ -110,7 +110,6 @@ def load_monthly_data() -> pd.DataFrame:
     rows = _fetch_rpc_all_pages_any(
         client,
         ("get_monthly_aggregates_fast", "get_monthly_aggregates"),
-        page=5000,
     )
     if not rows:
         raise RuntimeError("Supabase에서 월별 데이터를 불러오지 못했습니다.")
@@ -160,11 +159,25 @@ def load_demo_data() -> pd.DataFrame:
           avg_cpm, avg_cpc, sum_도달, sum_노출, sum_지출금액, sum_영상조회수
     """
     client = _get_client()
-    rows = _fetch_rpc_all_pages(client, "get_demographic_aggregates")
+    rows = _fetch_rpc_all_pages_any(
+        client,
+        ("get_demographic_aggregates_fast", "get_demographic_aggregates"),
+    )
     if not rows:
         return pd.DataFrame()
 
     df = pd.DataFrame(rows)
+    df = df.rename(columns={
+        "industry": "업종",
+        "objective": "목표",
+        "optimization_goal": "최적화목표",
+        "gender": "성별",
+        "age_range": "연령",
+        "sum_reach": "sum_도달",
+        "sum_impressions": "sum_노출",
+        "sum_spend": "sum_지출금액",
+        "sum_video_views": "sum_영상조회수",
+    })
     num_cols = ["avg_cpm", "avg_cpc", "sum_도달", "sum_노출", "sum_지출금액", "sum_영상조회수"]
     for c in num_cols:
         if c in df.columns:

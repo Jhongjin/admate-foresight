@@ -14,8 +14,9 @@ describe('Foresight monthly aggregate fast RPC contract', () => {
     expect(xlsxLoader).toContain('get_monthly_aggregates_fast');
     expect(xlsxLoader).toContain('fetchRpcPagesByCount');
     expect(xlsxLoader).toContain('PARALLELISM = 6');
+    expect(xlsxLoader).toContain('const PAGE = 1_000');
     expect(pythonLoader).toContain('"industry": "업종"');
-    expect(pythonLoader).toContain('page=5000');
+    expect(pythonLoader).not.toContain('page=5000');
     expect(xlsxLoader).toMatch(/PGRST202|could not find.*function/i);
     expect(pythonLoader).toContain('("get_monthly_aggregates_fast", "get_monthly_aggregates")');
     expect(pythonLoader).toContain('PGRST202');
