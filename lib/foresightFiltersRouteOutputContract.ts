@@ -24,7 +24,7 @@ const EMPTY_FILTERS_OUTPUT: FiltersRouteOutput = {
 const FORBIDDEN_LABEL_PATTERNS = [
   /https?:\/\//i,
   /\bwww\./i,
-  /[/?#@=]/,
+  /[?#@=]/,
   /(?:^|[_\-\s])(?:raw|source|token|cookie|session|secret|credential)(?:$|[_\-\s])/i,
   /\b(?:raw|source)[_-]?(?:row|rows|record|records|data)?\b/i,
   /\b(?:access|refresh|id)?[_-]?token\b/i,

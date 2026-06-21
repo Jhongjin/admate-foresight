@@ -15,6 +15,13 @@ import openpyxl
 BASE = Path(__file__).parent.parent
 
 # ── extractIndustry 로직 (xlsxLoader.ts와 동일) ──────────
+VALID_INDUSTRIES = {
+    '건설', '게임', '공공기관', '교육', '금융', '보험', '기관/단체',
+    '방송통신', '병의원', '부동산', '뷰티', '생활/잡화', '서비스',
+    '관광/레저', '수송', '식음료', '앱/사이트', '엔터테인먼트',
+    '의약/건강식', '전자', '주류', '주택/가구', '패션', '기타',
+}
+
 INDUSTRY_NORMALIZE = {
     '기관.ver2': '기관/단체', '생활잡화': '생활/잡화', '생활잡화 공구': '생활/잡화',
     '식음료(에너지바)': '식음료', '의약': '의약/건기식', '의료/건강': '의약/건기식',
@@ -37,6 +44,27 @@ INDUSTRY_NORMALIZE = {
     '제조': '전자',
 }
 
+INDUSTRY_NORMALIZE.update({
+    '의약': '의약/건강식', '의약/건기식': '의약/건강식',
+    '의료/건강': '의약/건강식', '의료/건강(건강기능식품)': '의약/건강식',
+    '의약품': '의약/건강식', '건강기능식품': '의약/건강식',
+    '건강식품': '의약/건강식', '헬스케어': '의약/건강식',
+    '여행': '관광/레저', '관광': '관광/레저', '레저': '관광/레저',
+    '숙박': '관광/레저', '리조트': '관광/레저', '호텔': '관광/레저',
+    '자동차': '수송', '운수': '수송', '항공': '수송', '자동차/수송': '수송',
+    '부동산/건설': '부동산', '부동산/임대': '부동산', '임대': '부동산',
+    '주류/음료': '주류', '맥주': '주류', '소주': '주류', '와인': '주류', '막걸리': '주류',
+    'OTT': '방송통신', '방송': '방송통신', '통신': '방송통신', '미디어': '방송통신',
+    '앱': '앱/사이트', '플랫폼': '앱/사이트', '커머스': '앱/사이트',
+})
+
+def normalize_industry(raw):
+    value = (raw or '').strip()
+    if not value:
+        return '기타'
+    mapped = INDUSTRY_NORMALIZE.get(value, value)
+    return mapped if mapped in VALID_INDUSTRIES else '기타'
+
 def is_valid_industry_part(s):
     if not s or len(s) > 20: return False
     if re.match(r'^\d+$', s): return False
@@ -50,11 +78,11 @@ def is_valid_industry_part(s):
     return True
 
 def extract_industry(account_name):
-    if not account_name: return ''
+    if not account_name: return '기타'
     parts = [p.strip() for p in account_name.strip().split('_') if p.strip()]
     for part in reversed(parts):
         if is_valid_industry_part(part):
-            return INDUSTRY_NORMALIZE.get(part, part)
+            return normalize_industry(part)
     return '기타'
 
 # ── 노출위치 매핑 ─────────────────────────────────────────

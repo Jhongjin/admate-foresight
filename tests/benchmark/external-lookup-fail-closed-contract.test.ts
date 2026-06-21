@@ -85,6 +85,18 @@ describe('external lookup fail-closed contract', () => {
     expect(googleSource).toContain('previewUrl: safeExternalUrl');
   });
 
+  it('keeps external lookup keyword maps aligned with canonical Foresight industries', () => {
+    for (const route of ROUTES) {
+      const source = readRouteSource(route);
+
+      expect(source).toContain("'의약/건강식'");
+      expect(source).toContain("'관광/레저'");
+      expect(source).toContain("'수송'");
+      expect(source).toContain("'전자'");
+      expect(source).toContain("'방송통신'");
+    }
+  });
+
   it('keeps the competitor UI from rendering token-like lookup text or raw error bodies', () => {
     const source = readFileSync(
       join(process.cwd(), 'app', 'competitor', 'CompetitorPageClient.tsx'),
@@ -93,6 +105,10 @@ describe('external lookup fail-closed contract', () => {
 
     expect(source).toContain('readJsonOrNull');
     expect(source).toContain('toDisplaySafeLookupText');
+    expect(source).toContain("'의약/건강식'");
+    expect(source).toContain("'관광/레저'");
+    expect(source).toContain("'엔터테인먼트'");
+    expect(source).not.toContain("'의약/건기식'");
     expect(source).not.toContain('const data = await res.json()');
     expect(source).not.toContain('response.statusText');
   });

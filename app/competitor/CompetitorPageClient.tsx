@@ -24,8 +24,15 @@ const SENSITIVE_LOOKUP_PATTERN =
   /(access[_-]?token|sessionid|cookie=|bearer\s+|secret|api[_-]?key|x-admate-internal-key|[A-Za-z0-9._~+/=-]{32,})/i;
 const INDUSTRIES = [
   ALL_LABEL,
-  '식음료', '의약/건기식', '패션', '뷰티', '생활/잡화', '기관/단체',
-  '교육', '금융', '여행', '게임', '부동산', '자동차', '엔터', '가전제품', '유통', '화장품', '서비스',
+  '식음료', '뷰티', '패션', '생활/잡화', '주류', '전자',
+  '의약/건강식', '병의원',
+  '금융', '보험', '앱/사이트', '서비스', '관광/레저', '방송통신',
+  '건설', '부동산', '주택/가구',
+  '수송',
+  '공공기관', '기관/단체', '교육',
+  '엔터테인먼트',
+  '게임',
+  '기타',
 ];
 
 async function readJsonOrNull(res: Response): Promise<unknown | null> {

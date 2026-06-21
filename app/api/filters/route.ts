@@ -8,6 +8,7 @@ import {
   getPlacements,
   getXlsxIndustries,
   ensureDataLoaded,
+  normalizeIndustryName,
 } from '@/lib/xlsxLoader';
 import { normalizeFiltersRouteOutput } from '@/lib/foresightFiltersRouteOutputContract';
 
@@ -16,9 +17,9 @@ const INDUSTRY_ORDER: string[] = [
   // 소비재
   '식음료', '뷰티', '패션', '생활/잡화', '주류', '전자',
   // 건강/의료
-  '의약/건기식', '병의원',
+  '의약/건강식', '의약/건기식', '병의원',
   // 금융/서비스/디지털
-  '금융', '보험', '앱/사이트', '서비스', '방송통신',
+  '금융', '보험', '앱/사이트', '서비스', '관광/레저', '방송통신',
   // 건설/부동산/주거
   '건설', '부동산', '주택/가구',
   // 교통
@@ -68,14 +69,18 @@ function stringArrayOrEmpty(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 
+function normalizeIndustriesForFilter(values: string[]): string[] {
+  return values.map(normalizeIndustryName);
+}
+
 export async function GET() {
   const authResponse = await requireForesightApiSession();
   if (authResponse) return authResponse;
 
   try {
     await ensureDataLoaded();
-    const csvIndustries = stringArrayOrEmpty(getIndustries());
-    const xlsxIndustries = stringArrayOrEmpty(getXlsxIndustries());
+    const csvIndustries = normalizeIndustriesForFilter(stringArrayOrEmpty(getIndustries()));
+    const xlsxIndustries = normalizeIndustriesForFilter(stringArrayOrEmpty(getXlsxIndustries()));
     const allIndustries = sortIndustries([...new Set([...csvIndustries, ...xlsxIndustries])]);
     const ageRanges = stringArrayOrEmpty(getAgeRanges());
     const genders = ['male', 'female'];

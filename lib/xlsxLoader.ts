@@ -23,61 +23,172 @@ export interface XlsxRecord {
   날짜: string;
 }
 
+const VALID_INDUSTRIES = new Set([
+  '건설',
+  '게임',
+  '공공기관',
+  '교육',
+  '금융',
+  '보험',
+  '기관/단체',
+  '방송통신',
+  '병의원',
+  '부동산',
+  '뷰티',
+  '생활/잡화',
+  '서비스',
+  '관광/레저',
+  '수송',
+  '식음료',
+  '앱/사이트',
+  '엔터테인먼트',
+  '의약/건강식',
+  '전자',
+  '주류',
+  '주택/가구',
+  '패션',
+  '기타',
+]);
+
 // 업종명 정규화 맵 (유사 업종 통합)
 const INDUSTRY_NORMALIZE: Record<string, string> = {
   '기관.ver2':           '기관/단체',
   '생활잡화':            '생활/잡화',
   '생활잡화 공구':       '생활/잡화',
+  '생화잡화':            '생활/잡화',
+  '생활잡화/안마의자':   '생활/잡화',
+  '반려동물':            '생활/잡화',
+  '펫':                  '생활/잡화',
+  '생활용품':            '생활/잡화',
   '식음료(에너지바)':    '식음료',
-  '의약':                '의약/건기식',
-  '의료/건강':           '의약/건기식',
-  '의료/건강(건강기능식품)': '의약/건기식',
-  '의약품':              '의약/건기식',
+  '식품':                '식음료',
+  '음료':                '식음료',
+  '외식':                '식음료',
+  '푸드':                '식음료',
+  '음식':                '식음료',
+  '의약':                '의약/건강식',
+  '의약/건기식':         '의약/건강식',
+  '의료/건강':           '의약/건강식',
+  '의료/건강(건강기능식품)': '의약/건강식',
+  '의약품':              '의약/건강식',
+  '건강기능식품':        '의약/건강식',
+  '건강식품':            '의약/건강식',
+  '헬스케어':            '의약/건강식',
   '건강뷰티':            '뷰티',
   '화장품':              '뷰티',
+  '화장품(스킨케어)':    '뷰티',
+  '화장품/생활':         '뷰티',
+  '코스메틱':            '뷰티',
+  '헤어':                '뷰티',
   '기타기관':            '기관/단체',
   '단체':                '기관/단체',
   '기관':                '기관/단체',
+  '협회':                '기관/단체',
+  '재단':                '기관/단체',
   '공공기관':            '공공기관',
-  '문화예술':            '문화/예술',
+  '정부기관':            '공공기관',
+  '정부광고':            '공공기관',
+  '지자체':              '공공기관',
+  '문화예술':            '엔터테인먼트',
+  '문화/예술':           '엔터테인먼트',
+  '영화':                '엔터테인먼트',
+  '박람회':              '엔터테인먼트',
+  '음악':                '엔터테인먼트',
+  '스포츠':              '엔터테인먼트',
+  '공연':                '엔터테인먼트',
+  '웹툰':                '엔터테인먼트',
+  '출판':                '엔터테인먼트',
   '생활/잡화':           '생활/잡화',
   '앱서비스':            '앱/사이트',
+  '앱':                  '앱/사이트',
+  '플랫폼':              '앱/사이트',
+  '커머스':              '앱/사이트',
   '금융서비스':          '금융',
+  '증권':                '금융',
+  '은행':                '금융',
+  '카드':                '금융',
+  '핀테크':              '금융',
+  '투자':                '금융',
+  '보험서비스':          '보험',
   '건설/분양':           '건설',
   '건설분양':            '건설',
+  '시공':                '건설',
   '가전':                '전자',
   '가전제품':            '전자',
+  '컴퓨터/기술':         '전자',
+  '제조':                '전자',
+  'IT':                  '전자',
+  '스마트폰':            '전자',
+  '반도체':              '전자',
   '패션':                '패션',
   '패션/의류':           '패션',
   '패션/잡화':           '패션',
   '의류':                '패션',
+  '잡화':                '패션',
+  '액세서리':            '패션',
+  '신발':                '패션',
   '공공기관 (신규)':     '공공기관',
   '교육 (신규)':         '교육',
+  '학원':                '교육',
+  '이러닝':              '교육',
+  'e러닝':               '교육',
+  '유아교육':            '교육',
   '말레이시아':          '기타',
   '태국':                '기타',
   '모마2':               '기타',
   '모마':                '기타',
   '광고쿠폰':            '기타',
-  '생화잡화':            '생활/잡화',
-  '생활잡화/안마의자':   '생활/잡화',
   '주택가구':            '주택/가구',
-  '화장품(스킨케어)':    '뷰티',
-  '화장품/생활':         '뷰티',
-  '정부기관':            '공공기관',
-  '정부광고':            '공공기관',
-  '부동산/건설':         '건설',
-  '기타(에너지)':        '에너지',
+  '가구':                '주택/가구',
+  '인테리어':            '주택/가구',
+  '홈인테리어':          '주택/가구',
+  '부동산/건설':         '부동산',
+  '부동산/임대':         '부동산',
+  '임대':                '부동산',
+  '병원':                '병의원',
+  '의료기기':            '병의원',
+  '의료':                '병의원',
+  '한의원':              '병의원',
+  '치과':                '병의원',
+  '성형':                '병의원',
+  '언론':                '방송통신',
+  '통신':                '방송통신',
+  '미디어':              '방송통신',
+  'OTT':                 '방송통신',
+  '방송':                '방송통신',
+  '여행':                '관광/레저',
+  '관광':                '관광/레저',
+  '레저':                '관광/레저',
+  '숙박':                '관광/레저',
+  '리조트':              '관광/레저',
+  '호텔':                '관광/레저',
+  '렌탈':                '서비스',
+  '육아':                '서비스',
+  '배달':                '서비스',
+  '물류':                '서비스',
+  '청소':                '서비스',
+  '결혼':                '서비스',
+  '자동차':              '수송',
+  '운수':                '수송',
+  '항공':                '수송',
+  '자동차/수송':         '수송',
+  '주류/음료':           '주류',
+  '맥주':                '주류',
+  '소주':                '주류',
+  '와인':                '주류',
+  '막걸리':              '주류',
+  '기타(에너지)':        '기타',
   '기타(국방업)':        '기타',
   '쇼핑':                '기타',
-  '컴퓨터/기술':         '전자',
-  '박람회':              '엔터테인먼트',
-  '영화':                '엔터테인먼트',
-  '문화/예술':           '엔터테인먼트',
-  '언론':                '방송통신',
   '에너지':              '기타',
-  '의료기기':            '병의원',
-  '제조':                '전자',
 };
+
+export function normalizeIndustryName(raw: string | null | undefined): string {
+  const value = (raw ?? '').trim();
+  if (!value) return '기타';
+  const mapped = INDUSTRY_NORMALIZE[value] ?? value;
+  return VALID_INDUSTRIES.has(mapped) ? mapped : '기타';
+}
 
 // 유효한 업종 파트인지 판별
 // - 한글 포함, 팀명/브랜드명/숫자/회사명 아님
@@ -95,15 +206,15 @@ function isValidIndustryPart(s: string): boolean {
 }
 
 export function extractIndustry(accountName: string): string {
-  if (!accountName) return '';
+  if (!accountName) return '기타';
   const parts = accountName.trim().split('_').map(s => s.trim()).filter(Boolean);
-  if (parts.length === 0) return '';
+  if (parts.length === 0) return '기타';
 
   // 뒤에서부터 유효한 업종 파트 탐색
   for (let i = parts.length - 1; i >= 0; i--) {
     const raw = parts[i];
     if (isValidIndustryPart(raw)) {
-      return INDUSTRY_NORMALIZE[raw] ?? raw;
+      return normalizeIndustryName(raw);
     }
   }
 
@@ -284,11 +395,6 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
   ]);
   console.log(`[xlsxLoader] 로딩 완료 — monthly:${monthRows.length}행, demo:${demoRows.length}행`);
 
-  // 업종 정규화 헬퍼: DB에 raw 변형값이 저장된 경우에도 통일된 이름으로 반환
-  const normalizeIndustry = (raw: string | null | undefined): string => {
-    const v = (raw ?? '').trim();
-    return INDUSTRY_NORMALIZE[v] ?? v;
-  };
   const textValue = (...values: Array<string | null | undefined>): string =>
     values.find((value) => (value ?? '').trim() !== '')?.trim() ?? '';
   const numberValue = (...values: Array<number | string | null | undefined>): number => {
@@ -297,7 +403,7 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
   };
 
   const monthly: XlsxRecord[] = monthRows.map((r) => ({
-    업종: normalizeIndustry(textValue(r.업종, r.industry)),
+    업종: normalizeIndustryName(textValue(r.업종, r.industry)),
     목표: textValue(r.목표, r.objective),
     최적화목표: textValue(r.최적화목표, r.optimization_goal),
     노출위치: textValue(r.노출위치, r.placement),
@@ -311,7 +417,7 @@ export async function loadFromSupabase(): Promise<{ monthly: XlsxRecord[]; demo:
   }));
 
   const demo: XlsxRecord[] = demoRows.map((r) => ({
-    업종: normalizeIndustry(textValue(r.업종, r.industry)),
+    업종: normalizeIndustryName(textValue(r.업종, r.industry)),
     목표: textValue(r.목표, r.objective),
     최적화목표: textValue(r.최적화목표, r.optimization_goal),
     노출위치: '', 소재형태: '',

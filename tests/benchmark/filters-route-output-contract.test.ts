@@ -66,6 +66,15 @@ function loadFiltersRouteWithData(data: FiltersRouteMockData) {
         getAvailableMonths,
         getPlacements,
         getCreativeFormats,
+        normalizeIndustryName: (value: string | null | undefined) => {
+          const normalized: Record<string, string> = {
+            '의약/건기식': '의약/건강식',
+            '호텔': '관광/레저',
+            '여행': '관광/레저',
+          };
+          const trimmed = (value ?? '').trim();
+          return normalized[trimmed] ?? trimmed;
+        },
       };
     }
     if (id === '@/lib/foresightFiltersRouteOutputContract') {
@@ -182,6 +191,34 @@ describe('filters route output contract', () => {
     ]);
     expect(keyPaths).not.toMatch(/raw|source|account|campaign|adset|provider|url|token|cookie|session|secret/i);
     expect(serialized).not.toMatch(/https:\/\/example\.test|opaque-token-value|opaque-session-value|campaign-123|1234567890|secret_objective|act_123|creative_id/);
+  });
+
+  it('normalizes legacy and alias industry labels before returning filters', async () => {
+    const { GET } = loadFiltersRouteWithData({
+      csvIndustries: [
+        '식음료',
+        '의약/건기식',
+        '호텔',
+      ],
+      xlsxIndustries: [
+        '관광/레저',
+        '의약/건강식',
+        '기타',
+      ],
+    });
+
+    const response = await GET();
+    const responseBody = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(responseBody.industries).toEqual([
+      '식음료',
+      '의약/건강식',
+      '관광/레저',
+      '기타',
+    ]);
+    expect(responseBody.industries).not.toContain('의약/건기식');
+    expect(responseBody.industries).not.toContain('호텔');
   });
 
   it('returns empty arrays for malformed helper output instead of echoing it', async () => {
