@@ -43,25 +43,20 @@ function filterData(
   return filtered;
 }
 
-// CTR 집계: clicks = spend / CPC (CPC>0인 행만)
+// CPC/CTR 집계: clicks = spend / CPC로 역산한 뒤 SUM(spend) / SUM(clicks)를 사용한다.
 function aggregateMonthRecords(records: XlsxRecord[]): Omit<TrendPoint, 'month'> {
   const totalImpressions = records.reduce((s, r) => s + r.노출, 0);
   const totalReach = records.reduce((s, r) => s + r.도달, 0);
+  const totalSpend = records.reduce((s, r) => s + r.지출금액, 0);
 
   // 가중평균 CPM (노출 기준)
   const avgCPM = totalImpressions > 0
     ? records.reduce((s, r) => s + r.CPM * r.노출, 0) / totalImpressions
     : 0;
 
-  // 가중평균 CPC (지출 기준, CPC>0 행만)
   const clickRecs = records.filter((r) => r.CPC > 0);
-  const clickSpend = clickRecs.reduce((s, r) => s + r.지출금액, 0);
-  const avgCPC = clickSpend > 0
-    ? clickRecs.reduce((s, r) => s + r.CPC * r.지출금액, 0) / clickSpend
-    : 0;
-
-  // CTR = 총클릭 / 총노출 (클릭 = spend / CPC)
   const totalClicks = clickRecs.reduce((s, r) => s + r.지출금액 / r.CPC, 0);
+  const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0;
   const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
   return {
@@ -69,7 +64,7 @@ function aggregateMonthRecords(records: XlsxRecord[]): Omit<TrendPoint, 'month'>
     avgCPC: Math.round(avgCPC),
     avgCTR: parseFloat(avgCTR.toFixed(4)),
     totalReach,
-    totalSpend: records.reduce((s, r) => s + r.지출금액, 0),
+    totalSpend,
     totalImpressions,
     totalClicks: Math.round(totalClicks),
     count: records.length,
@@ -231,12 +226,9 @@ function aggregateWindow(records: XlsxRecord[]) {
   const avgCPM = totalImpressions > 0
     ? records.reduce((s, r) => s + r.CPM * r.노출, 0) / totalImpressions : 0;
 
-  const clickRecs  = records.filter((r) => r.CPC > 0);
-  const clickSpend = clickRecs.reduce((s, r) => s + r.지출금액, 0);
-  const avgCPC = clickSpend > 0
-    ? clickRecs.reduce((s, r) => s + r.CPC * r.지출금액, 0) / clickSpend : 0;
-
+  const clickRecs = records.filter((r) => r.CPC > 0);
   const totalClicks = clickRecs.reduce((s, r) => s + r.지출금액 / r.CPC, 0);
+  const avgCPC = totalClicks > 0 ? totalSpend / totalClicks : 0;
   const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
   const videoRecs       = records.filter((r) => r.영상조회수 > 0 && r.노출 > 0);

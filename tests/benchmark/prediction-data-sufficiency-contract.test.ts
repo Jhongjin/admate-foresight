@@ -218,6 +218,33 @@ describe('prediction data sufficiency contract', () => {
     });
   });
 
+  it('calculates CPC from summed spend over inferred clicks instead of averaging row CPCs', async () => {
+    const predict = await predictWithData([
+      ...records(5, {
+        지출금액: 1_000,
+        CPC: 100,
+      }),
+      ...records(5, {
+        지출금액: 9_000,
+        CPC: 900,
+      }),
+    ]);
+
+    const result = predict({
+      industries: ['교육'],
+      genders: [],
+      ageRanges: [],
+      objectives: ['OUTCOME_TRAFFIC'],
+      budget: 10_000_000,
+      monthFrom: '2025-06',
+      monthTo: '2025-06',
+    });
+
+    expect(result.predictionMethod).toBe('weighted_avg');
+    expect(result.cpc).toBe(500);
+    expect(result.marketAvg.cpc).toBe(500);
+  });
+
   it('reports demographic relaxation when exact age data is sparse', async () => {
     const predict = await predictWithData([
       ...records(5),

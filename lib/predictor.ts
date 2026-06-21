@@ -204,9 +204,10 @@ function weightedCPM(records: XlsxRecord[]): number {
 function weightedCPC(records: XlsxRecord[]): number {
   const clickRecs = records.filter((r) => r.CPC > 0);
   if (clickRecs.length === 0) return 0;
-  const clickSpend = clickRecs.reduce((s, r) => s + r.지출금액, 0);
-  if (clickSpend === 0) return 0;
-  return clickRecs.reduce((s, r) => s + r.CPC * r.지출금액, 0) / clickSpend;
+  const totalSpend = clickRecs.reduce((s, r) => s + r.지출금액, 0);
+  const totalClicks = clickRecs.reduce((s, r) => s + r.지출금액 / r.CPC, 0);
+  if (totalClicks === 0) return 0;
+  return totalSpend / totalClicks;
 }
 
 function weightedCPCLink(records: XlsxRecord[]): number {
