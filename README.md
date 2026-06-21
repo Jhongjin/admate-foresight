@@ -165,6 +165,13 @@ SELECT refresh_foresight_monthly_aggregates_window('2026-03-01', '2026-04-01');
 SELECT refresh_foresight_demographic_aggregates_window('2026-03-01', '2026-04-01');
 ```
 
+With `FORESIGHT_SUPABASE_URL` and `FORESIGHT_SUPABASE_SERVICE_ROLE_KEY` available to the operator shell, the same refresh can be run through the guarded script. The script is dry-run by default and requires `--apply` for DB writes:
+
+```powershell
+npm run refresh:foresight-aggregate-caches -- --since 2026-03-01 --until 2026-04-01
+npm run refresh:foresight-aggregate-caches -- --since 2026-03-01 --until 2026-04-01 --apply
+```
+
 The fast read RPCs are:
 
 - `get_monthly_aggregates_fast`
