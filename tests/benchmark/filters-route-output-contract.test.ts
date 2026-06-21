@@ -11,6 +11,8 @@ interface FiltersRouteMockData {
   ageRanges?: unknown;
   objectives?: unknown;
   months?: unknown;
+  placements?: unknown;
+  creativeTypes?: unknown;
 }
 
 function loadFiltersRouteWithData(data: FiltersRouteMockData) {
@@ -20,6 +22,8 @@ function loadFiltersRouteWithData(data: FiltersRouteMockData) {
   const getAgeRanges = vi.fn(() => data.ageRanges ?? []);
   const getObjectives = vi.fn(() => data.objectives ?? []);
   const getAvailableMonths = vi.fn(() => data.months ?? []);
+  const getPlacements = vi.fn(() => data.placements ?? []);
+  const getCreativeFormats = vi.fn(() => data.creativeTypes ?? []);
   const routePath = join(process.cwd(), 'app', 'api', 'filters', 'route.ts');
   const source = readFileSync(routePath, 'utf8');
   const { outputText } = ts.transpileModule(source, {
@@ -60,6 +64,8 @@ function loadFiltersRouteWithData(data: FiltersRouteMockData) {
         getObjectives,
         getXlsxIndustries,
         getAvailableMonths,
+        getPlacements,
+        getCreativeFormats,
       };
     }
     if (id === '@/lib/foresightFiltersRouteOutputContract') {
@@ -134,6 +140,18 @@ describe('filters route output contract', () => {
         '2025-07',
         'https://example.test/month',
       ],
+      placements: [
+        'Instagram 피드',
+        'Facebook 스토리',
+        'act_123',
+        'creative_id',
+      ],
+      creativeTypes: [
+        '이미지',
+        '동영상',
+        'campaign-123',
+        'https://example.test/creative',
+      ],
     });
 
     const response = await GET();
@@ -147,6 +165,8 @@ describe('filters route output contract', () => {
       genders: ['male', 'female'],
       objectives: ['OUTCOME_SALES', 'Brand Awareness'],
       months: ['2025-06', '2025-07'],
+      placements: ['Instagram 피드', 'Facebook 스토리'],
+      creativeTypes: ['이미지', '동영상'],
     });
 
     const serialized = JSON.stringify(responseBody);
@@ -157,9 +177,11 @@ describe('filters route output contract', () => {
       'genders',
       'objectives',
       'months',
+      'placements',
+      'creativeTypes',
     ]);
     expect(keyPaths).not.toMatch(/raw|source|account|campaign|adset|provider|url|token|cookie|session|secret/i);
-    expect(serialized).not.toMatch(/https:\/\/example\.test|opaque-token-value|opaque-session-value|campaign-123|1234567890|secret_objective/);
+    expect(serialized).not.toMatch(/https:\/\/example\.test|opaque-token-value|opaque-session-value|campaign-123|1234567890|secret_objective|act_123|creative_id/);
   });
 
   it('returns empty arrays for malformed helper output instead of echoing it', async () => {
@@ -172,6 +194,8 @@ describe('filters route output contract', () => {
         '2025-00',
         'not-a-month',
       ],
+      placements: { rawRows: [{ token: 'opaque-token-value' }] },
+      creativeTypes: '이미지',
     });
 
     const response = await GET();
@@ -185,8 +209,10 @@ describe('filters route output contract', () => {
       genders: ['male', 'female'],
       objectives: [],
       months: [],
+      placements: [],
+      creativeTypes: [],
     });
-    expect(JSON.stringify(responseBody)).not.toMatch(/unsafe-session-value|opaque-cookie-value|OUTCOME_SALES|not-a-month/);
+    expect(JSON.stringify(responseBody)).not.toMatch(/unsafe-session-value|opaque-cookie-value|opaque-token-value|OUTCOME_SALES|not-a-month|이미지/);
   });
 
   it('allows only supported gender values when normalizing the contract directly', () => {
@@ -196,6 +222,8 @@ describe('filters route output contract', () => {
       genders: ['male', 'Female', 'UNKNOWN', 'admin', 'session'],
       objectives: [],
       months: [],
+      placements: [],
+      creativeTypes: [],
       rawRows: [{ cookie: 'opaque-cookie-value' }],
     })).toEqual({
       industries: [],
@@ -203,6 +231,8 @@ describe('filters route output contract', () => {
       genders: ['male', 'female', 'unknown'],
       objectives: [],
       months: [],
+      placements: [],
+      creativeTypes: [],
     });
   });
 });

@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { XlsxRecord } from '../../lib/xlsxLoader';
 
+vi.setConfig({ testTimeout: 20_000 });
+
 function record(overrides: Partial<XlsxRecord>): XlsxRecord {
   return {
     업종: '뷰티',

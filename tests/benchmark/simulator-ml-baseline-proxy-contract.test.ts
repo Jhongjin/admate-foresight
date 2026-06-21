@@ -76,6 +76,8 @@ describe('foresight simulator ML baseline proxy contract', () => {
       목표: ' OUTCOME_AWARENESS ',
       성별: ' female ',
       연령: ' 25-34 ',
+      노출위치: [' IG 피드 ', ''],
+      소재형태: ' 동영상 ',
       예산: '2500000.5',
       기간: '14',
     });
@@ -85,10 +87,21 @@ describe('foresight simulator ML baseline proxy contract', () => {
       목표: 'OUTCOME_AWARENESS',
       성별: 'female',
       연령: '25-34',
+      노출위치: ['IG 피드'],
+      소재형태: '동영상',
       예산: 2500000.5,
       기간: 14,
     });
-    expect(Object.keys(body)).toEqual(['업종', '목표', '성별', '연령', '예산', '기간']);
+    expect(Object.keys(body)).toEqual([
+      '업종',
+      '목표',
+      '성별',
+      '연령',
+      '노출위치',
+      '소재형태',
+      '예산',
+      '기간',
+    ]);
   });
 
   it('defaults omitted optional request fields to the Python PredictRequest defaults', () => {
@@ -97,6 +110,8 @@ describe('foresight simulator ML baseline proxy contract', () => {
       목표: '',
       성별: '',
       연령: '',
+      노출위치: [],
+      소재형태: '',
       예산: 10_000_000,
       기간: 30,
     });
@@ -106,6 +121,8 @@ describe('foresight simulator ML baseline proxy contract', () => {
       목표: undefined,
       성별: '',
       연령: '   ',
+      노출위치: null,
+      소재형태: undefined,
       예산: 1_000,
       기간: 1,
     })).toEqual({
@@ -113,6 +130,8 @@ describe('foresight simulator ML baseline proxy contract', () => {
       목표: '',
       성별: '',
       연령: '',
+      노출위치: [],
+      소재형태: '',
       예산: 1_000,
       기간: 1,
     });
@@ -137,6 +156,8 @@ describe('foresight simulator ML baseline proxy contract', () => {
       목표: 'OUTCOME_LEADS',
       성별: 'male',
       연령: '35-44',
+      노출위치: ['IG 피드'],
+      소재형태: '이미지',
       예산: 4_500_000,
       기간: 45,
       sourceRows: [{ id: 'source-row' }],
@@ -159,6 +180,8 @@ describe('foresight simulator ML baseline proxy contract', () => {
       목표: 'OUTCOME_LEADS',
       성별: 'male',
       연령: '35-44',
+      노출위치: ['IG 피드'],
+      소재형태: '이미지',
       예산: 4_500_000,
       기간: 45,
     });
@@ -166,7 +189,7 @@ describe('foresight simulator ML baseline proxy contract', () => {
   });
 
   it('rejects unsafe approved request string values instead of forwarding them', () => {
-    for (const field of ['업종', '목표', '성별', '연령'] as const) {
+    for (const field of ['업종', '목표', '성별', '연령', '소재형태'] as const) {
       const message = expectRequestValidationError({
         업종: '교육',
         목표: 'OUTCOME_LEADS',
@@ -179,6 +202,10 @@ describe('foresight simulator ML baseline proxy contract', () => {
 
       expect(message).toBe(`${field} must not contain source identifiers or secrets`);
     }
+
+    expect(expectRequestValidationError({
+      노출위치: ['https://example.test/path?access_token=opaque-token-value'],
+    })).toBe('노출위치 must not contain source identifiers or secrets');
   });
 
   it.each([
@@ -197,6 +224,18 @@ describe('foresight simulator ML baseline proxy contract', () => {
       ctr: 1.735,
       cpc: 294,
       reach: 154321,
+      frequency: 1.62,
+      seasonality_multiplier: 1.2,
+      seasonality_reason: '추석 연휴 시즌',
+      saturation_warning: false,
+      is_cross_estimate: true,
+      placement_factor: 0.92,
+      demo_factor: 1.04,
+      creative_factor: 0.85,
+      is_creative_fallback: true,
+      lw_ensemble_active: false,
+      lw_cpm: null,
+      lw_rf_weight: null,
       r2_cpm: 0.82,
       r2_ctr: 0.74,
       cv_r2: 0.8124,
@@ -211,6 +250,16 @@ describe('foresight simulator ML baseline proxy contract', () => {
       ctr: 1.735,
       cpc: 294,
       reach: 154321,
+      frequency: 1.62,
+      seasonality_multiplier: 1.2,
+      seasonality_reason: '추석 연휴 시즌',
+      saturation_warning: false,
+      is_cross_estimate: true,
+      placement_factor: 0.92,
+      demo_factor: 1.04,
+      creative_factor: 0.85,
+      is_creative_fallback: true,
+      lw_ensemble_active: false,
       r2_cpm: 0.82,
       r2_ctr: 0.74,
       cv_r2: 0.8124,
@@ -222,6 +271,16 @@ describe('foresight simulator ML baseline proxy contract', () => {
       'ctr',
       'cpc',
       'reach',
+      'frequency',
+      'seasonality_multiplier',
+      'placement_factor',
+      'demo_factor',
+      'creative_factor',
+      'saturation_warning',
+      'is_cross_estimate',
+      'is_creative_fallback',
+      'lw_ensemble_active',
+      'seasonality_reason',
       'r2_cpm',
       'r2_ctr',
       'cv_r2',
@@ -240,7 +299,7 @@ describe('foresight simulator ML baseline proxy contract', () => {
       r2_cpm: '0.58',
       r2_ctr: '-0.12',
       cv_r2: '0.5129',
-      model_type: 'linear_regression',
+      model_type: 'ridge',
       n_samples: '640.4',
     });
 
@@ -251,8 +310,18 @@ describe('foresight simulator ML baseline proxy contract', () => {
       r2_cpm: 0.58,
       r2_ctr: -0.12,
       cv_r2: 0.5129,
-      model_type: 'linear_regression',
+      model_type: 'ridge',
       n_samples: 640,
+    });
+  });
+
+  it('allows the approved sklearn boosting model type without widening provider model names', () => {
+    expect(successBody({
+      reach: 12_000,
+      model_type: 'hist_gradient_boosting',
+    })).toEqual({
+      reach: 12_000,
+      model_type: 'hist_gradient_boosting',
     });
   });
 

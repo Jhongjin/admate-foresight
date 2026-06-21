@@ -14,6 +14,8 @@ function buildInput(
     genders: [],
     ageRanges: [],
     objectives: ['OUTCOME_TRAFFIC'],
+    placements: [],
+    creativeTypes: [],
     monthlyBudget: 5_000_000,
     ...overrides,
   };
@@ -23,9 +25,11 @@ function expectAggregateOnlyBody(request: ForesightSimulatorScenarioExpansionReq
   expect(Object.keys(request.body).sort()).toEqual([
     'ageRanges',
     'budget',
+    'creativeTypes',
     'genders',
     'industries',
     'objectives',
+    'placements',
   ]);
 }
 
@@ -60,6 +64,8 @@ describe('foresight simulator scenario expansion request contract', () => {
         genders: [],
         ageRanges: [],
         objectives: ['OUTCOME_TRAFFIC'],
+        placements: [],
+        creativeTypes: [],
         budget: 5_000_000,
       },
     });
@@ -80,6 +86,8 @@ describe('foresight simulator scenario expansion request contract', () => {
         genders: [],
         ageRanges: [],
         objectives: ['OUTCOME_TRAFFIC'],
+        placements: [],
+        creativeTypes: [],
         budget: 5_000_000,
       },
     });
@@ -102,6 +110,8 @@ describe('foresight simulator scenario expansion request contract', () => {
           genders: [],
           ageRanges: ['25-34'],
           objectives: ['OUTCOME_TRAFFIC'],
+          placements: [],
+          creativeTypes: [],
           budget: 7_000_000,
         },
       },
@@ -113,6 +123,8 @@ describe('foresight simulator scenario expansion request contract', () => {
           genders: ['female'],
           ageRanges: [],
           objectives: ['OUTCOME_TRAFFIC'],
+          placements: [],
+          creativeTypes: [],
           budget: 7_000_000,
         },
       },
@@ -150,31 +162,49 @@ describe('foresight simulator scenario expansion request contract', () => {
     const genders = ['female'];
     const ageRanges = ['25-34'];
     const objectives = ['OUTCOME_TRAFFIC'];
+    const placements = ['Instagram 피드'];
+    const creativeTypes = ['이미지'];
     const requests = buildForesightSimulatorScenarioExpansionRequests(buildInput({
       industries,
       genders,
       ageRanges,
       objectives,
+      placements,
+      creativeTypes,
     }));
 
     expect(requests[0].body.industries).not.toBe(industries);
     expect(requests[0].body.ageRanges).not.toBe(ageRanges);
     expect(requests[0].body.objectives).not.toBe(objectives);
+    expect(requests[0].body.placements).not.toBe(placements);
+    expect(requests[0].body.creativeTypes).not.toBe(creativeTypes);
     expect(requests[1].body.industries).not.toBe(industries);
     expect(requests[1].body.genders).not.toBe(genders);
     expect(requests[1].body.objectives).not.toBe(objectives);
+    expect(requests[1].body.placements).not.toBe(placements);
+    expect(requests[1].body.creativeTypes).not.toBe(creativeTypes);
 
     requests[0].body.industries.push('게임');
+    requests[0].body.placements.push('Facebook 스토리');
     requests[1].body.genders.push('nonbinary');
+    requests[1].body.creativeTypes.push('동영상');
     industries.push('금융');
     genders.push('male');
+    placements.push('Audience Network');
+    creativeTypes.push('컬렉션');
 
     expect(industries).toEqual(['교육', '금융']);
     expect(genders).toEqual(['female', 'male']);
+    expect(placements).toEqual(['Instagram 피드', 'Audience Network']);
+    expect(creativeTypes).toEqual(['이미지', '컬렉션']);
     expect(requests[0].body.industries).toEqual(['교육', '게임']);
+    expect(requests[0].body.placements).toEqual(['Instagram 피드', 'Facebook 스토리']);
     expect(requests[1].body.genders).toEqual(['female', 'nonbinary']);
+    expect(requests[1].body.creativeTypes).toEqual(['이미지', '동영상']);
     expect(requests[0].body.industries).not.toContain('금융');
+    expect(requests[0].body.placements).not.toContain('Audience Network');
     expect(requests[1].body.genders).not.toContain('male');
+    expect(requests[1].body.creativeTypes).not.toContain('컬렉션');
   });
 
   it('omits secret-like display and body values while preserving regular filter values', () => {
@@ -187,6 +217,8 @@ describe('foresight simulator scenario expansion request contract', () => {
       genders: ['female', 'Bearer secret-token'],
       ageRanges: ['25-34', 'session=abc123', 'ad-123'],
       objectives: ['OUTCOME_TRAFFIC', 'provider-secret-token', 'raw-source-row'],
+      placements: ['Instagram 피드', 'https://ads.example.test/placement'],
+      creativeTypes: ['이미지', 'creative-123'],
       monthlyBudget: 7_000_000,
     }));
 
@@ -199,6 +231,8 @@ describe('foresight simulator scenario expansion request contract', () => {
         genders: [],
         ageRanges: ['25-34'],
         objectives: ['OUTCOME_TRAFFIC'],
+        placements: ['Instagram 피드'],
+        creativeTypes: ['이미지'],
         budget: 7_000_000,
       },
     });
@@ -210,6 +244,8 @@ describe('foresight simulator scenario expansion request contract', () => {
         genders: ['female'],
         ageRanges: [],
         objectives: ['OUTCOME_TRAFFIC'],
+        placements: ['Instagram 피드'],
+        creativeTypes: ['이미지'],
         budget: 7_000_000,
       },
     });

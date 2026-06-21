@@ -156,11 +156,15 @@ describe('prediction route objectives contract', () => {
     const { POST, predict } = await importRouteWithLocalPredictor('predict');
 
     const objectives = ['OUTCOME_AWARENESS', 'OUTCOME_TRAFFIC'];
+    const placements = ['Instagram 피드'];
+    const creativeTypes = ['이미지'];
     const response = await POST(requestWithJson({
       industries: ['뷰티'],
       genders: ['female'],
       ageRanges: ['25-34'],
       objectives,
+      placements,
+      creativeTypes,
       budget: 10_000_000,
       monthFrom: '2025-06',
       monthTo: '2025-07',
@@ -173,6 +177,8 @@ describe('prediction route objectives contract', () => {
       genders: ['female'],
       ageRanges: ['25-34'],
       objectives,
+      placements,
+      creativeTypes,
       budget: 10_000_000,
       monthFrom: '2025-06',
       monthTo: '2025-07',
@@ -183,11 +189,15 @@ describe('prediction route objectives contract', () => {
     const { POST, predict } = await importRouteWithLocalPredictor('predict-range');
 
     const objectives = ['OUTCOME_TRAFFIC'];
+    const placements = ['Instagram 피드'];
+    const creativeTypes = ['이미지'];
     const response = await POST(requestWithJson({
       industries: ['교육'],
       genders: [],
       ageRanges: ['35-44'],
       objectives,
+      placements,
+      creativeTypes,
       budget: 5_000_000,
       monthFrom: '2025-06',
       monthTo: '2025-06',
@@ -196,14 +206,14 @@ describe('prediction route objectives contract', () => {
     expect(response.status).toBe(200);
     expect(predict).toHaveBeenCalledTimes(8);
     expect(predict.mock.calls.map(([input]) => input)).toEqual([
-      expect.objectContaining({ objectives, budget: 1_000_000 }),
-      expect.objectContaining({ objectives, budget: 3_000_000 }),
-      expect.objectContaining({ objectives, budget: 5_000_000 }),
-      expect.objectContaining({ objectives, budget: 10_000_000 }),
-      expect.objectContaining({ objectives, budget: 20_000_000 }),
-      expect.objectContaining({ objectives, budget: 30_000_000 }),
-      expect.objectContaining({ objectives, budget: 50_000_000 }),
-      expect.objectContaining({ objectives, budget: 100_000_000 }),
+      expect.objectContaining({ objectives, placements, creativeTypes, budget: 1_000_000 }),
+      expect.objectContaining({ objectives, placements, creativeTypes, budget: 3_000_000 }),
+      expect.objectContaining({ objectives, placements, creativeTypes, budget: 5_000_000 }),
+      expect.objectContaining({ objectives, placements, creativeTypes, budget: 10_000_000 }),
+      expect.objectContaining({ objectives, placements, creativeTypes, budget: 20_000_000 }),
+      expect.objectContaining({ objectives, placements, creativeTypes, budget: 30_000_000 }),
+      expect.objectContaining({ objectives, placements, creativeTypes, budget: 50_000_000 }),
+      expect.objectContaining({ objectives, placements, creativeTypes, budget: 100_000_000 }),
     ]);
   });
 

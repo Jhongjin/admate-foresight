@@ -20,7 +20,7 @@ function jsonNoStore(body: unknown, init: ResponseInit = {}): NextResponse {
  * 환경변수 PYTHON_API_URL 이 설정되지 않으면 503 반환.
  *
  * Body:
- *   { 업종, 목표, 성별, 연령, 예산, 기간 }
+ *   { 업종, 목표, 성별, 연령, 노출위치, 소재형태, 예산, 기간 }
  *
  * Response (Python 서비스가 정상일 때):
  *   { cpm, ctr, cpc, reach, r2_cpm, r2_ctr, cv_r2, model_type, n_samples }

@@ -767,6 +767,21 @@ export default function TrendsPage() {
         </div>
       </section>
 
+      <section className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm sm:px-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">도달/빈도 해석 가드</p>
+            <p className="mt-1 text-sm font-semibold text-slate-950">다중 월 도달과 빈도는 단순 합산하지 않습니다</p>
+            <p className="mt-1 text-xs leading-5 text-amber-900">
+              CPM/CPC/CTR은 집계 합계로 재계산하지만, 도달과 빈도는 사용자 중복 때문에 단순 합산 시 부풀려질 수 있습니다. 다중 월 화면에서는 추세 참고로만 보고, 단일 월 또는 승인된 dedupe 기준에서 확정하세요.
+            </p>
+          </div>
+          <span className="w-fit shrink-0 rounded-md border border-amber-300 bg-white px-2 py-1 text-[11px] font-semibold text-amber-800">
+            합산 주의
+          </span>
+        </div>
+      </section>
+
       {efficiencyError && (
         <StatePanel
           variant="error"

@@ -4,6 +4,9 @@ export interface TrendRoutePoint {
   avgCPC: number;
   avgCTR: number;
   totalReach: number;
+  totalSpend: number;
+  totalImpressions: number;
+  totalClicks: number;
   count: number;
 }
 
@@ -67,6 +70,9 @@ function normalizeTrendPoint(value: unknown): TrendRoutePoint | null {
   const avgCPC = readNonNegativeFiniteNumber(value.avgCPC);
   const avgCTR = readNonNegativeFiniteNumber(value.avgCTR);
   const totalReach = readNonNegativeFiniteNumber(value.totalReach);
+  const totalSpend = readNonNegativeFiniteNumber(value.totalSpend);
+  const totalImpressions = readNonNegativeFiniteNumber(value.totalImpressions);
+  const totalClicks = readNonNegativeFiniteNumber(value.totalClicks);
   const count = readPositiveCount(value.count);
 
   if (
@@ -75,6 +81,9 @@ function normalizeTrendPoint(value: unknown): TrendRoutePoint | null {
     avgCPC === null ||
     avgCTR === null ||
     totalReach === null ||
+    totalSpend === null ||
+    totalImpressions === null ||
+    totalClicks === null ||
     count === null
   ) {
     return null;
@@ -86,6 +95,9 @@ function normalizeTrendPoint(value: unknown): TrendRoutePoint | null {
     avgCPC,
     avgCTR,
     totalReach,
+    totalSpend,
+    totalImpressions,
+    totalClicks,
     count,
   };
 }

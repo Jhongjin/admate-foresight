@@ -6,6 +6,9 @@ export interface TrendPoint {
   avgCPC: number;
   avgCTR: number;
   totalReach: number;
+  totalSpend: number;
+  totalImpressions: number;
+  totalClicks: number;
   count: number;
 }
 
@@ -66,6 +69,9 @@ function aggregateMonthRecords(records: XlsxRecord[]): Omit<TrendPoint, 'month'>
     avgCPC: Math.round(avgCPC),
     avgCTR: parseFloat(avgCTR.toFixed(4)),
     totalReach,
+    totalSpend: records.reduce((s, r) => s + r.지출금액, 0),
+    totalImpressions,
+    totalClicks: Math.round(totalClicks),
     count: records.length,
   };
 }
@@ -348,7 +354,6 @@ export function getSeasonInsights(): SeasonInsight[] {
     .map(([key, records]) => {
       const [month, industry] = key.split('__');
       const agg = aggregateMonthRecords(records);
-      const totalSpend = records.reduce((s, r) => s + r.지출금액, 0);
-      return { month, industry, totalSpend, ...agg };
+      return { month, industry, ...agg };
     });
 }

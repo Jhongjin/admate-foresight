@@ -1,4 +1,9 @@
-export type SimulatorMlBaselineModelType = 'random_forest' | 'linear_regression' | 'unknown';
+export type SimulatorMlBaselineModelType =
+  | 'random_forest'
+  | 'hist_gradient_boosting'
+  | 'linear_regression'
+  | 'ridge'
+  | 'unknown';
 export type SimulatorMlBaselineEvidenceTone = 'strong' | 'watch' | 'low';
 
 export interface ForesightSimulatorMlBaselineResult {
@@ -93,7 +98,14 @@ function readNonNegativeInteger(value: unknown): number | null {
 }
 
 function normalizeModelType(value: unknown): SimulatorMlBaselineModelType {
-  if (value === 'random_forest' || value === 'linear_regression') return value;
+  if (
+    value === 'random_forest' ||
+    value === 'hist_gradient_boosting' ||
+    value === 'linear_regression' ||
+    value === 'ridge'
+  ) {
+    return value;
+  }
   return 'unknown';
 }
 
@@ -118,14 +130,14 @@ function buildModelBadge(
 ): SimulatorMlBaselineBadgeViewModel | null {
   if (!result) return null;
 
-  if (result.modelType === 'random_forest') {
+  if (result.modelType === 'random_forest' || result.modelType === 'hist_gradient_boosting') {
     return {
       label: '보수 기준선',
       className: `${BADGE_BASE_CLASS} bg-teal-50 text-teal-700`,
     };
   }
 
-  if (result.modelType === 'linear_regression') {
+  if (result.modelType === 'linear_regression' || result.modelType === 'ridge') {
     return {
       label: '추세 기준선',
       className: `${BADGE_BASE_CLASS} bg-sky-50 text-sky-700`,

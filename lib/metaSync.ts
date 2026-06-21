@@ -14,6 +14,7 @@ import { extractIndustry } from './xlsxLoader';
 import { maskIdentifier, sanitizeError } from './security';
 
 const GRAPH_API = 'https://graph.facebook.com/v21.0';
+const DEFAULT_SYNC_CHUNK_DAYS = 31;
 
 // ── 매핑 테이블 ──────────────────────────────────────────
 const PLACEMENT_MAP: Record<string, Record<string, string>> = {
@@ -63,6 +64,45 @@ function actionVal(
   type: string,
 ): number {
   return parseFloat(list?.find(a => a.action_type === type)?.value ?? '0') || 0;
+}
+
+function parseYmd(value?: string): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatYmd(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
+export function buildSyncDateRanges(
+  since?: string,
+  until?: string,
+  chunkDays = DEFAULT_SYNC_CHUNK_DAYS,
+): Array<{ since?: string; until?: string }> {
+  const start = parseYmd(since);
+  const end = parseYmd(until);
+  if (!start || !end || start > end || chunkDays < 1) {
+    return [{ since, until }];
+  }
+
+  const ranges: Array<{ since: string; until: string }> = [];
+  let cursor = start;
+  while (cursor <= end) {
+    const chunkEnd = addDays(cursor, chunkDays - 1);
+    const boundedEnd = chunkEnd < end ? chunkEnd : end;
+    ranges.push({ since: formatYmd(cursor), until: formatYmd(boundedEnd) });
+    cursor = addDays(boundedEnd, 1);
+  }
+
+  return ranges;
 }
 
 /** Meta API 페이지네이션 전체 수집 */
@@ -167,6 +207,7 @@ export interface SyncOptions {
   datePreset?:  string; // 'last_30_days' | 'last_90_days' | ...
   since?:       string; // YYYY-MM-DD
   until?:       string; // YYYY-MM-DD
+  chunkDays?:   number; // since/until 장기 범위 분할 단위
 }
 
 export interface SyncResult {
@@ -243,6 +284,9 @@ async function syncOneAccount(accountId: string, accessToken: string, datePreset
 
 export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult> {
   const { accessToken, datePreset = 'last_90_days', since, until } = opts;
+  const dateRanges = since && until
+    ? buildSyncDateRanges(since, until, opts.chunkDays ?? DEFAULT_SYNC_CHUNK_DAYS)
+    : [{ since: undefined, until: undefined }];
 
   // 광고계정 목록 결정
   let accountIds: string[] = [];
@@ -267,10 +311,25 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
   // 계정별 순차 동기화
   for (const accountId of accountIds) {
     console.log(`[metaSync] 계정 동기화 시작: ${maskIdentifier(accountId)}`);
-    const { rows, errors } = await syncOneAccount(accountId, accessToken, datePreset, since, until);
-    allRows.push(...rows);
-    allErrors.push(...errors);
-    console.log(`[metaSync] 계정 ${maskIdentifier(accountId)} 완료: ${rows.length}행`);
+    let accountRows = 0;
+    for (const range of dateRanges) {
+      if (range.since && range.until && dateRanges.length > 1) {
+        console.log(
+          `[metaSync] ${maskIdentifier(accountId)} 청크 ${range.since}~${range.until}`,
+        );
+      }
+      const { rows, errors } = await syncOneAccount(
+        accountId,
+        accessToken,
+        datePreset,
+        range.since,
+        range.until,
+      );
+      accountRows += rows.length;
+      allRows.push(...rows);
+      allErrors.push(...errors);
+    }
+    console.log(`[metaSync] 계정 ${maskIdentifier(accountId)} 완료: ${accountRows}행`);
   }
 
   if (allRows.length === 0) {

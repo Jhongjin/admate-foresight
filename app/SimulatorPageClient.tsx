@@ -106,6 +106,8 @@ async function toJsonOrThrow(response: Response): Promise<unknown> {
 export default function SimulatorPage() {
   const [availableIndustries, setAvailableIndustries] = useState<string[]>([]);
   const [availableObjectives, setAvailableObjectives] = useState<string[]>([]);
+  const [availablePlacements, setAvailablePlacements] = useState<string[]>([]);
+  const [availableCreativeTypes, setAvailableCreativeTypes] = useState<string[]>([]);
 
   // 캠페인 기간 (일수 단위)
   const [campaignDays, setCampaignDays] = useState(7);
@@ -118,6 +120,8 @@ export default function SimulatorPage() {
   const [genders, setGenders] = useState<string[]>([]);
   const [objectives, setObjectives] = useState<string[]>([]);
   const [ageRanges, setAgeRanges] = useState<string[]>([]);
+  const [placements, setPlacements] = useState<string[]>([]);
+  const [creativeTypes, setCreativeTypes] = useState<string[]>([]);
   const [budget, setBudget] = useState(10_000_000);
   const dailyBudget = Math.round(budget / campaignDays);
 
@@ -153,6 +157,8 @@ export default function SimulatorPage() {
         if (!isRecord(f) || !Array.isArray(f.industries)) throw new Error('request_failed');
         setAvailableIndustries(f.industries.filter((item): item is string => typeof item === 'string'));
         setAvailableObjectives(Array.isArray(f.objectives) ? f.objectives.filter((item): item is string => typeof item === 'string') : []);
+        setAvailablePlacements(Array.isArray(f.placements) ? f.placements.filter((item): item is string => typeof item === 'string') : []);
+        setAvailableCreativeTypes(Array.isArray(f.creativeTypes) ? f.creativeTypes.filter((item): item is string => typeof item === 'string') : []);
         setFiltersError(false);
       })
       .catch(() => {
@@ -162,7 +168,7 @@ export default function SimulatorPage() {
   }, []);
 
   const fetchPrediction = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; monthFrom?: string; monthTo?: string;
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; placements: string[]; creativeTypes: string[]; budget: number; monthFrom?: string; monthTo?: string;
   }) => {
     setLoading(true);
     setPredictionError(false);
@@ -189,7 +195,7 @@ export default function SimulatorPage() {
   }, []);
 
   const fetchMlPrediction = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; campaignDays: number;
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; placements: string[]; creativeTypes: string[]; budget: number; campaignDays: number;
   }) => {
     setMlLoading(true);
     setMlError('');
@@ -202,6 +208,8 @@ export default function SimulatorPage() {
           목표:  params.objectives[0] ?? '',
           성별:  params.genders[0]   ?? '',
           연령:  params.ageRanges[0] ?? '',
+          노출위치: params.placements,
+          소재형태: params.creativeTypes.length === 1 ? params.creativeTypes[0] : '',
           예산:  params.budget,
           기간:  params.campaignDays,
         }),
@@ -219,7 +227,7 @@ export default function SimulatorPage() {
   }, []);
 
   const fetchRange = useCallback(async (params: {
-    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; budget: number; monthFrom?: string; monthTo?: string;
+    industries: string[]; genders: string[]; ageRanges: string[]; objectives: string[]; placements: string[]; creativeTypes: string[]; budget: number; monthFrom?: string; monthTo?: string;
   }) => {
     setRangeLoading(true);
     setRangeError(false);
@@ -254,26 +262,26 @@ export default function SimulatorPage() {
     if (!isCalculated) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
+      fetchPrediction({ industries, genders, ageRanges, objectives, placements, creativeTypes, budget: monthlyBudget });
     }, 300);
-  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, fetchPrediction]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, placements, creativeTypes, monthlyBudget, fetchPrediction]);
 
   useEffect(() => {
     if (!isCalculated) return;
     if (rangeDebounceRef.current) clearTimeout(rangeDebounceRef.current);
     rangeDebounceRef.current = setTimeout(() => {
-      fetchRange({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
+      fetchRange({ industries, genders, ageRanges, objectives, placements, creativeTypes, budget: monthlyBudget });
     }, 400);
-  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, fetchRange]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, placements, creativeTypes, monthlyBudget, fetchRange]);
 
   // ML 예측 (Python FastAPI) — 조건 변경 시 자동 갱신
   useEffect(() => {
     if (!isCalculated) return;
     const t = setTimeout(() => {
-      fetchMlPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget, campaignDays });
+      fetchMlPrediction({ industries, genders, ageRanges, objectives, placements, creativeTypes, budget: monthlyBudget, campaignDays });
     }, 350);
     return () => clearTimeout(t);
-  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, campaignDays, fetchMlPrediction]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, placements, creativeTypes, monthlyBudget, campaignDays, fetchMlPrediction]);
 
   // 시뮬레이션 시작 핸들러 — 이전 결과 초기화 후 즉시 fetch
   const handleStartSimulation = useCallback(() => {
@@ -286,13 +294,13 @@ export default function SimulatorPage() {
     setRangeError(false);
     setScenarioError(false);
     setIsCalculated(true);
-    fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
+    fetchPrediction({ industries, genders, ageRanges, objectives, placements, creativeTypes, budget: monthlyBudget });
     // 이미 계산된 상태(재시뮬레이션)이면 useEffect가 재실행되지 않으므로 직접 호출
     // 처음 계산 시에는 isCalculated 변화에 의해 useEffect가 fetchRange를 호출하므로 중복 방지
     if (wasCalculated) {
-      fetchRange({ industries, genders, ageRanges, objectives, budget: monthlyBudget });
+      fetchRange({ industries, genders, ageRanges, objectives, placements, creativeTypes, budget: monthlyBudget });
     }
-  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget, fetchPrediction, fetchRange]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, placements, creativeTypes, monthlyBudget, fetchPrediction, fetchRange]);
 
   // 테이블 클릭 등 외부에서 budget 변경 시 input 동기화
   useEffect(() => {
@@ -309,6 +317,8 @@ export default function SimulatorPage() {
         genders,
         ageRanges,
         objectives,
+        placements,
+        creativeTypes,
         monthlyBudget,
       });
       if (expansions.length === 0) { setScenarios([]); setScenarioError(false); return; }
@@ -349,7 +359,7 @@ export default function SimulatorPage() {
       }
       finally { setScenarioLoading(false); }
     }, 600);
-  }, [isCalculated, industries, genders, ageRanges, objectives, monthlyBudget]);
+  }, [isCalculated, industries, genders, ageRanges, objectives, placements, creativeTypes, monthlyBudget]);
 
   function toggleGender(value: string) {
     setGenders((prev) =>
@@ -377,6 +387,8 @@ export default function SimulatorPage() {
   const objectiveLabel = objectives.length === 0
     ? '전체'
     : objectives.map((o) => OBJECTIVE_LABELS[o] ?? o).join(', ');
+  const placementLabel = placements.length === 0 ? '전체' : placements.join(', ');
+  const creativeTypeLabel = creativeTypes.length === 0 ? '전체' : creativeTypes.join(', ');
 
   const durationLabel = `${campaignDays}일`;
 
@@ -385,6 +397,8 @@ export default function SimulatorPage() {
     { label: '캠페인 기간', value: durationLabel },
     { label: '캠페인 목표', value: objectiveLabel },
     { label: '업종', value: industryLabel },
+    { label: '노출 위치', value: placementLabel },
+    { label: '소재 형태', value: creativeTypeLabel },
     { label: '성별', value: genderLabel },
     { label: '연령대', value: ageLabel },
   ];
@@ -392,7 +406,7 @@ export default function SimulatorPage() {
   // 기간 스케일 팩터 (월 기준 예측값 → 캠페인 기간 환산)
   const durationFactor = budgetBasis.durationFactor;
   const totalReach = result ? Math.round(result.reach * durationFactor) : 0;
-  const selectedTargetCount = industries.length + genders.length + ageRanges.length + objectives.length;
+  const selectedTargetCount = industries.length + genders.length + ageRanges.length + objectives.length + placements.length + creativeTypes.length;
   const marketSelected = result?.marketAvg?.industrySelected === true;
   const marketSampleCount = result?.marketAvg?.count ?? 0;
   const matchedSampleCount = result?.matchedCount ?? 0;
@@ -456,6 +470,7 @@ export default function SimulatorPage() {
     { label: '기간', value: durationLabel, detail: `월 환산 ₩${monthlyBudget.toLocaleString()}` },
     { label: '목표', value: objectiveLabel, detail: objectives.length === 0 ? '목표 전체 기준' : `${objectives.length}개 목표` },
     { label: '타겟', value: `${industryLabel} · ${ageLabel}`, detail: `성별 ${genderLabel}` },
+    { label: '지면/소재', value: placementLabel, detail: `소재 ${creativeTypeLabel}` },
   ];
   const cockpitTimeline = [
     { label: '입력 고정', active: true },
@@ -915,6 +930,25 @@ export default function SimulatorPage() {
                 </button>
               )}
             </div>
+          </div>
+
+          <div className="border-t border-gray-50" />
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <MultiSelectDropdown
+              label="노출 위치"
+              options={availablePlacements}
+              selected={placements}
+              onChange={setPlacements}
+              placeholder="전체 위치"
+            />
+            <MultiSelectDropdown
+              label="소재 형태"
+              options={availableCreativeTypes}
+              selected={creativeTypes}
+              onChange={setCreativeTypes}
+              placeholder="전체 소재"
+            />
           </div>
 
           <div className="border-t border-gray-50" />

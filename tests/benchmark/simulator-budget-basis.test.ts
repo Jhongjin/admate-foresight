@@ -127,13 +127,13 @@ describe('foresight simulator budget basis', () => {
     ).replace(/\s+/g, ' ');
 
     expect(source).toContain(
-      'fetchPrediction({ industries, genders, ageRanges, objectives, budget: monthlyBudget });',
+      'fetchPrediction({ industries, genders, ageRanges, objectives, placements, creativeTypes, budget: monthlyBudget });',
     );
     expect(source).toContain(
-      'fetchRange({ industries, genders, ageRanges, objectives, budget: monthlyBudget });',
+      'fetchRange({ industries, genders, ageRanges, objectives, placements, creativeTypes, budget: monthlyBudget });',
     );
     expect(source).not.toContain(
-      'fetchRange({ industries, genders, ageRanges, objectives, budget });',
+      'fetchRange({ industries, genders, ageRanges, objectives, placements, creativeTypes, budget });',
     );
   });
 });

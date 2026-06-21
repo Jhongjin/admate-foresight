@@ -2,7 +2,13 @@ import type { PredictInput } from './predictor';
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-type StringArrayField = 'industries' | 'genders' | 'ageRanges' | 'objectives';
+type StringArrayField =
+  | 'industries'
+  | 'genders'
+  | 'ageRanges'
+  | 'objectives'
+  | 'placements'
+  | 'creativeTypes';
 
 export class PredictionRequestValidationError extends Error {
   constructor(message: string) {
@@ -60,6 +66,8 @@ export function normalizePredictionRequest(
     genders: normalizeStringArray(body, 'genders'),
     ageRanges: normalizeStringArray(body, 'ageRanges'),
     objectives: normalizeStringArray(body, 'objectives'),
+    placements: normalizeStringArray(body, 'placements'),
+    creativeTypes: normalizeStringArray(body, 'creativeTypes'),
     budget: normalizeBudget(body, options.defaultBudget),
     monthFrom: normalizeMonth(body, 'monthFrom'),
     monthTo: normalizeMonth(body, 'monthTo'),

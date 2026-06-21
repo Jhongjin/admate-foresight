@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { requireForesightApiSession } from '@/lib/auth/foresightApiGuard';
 import { getIndustries, getAgeRanges } from '@/lib/csvLoader';
-import { getObjectives, getXlsxIndustries, getAvailableMonths, ensureDataLoaded } from '@/lib/xlsxLoader';
+import {
+  getAvailableMonths,
+  getCreativeFormats,
+  getObjectives,
+  getPlacements,
+  getXlsxIndustries,
+  ensureDataLoaded,
+} from '@/lib/xlsxLoader';
 import { normalizeFiltersRouteOutput } from '@/lib/foresightFiltersRouteOutputContract';
 
 // 업종 그룹 순서 정의 (비슷한 업종끼리 묶음, 기타는 맨 마지막)
@@ -74,10 +81,12 @@ export async function GET() {
     const genders = ['male', 'female'];
     const objectives = stringArrayOrEmpty(getObjectives());
     const months = stringArrayOrEmpty(getAvailableMonths());
+    const placements = stringArrayOrEmpty(getPlacements());
+    const creativeTypes = stringArrayOrEmpty(getCreativeFormats());
 
     // 진단 로그는 집계 카운터/불리언만 남긴다.
     const hasXlsxIndustries = xlsxIndustries.length > 0;
-    console.log(`[filters] loaded: csvIndustryCount=${csvIndustries.length}, xlsxIndustryCount=${xlsxIndustries.length}, totalIndustryCount=${allIndustries.length}, ageRangeCount=${ageRanges.length}, objectiveCount=${objectives.length}, monthCount=${months.length}, hasXlsxIndustries=${hasXlsxIndustries}`);
+    console.log(`[filters] loaded: csvIndustryCount=${csvIndustries.length}, xlsxIndustryCount=${xlsxIndustries.length}, totalIndustryCount=${allIndustries.length}, ageRangeCount=${ageRanges.length}, objectiveCount=${objectives.length}, monthCount=${months.length}, placementCount=${placements.length}, creativeTypeCount=${creativeTypes.length}, hasXlsxIndustries=${hasXlsxIndustries}`);
     if (xlsxIndustries.length > 0) {
       console.log('[filters] xlsx industry source available');
     } else {
@@ -90,6 +99,8 @@ export async function GET() {
       genders,
       objectives,
       months,
+      placements,
+      creativeTypes,
     });
 
     return jsonNoStore(normalizedFilters);

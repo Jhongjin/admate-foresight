@@ -7,6 +7,8 @@ export interface PredictInput {
   genders: string[];
   ageRanges: string[];
   objectives: string[];
+  placements?: string[];
+  creativeTypes?: string[];
   budget: number;
   monthFrom?: string;
   monthTo?: string;
@@ -174,6 +176,8 @@ function filterXlsx(
   genders: string[],
   ageRanges: string[],
   objectives: string[],
+  placements: string[] = [],
+  creativeTypes: string[] = [],
   monthFrom?: string,
   monthTo?: string,
 ): XlsxRecord[] {
@@ -185,6 +189,8 @@ function filterXlsx(
     if (industries.length > 0 && !industries.includes(r.업종)) return false;
     if (genders.length > 0 && !genders.includes(r.성별)) return false;
     if (ageRanges.length > 0 && !ageRanges.includes(r.연령)) return false;
+    if (placements.length > 0 && !placements.includes(r.노출위치)) return false;
+    if (creativeTypes.length > 0 && !creativeTypes.includes(r.소재형태)) return false;
     return true;
   });
 }
@@ -298,6 +304,7 @@ function buildDataSufficiency(
 function getMatchedXlsxWithSufficiency(
   data: XlsxRecord[],
   industries: string[], genders: string[], ageRanges: string[], objectives: string[],
+  placements: string[] = [], creativeTypes: string[] = [],
   monthFrom?: string, monthTo?: string,
 ): { matched: XlsxRecord[]; dataSufficiency: DataSufficiency } {
   if (monthFrom && monthTo && monthFrom > monthTo) {
@@ -308,40 +315,40 @@ function getMatchedXlsxWithSufficiency(
   }
 
   if (monthFrom || monthTo) {
-    let m = filterXlsx(data, industries, genders, ageRanges, objectives, monthFrom, monthTo);
+    let m = filterXlsx(data, industries, genders, ageRanges, objectives, placements, creativeTypes, monthFrom, monthTo);
     if (m.length >= MINIMUM_MATCHED_RECORDS) {
       return { matched: m, dataSufficiency: buildDataSufficiency('exact_cohort', m.length) };
     }
-    m = filterXlsx(data, industries, genders, [], objectives, monthFrom, monthTo);
+    m = filterXlsx(data, industries, genders, [], objectives, placements, creativeTypes, monthFrom, monthTo);
     if (m.length >= MINIMUM_MATCHED_RECORDS) {
       return { matched: m, dataSufficiency: buildDataSufficiency('relaxed_demographic', m.length) };
     }
-    m = filterXlsx(data, industries, [], [], objectives, monthFrom, monthTo);
+    m = filterXlsx(data, industries, [], [], objectives, placements, creativeTypes, monthFrom, monthTo);
     if (m.length >= MINIMUM_MATCHED_RECORDS) {
       return { matched: m, dataSufficiency: buildDataSufficiency('relaxed_demographic', m.length) };
     }
-    m = filterXlsx(data, [], [], [], objectives, monthFrom, monthTo);
+    m = filterXlsx(data, [], [], [], objectives, placements, creativeTypes, monthFrom, monthTo);
     if (m.length >= MINIMUM_MATCHED_RECORDS) {
       return { matched: m, dataSufficiency: buildDataSufficiency('relaxed_industry_objective', m.length) };
     }
-    m = filterXlsx(data, [], [], [], [], monthFrom, monthTo);
+    m = filterXlsx(data, [], [], [], [], placements, creativeTypes, monthFrom, monthTo);
     if (m.length >= MINIMUM_MATCHED_RECORDS) {
       return { matched: m, dataSufficiency: buildDataSufficiency('date_window_only', m.length) };
     }
   }
-  let matched = filterXlsx(data, industries, genders, ageRanges, objectives);
+  let matched = filterXlsx(data, industries, genders, ageRanges, objectives, placements, creativeTypes);
   if (matched.length >= MINIMUM_MATCHED_RECORDS) {
     return { matched, dataSufficiency: buildDataSufficiency('exact_cohort', matched.length) };
   }
-  matched = filterXlsx(data, industries, genders, [], objectives);
+  matched = filterXlsx(data, industries, genders, [], objectives, placements, creativeTypes);
   if (matched.length >= MINIMUM_MATCHED_RECORDS) {
     return { matched, dataSufficiency: buildDataSufficiency('relaxed_demographic', matched.length) };
   }
-  matched = filterXlsx(data, industries, [], [], objectives);
+  matched = filterXlsx(data, industries, [], [], objectives, placements, creativeTypes);
   if (matched.length >= MINIMUM_MATCHED_RECORDS) {
     return { matched, dataSufficiency: buildDataSufficiency('relaxed_demographic', matched.length) };
   }
-  matched = filterXlsx(data, [], [], [], objectives);
+  matched = filterXlsx(data, [], [], [], objectives, placements, creativeTypes);
   if (matched.length >= MINIMUM_MATCHED_RECORDS) {
     return { matched, dataSufficiency: buildDataSufficiency('relaxed_industry_objective', matched.length) };
   }
@@ -354,6 +361,7 @@ function getMatchedXlsxWithSufficiency(
 function getMatchedXlsx(
   data: XlsxRecord[],
   industries: string[], genders: string[], ageRanges: string[], objectives: string[],
+  placements: string[] = [], creativeTypes: string[] = [],
   monthFrom?: string, monthTo?: string,
 ): XlsxRecord[] {
   return getMatchedXlsxWithSufficiency(
@@ -362,6 +370,8 @@ function getMatchedXlsx(
     genders,
     ageRanges,
     objectives,
+    placements,
+    creativeTypes,
     monthFrom,
     monthTo,
   ).matched;
@@ -469,7 +479,17 @@ function generateInsights(p: {
 // MAIN predict 함수
 // ════════════════════════════════════════════════════════════
 export function predict(input: PredictInput): PredictResult {
-  const { industries, genders, ageRanges, objectives, budget, monthFrom, monthTo } = input;
+  const {
+    industries,
+    genders,
+    ageRanges,
+    objectives,
+    placements = [],
+    creativeTypes = [],
+    budget,
+    monthFrom,
+    monthTo,
+  } = input;
   const xlsxData = loadXlsxData();
 
   // ── 매칭 데이터 ──
@@ -479,6 +499,8 @@ export function predict(input: PredictInput): PredictResult {
     genders,
     ageRanges,
     objectives,
+    placements,
+    creativeTypes,
     monthFrom,
     monthTo,
   );
@@ -505,6 +527,8 @@ export function predict(input: PredictInput): PredictResult {
       if (objectives.length > 0 && !objectives.includes(r.목표)) return false;
       if (genders.length > 0 && !genders.includes(r.성별)) return false;
       if (ageRanges.length > 0 && !ageRanges.includes(r.연령)) return false;
+      if (placements.length > 0 && !placements.includes(r.노출위치)) return false;
+      if (creativeTypes.length > 0 && !creativeTypes.includes(r.소재형태)) return false;
       return true;
     });
     const allVideoRecs = xlsxData.filter(r => r.영상조회수 > 0 && r.노출 > 0);
@@ -547,7 +571,7 @@ export function predict(input: PredictInput): PredictResult {
     : rawReach;
 
   // ── 품질 지수 ───────────────────────────────────────────
-  let baselineData = filterXlsx(xlsxData, industries, [], [], objectives);
+  let baselineData = filterXlsx(xlsxData, industries, [], [], objectives, placements, creativeTypes);
   if (baselineData.length < 10) {
     baselineData = industries.length > 0
       ? xlsxData.filter((r) => industries.includes(r.업종))
@@ -575,10 +599,10 @@ export function predict(input: PredictInput): PredictResult {
     const prevReg = predictByRegression(industries, genders, ageRanges, objectives, prevMonthStr);
     if (prevReg.cpm > 0) {
       const prevBaseFreq = weightedFrequency(
-        getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives)
+        getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives, placements, creativeTypes)
           .filter(r => r.날짜.startsWith(prevMonthStr))
           .length > 0
-          ? getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives)
+          ? getMatchedXlsx(xlsxData, industries, genders, ageRanges, objectives, placements, creativeTypes)
               .filter(r => r.날짜.startsWith(prevMonthStr))
           : xlsxData
       );

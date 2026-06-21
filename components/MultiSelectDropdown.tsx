@@ -95,7 +95,7 @@ export default function MultiSelectDropdown({ label, options, selected, onChange
                 className="h-3.5 w-3.5 accent-teal-700"
               />
               <span className="min-w-0 text-sm font-medium text-stone-700">
-                {hasOptions ? '전체 선택' : '선택 가능한 업종 대기'}
+                {hasOptions ? '전체 선택' : '선택지 대기'}
               </span>
             </label>
             {options.map((opt) => (

@@ -3,6 +3,8 @@ export interface ForesightSimulatorScenarioExpansionRequestBody {
   genders: string[];
   ageRanges: string[];
   objectives: string[];
+  placements: string[];
+  creativeTypes: string[];
   budget: number;
 }
 
@@ -17,6 +19,8 @@ export interface BuildForesightSimulatorScenarioExpansionRequestsInput {
   genders: readonly string[];
   ageRanges: readonly string[];
   objectives: readonly string[];
+  placements?: readonly string[];
+  creativeTypes?: readonly string[];
   monthlyBudget: number;
 }
 
@@ -76,6 +80,8 @@ function buildBody(
     genders: readonly string[];
     ageRanges: readonly string[];
     objectives: readonly string[];
+    placements: readonly string[];
+    creativeTypes: readonly string[];
     budget: number;
   },
 ): ForesightSimulatorScenarioExpansionRequestBody {
@@ -84,6 +90,8 @@ function buildBody(
     genders: copySafeRequestValues(params.genders),
     ageRanges: copySafeRequestValues(params.ageRanges),
     objectives: copySafeRequestValues(params.objectives),
+    placements: copySafeRequestValues(params.placements),
+    creativeTypes: copySafeRequestValues(params.creativeTypes),
     budget: params.budget,
   };
 }
@@ -109,6 +117,8 @@ export function buildForesightSimulatorScenarioExpansionRequests(
         genders: [],
         ageRanges: input.ageRanges,
         objectives: input.objectives,
+        placements: input.placements ?? [],
+        creativeTypes: input.creativeTypes ?? [],
         budget: input.monthlyBudget,
       }),
     });
@@ -123,6 +133,8 @@ export function buildForesightSimulatorScenarioExpansionRequests(
         genders: input.genders,
         ageRanges: [],
         objectives: input.objectives,
+        placements: input.placements ?? [],
+        creativeTypes: input.creativeTypes ?? [],
         budget: input.monthlyBudget,
       }),
     });

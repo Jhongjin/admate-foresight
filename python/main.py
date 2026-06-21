@@ -114,21 +114,35 @@ class PredictRequest(BaseModel):
     목표:  Optional[str] = Field(default="", description="예: OUTCOME_AWARENESS")
     성별:  Optional[str] = Field(default="", description="male | female | (빈값=전체)")
     연령:  Optional[str] = Field(default="", description="예: 25-34 | (빈값=전체)")
+    노출위치: list[str] = Field(default_factory=list, description="예: ['IG 피드', 'FB 스토리']")
+    소재형태: Optional[str] = Field(default="", description="이미지 | 동영상 | 슬라이드 | 컬렉션")
     예산:  float          = Field(default=10_000_000, ge=1_000, description="총 캠페인 예산 (원)")
     기간:  float          = Field(default=30, ge=1, le=365, description="캠페인 기간 (일)")
 
 
 class PredictResponse(BaseModel):
-    cpm:        int
-    ctr:        float   # % 단위 (예: 1.5 → 1.5%)
-    cpc:        int
-    reach:      int
-    r2_cpm:     float
-    r2_ctr:     float
-    cv_r2:      float
-    model_type: str
-    trained_at: str
-    n_samples:  int
+    cpm:                    int
+    ctr:                    float   # % 단위 (예: 1.5 → 1.5%)
+    cpc:                    int
+    reach:                  int
+    frequency:              float
+    seasonality_multiplier: float
+    seasonality_reason:     str
+    saturation_warning:     bool
+    is_cross_estimate:      bool
+    placement_factor:       float
+    demo_factor:            float
+    creative_factor:        float
+    is_creative_fallback:   bool
+    lw_ensemble_active:     bool
+    lw_cpm:                 Optional[int]
+    lw_rf_weight:           Optional[float]
+    r2_cpm:                 float
+    r2_ctr:                 float
+    cv_r2:                  float
+    model_type:             str
+    trained_at:             str
+    n_samples:              int
 
 
 class RetrainResponse(BaseModel):
@@ -176,6 +190,8 @@ def predict(req: PredictRequest):
             목표=req.목표 or "",
             성별=req.성별 or "",
             연령=req.연령 or "",
+            노출위치=req.노출위치 or [],
+            소재형태=req.소재형태 or "",
             예산=req.예산,
             기간=req.기간,
         )

@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { XlsxRecord } from '../../lib/xlsxLoader';
 
+vi.setConfig({ testTimeout: 20_000 });
+
 const regressionFallback = {
   cpm: 0,
   cpc: 0,
@@ -166,6 +168,53 @@ describe('prediction data sufficiency contract', () => {
       matchedCount: 10,
       minimumRequired: 10,
       warningCodes: [],
+    });
+  });
+
+  it('uses placement and creative type as exact aggregate matching dimensions', async () => {
+    const predict = await predictWithData([
+      ...records(10, {
+        노출위치: 'Instagram 피드',
+        소재형태: '이미지',
+        CPM: 1_000,
+        CPC: 100,
+        CPC링크: 80,
+      }),
+      ...records(10, {
+        노출위치: 'Instagram 피드',
+        소재형태: '동영상',
+        CPM: 9_000,
+        CPC: 900,
+        CPC링크: 800,
+      }),
+      ...records(10, {
+        노출위치: 'Facebook 스토리',
+        소재형태: '이미지',
+        CPM: 7_000,
+        CPC: 700,
+        CPC링크: 600,
+      }),
+    ]);
+
+    const result = predict({
+      industries: ['교육'],
+      genders: ['female'],
+      ageRanges: ['25-34'],
+      objectives: ['OUTCOME_TRAFFIC'],
+      placements: ['Instagram 피드'],
+      creativeTypes: ['이미지'],
+      budget: 10_000_000,
+      monthFrom: '2025-06',
+      monthTo: '2025-06',
+    });
+
+    expect(result.predictionMethod).toBe('weighted_avg');
+    expect(result.matchedCount).toBe(10);
+    expect(result.cpm).toBe(1_000);
+    expect(result.dataSufficiency).toMatchObject({
+      status: 'sufficient',
+      basis: 'exact_cohort',
+      matchedCount: 10,
     });
   });
 

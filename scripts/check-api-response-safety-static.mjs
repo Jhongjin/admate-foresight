@@ -329,7 +329,7 @@ function assertFiltersRouteResultContract(source) {
     'filters route aggregate-only output contract',
   )
 
-  if (!/const\s+normalizedFilters\s*=\s*normalizeFiltersRouteOutput\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*\}\s*\)/s.test(source)) {
+  if (!/const\s+normalizedFilters\s*=\s*normalizeFiltersRouteOutput\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*placements,\s*creativeTypes,\s*\}\s*\)/s.test(source)) {
     fail(`${relative} must normalize filter arrays before responding`)
   }
 
@@ -338,9 +338,9 @@ function assertFiltersRouteResultContract(source) {
   }
 
   for (const pattern of [
-    /return\s+jsonNoStore\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*\}\s*\)/s,
-    /return\s+noStoreJson\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*\}\s*\)/s,
-    /return\s+NextResponse\.json\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*\}\s*\)/s,
+    /return\s+jsonNoStore\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*placements,\s*creativeTypes,\s*\}\s*\)/s,
+    /return\s+noStoreJson\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*placements,\s*creativeTypes,\s*\}\s*\)/s,
+    /return\s+NextResponse\.json\s*\(\s*\{\s*industries\s*:\s*allIndustries,\s*ageRanges,\s*genders,\s*objectives,\s*months,\s*placements,\s*creativeTypes,\s*\}\s*\)/s,
   ]) {
     if (pattern.test(source)) {
       fail(`${relative} must not return raw filter helper output`)
@@ -511,6 +511,7 @@ for (const marker of [
   "'예산'",
   "'기간'",
   "'random_forest'",
+  "'hist_gradient_boosting'",
   "'linear_regression'",
 ]) {
   assertIncludes(

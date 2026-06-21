@@ -154,6 +154,28 @@ describe('foresight simulator ML baseline view model', () => {
     expectNoSourceOrSecretLeak(viewModel);
   });
 
+  it('renders the approved sklearn boosting baseline as a conservative aggregate model', () => {
+    const result = normalizeOrThrow({
+      cpm: 4900,
+      ctr: 1.1,
+      cpc: 445,
+      reach: 101000,
+      r2_cpm: 0.76,
+      r2_ctr: 0.71,
+      cv_r2: 0.734,
+      model_type: 'hist_gradient_boosting',
+      n_samples: 900,
+    });
+    const viewModel = buildViewModel({ result });
+
+    expect(viewModel.modelBadge).toEqual({
+      label: '보수 기준선',
+      className: 'text-[11px] font-medium px-2 py-0.5 rounded-full bg-teal-50 text-teal-700',
+    });
+    expect(viewModel.summaryLabel).toBe('기준 데이터 900건 · 설명력 0.734');
+    expectNoSourceOrSecretLeak(viewModel);
+  });
+
   it('handles unknown and malformed model responses without falling back to trend copy or crashing formatters', () => {
     const result = normalizeOrThrow({
       cpm: 'not-a-number',

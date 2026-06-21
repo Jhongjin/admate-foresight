@@ -10,6 +10,8 @@ const validBody = {
   genders: ['female'],
   ageRanges: ['25-34'],
   objectives: ['OUTCOME_TRAFFIC'],
+  placements: ['Instagram 피드'],
+  creativeTypes: ['이미지'],
   budget: 5_000_000,
   monthFrom: '2025-06',
   monthTo: '2025-07',
@@ -65,6 +67,8 @@ function withoutBudget(body: typeof validBody) {
     genders: body.genders,
     ageRanges: body.ageRanges,
     objectives: body.objectives,
+    placements: body.placements,
+    creativeTypes: body.creativeTypes,
     monthFrom: body.monthFrom,
     monthTo: body.monthTo,
   };
@@ -86,6 +90,8 @@ describe('prediction request contract', () => {
     ['genders', { value: 'female' }],
     ['ageRanges', '25-34'],
     ['objectives', 'OUTCOME_TRAFFIC'],
+    ['placements', 'Instagram 피드'],
+    ['creativeTypes', '이미지'],
   ] as const)('rejects malformed %s arrays', (field, value) => {
     expect(expectValidationError({
       ...validBody,
@@ -98,6 +104,8 @@ describe('prediction request contract', () => {
     ['genders', ['female', null]],
     ['ageRanges', ['25-34', false]],
     ['objectives', ['OUTCOME_TRAFFIC', { token: 'secret-token' }]],
+    ['placements', ['Instagram 피드', 123]],
+    ['creativeTypes', ['이미지', null]],
   ] as const)('rejects non-string %s array items', (field, value) => {
     expect(expectValidationError({
       ...validBody,
@@ -171,9 +179,11 @@ describe('prediction request contract', () => {
       genders: [forbiddenErrorEchoes[1], 123],
       ageRanges: [forbiddenErrorEchoes[2]],
       objectives: [forbiddenErrorEchoes[3]],
+      placements: [forbiddenErrorEchoes[4]],
+      creativeTypes: [forbiddenErrorEchoes[5]],
       budget: forbiddenErrorEchoes[4],
-      monthFrom: forbiddenErrorEchoes[5],
-      monthTo: forbiddenErrorEchoes[6],
+      monthFrom: forbiddenErrorEchoes[6],
+      monthTo: forbiddenErrorEchoes[7],
       extra: forbiddenErrorEchoes[7],
     });
 

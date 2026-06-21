@@ -4,6 +4,8 @@ export interface FiltersRouteOutput {
   genders: string[];
   objectives: string[];
   months: string[];
+  placements: string[];
+  creativeTypes: string[];
 }
 
 const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -15,6 +17,8 @@ const EMPTY_FILTERS_OUTPUT: FiltersRouteOutput = {
   genders: [],
   objectives: [],
   months: [],
+  placements: [],
+  creativeTypes: [],
 };
 
 const FORBIDDEN_LABEL_PATTERNS = [
@@ -103,5 +107,7 @@ export function normalizeFiltersRouteOutput(value: unknown): FiltersRouteOutput 
     genders: normalizeGenders(value.genders),
     objectives: normalizeSafeLabels(value.objectives),
     months: normalizeMonths(value.months),
+    placements: normalizeSafeLabels(value.placements),
+    creativeTypes: normalizeSafeLabels(value.creativeTypes),
   };
 }
