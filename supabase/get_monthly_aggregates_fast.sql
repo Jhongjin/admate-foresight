@@ -78,14 +78,29 @@ BEGIN
     COALESCE(U&"\B178\CD9C\C704\CE58"::TEXT, '') AS placement,
     COALESCE(U&"\C18C\C7AC\D615\D0DC"::TEXT, '') AS creative_format,
     U&"\B0A0\C9DC"::TEXT AS metric_date,
-    AVG(cpm) AS avg_cpm,
-    AVG(cpc) AS avg_cpc,
-    AVG(cpc_link) AS avg_cpc_link,
-    AVG(U&"\C601\C0C1\C870\D68C\BE44\C6A9") AS avg_video_view_cost,
+    COALESCE(
+      SUM(U&"\C9C0\CD9C\AE08\C561") / NULLIF(SUM(U&"\B178\CD9C"), 0) * 1000,
+      0
+    ) AS avg_cpm,
+    COALESCE(
+      SUM(U&"\C9C0\CD9C\AE08\C561") / NULLIF(SUM(CASE WHEN cpc > 0 THEN U&"\C9C0\CD9C\AE08\C561" / cpc ELSE 0 END), 0),
+      0
+    ) AS avg_cpc,
+    COALESCE(
+      SUM(U&"\C9C0\CD9C\AE08\C561") / NULLIF(SUM(CASE WHEN cpc_link > 0 THEN U&"\C9C0\CD9C\AE08\C561" / cpc_link ELSE 0 END), 0),
+      0
+    ) AS avg_cpc_link,
+    COALESCE(
+      SUM(U&"\C9C0\CD9C\AE08\C561") / NULLIF(SUM(U&"\C601\C0C1\C870\D68C\C218"), 0),
+      0
+    ) AS avg_video_view_cost,
     SUM(U&"\B3C4\B2EC") AS sum_reach,
     SUM(U&"\B178\CD9C") AS sum_impressions,
     SUM(U&"\C9C0\CD9C\AE08\C561") AS sum_spend,
-    AVG(U&"\BE48\B3C4") AS avg_frequency,
+    COALESCE(
+      SUM(U&"\B178\CD9C") / NULLIF(SUM(U&"\B3C4\B2EC"), 0),
+      0
+    ) AS avg_frequency,
     SUM(U&"\C601\C0C1\C870\D68C\C218") AS sum_video_views,
     NOW() AS refreshed_at
   FROM ad_data

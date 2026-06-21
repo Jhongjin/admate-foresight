@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS foresight_demographic_aggregates_cache (
   cpm_count          BIGINT NOT NULL DEFAULT 0,
   cpc_sum            NUMERIC NOT NULL DEFAULT 0,
   cpc_count          BIGINT NOT NULL DEFAULT 0,
+  sum_inferred_clicks NUMERIC NOT NULL DEFAULT 0,
   sum_reach          NUMERIC,
   sum_impressions    NUMERIC,
   sum_spend          NUMERIC,
@@ -26,6 +27,9 @@ CREATE TABLE IF NOT EXISTS foresight_demographic_aggregates_cache (
   refreshed_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (window_start, window_end, industry, objective, optimization_goal, gender, age_range)
 );
+
+ALTER TABLE foresight_demographic_aggregates_cache
+  ADD COLUMN IF NOT EXISTS sum_inferred_clicks NUMERIC NOT NULL DEFAULT 0;
 
 CREATE INDEX IF NOT EXISTS foresight_demographic_aggregates_cache_order_idx
   ON foresight_demographic_aggregates_cache (industry, objective, optimization_goal, gender, age_range);
@@ -62,6 +66,7 @@ BEGIN
     cpm_count,
     cpc_sum,
     cpc_count,
+    sum_inferred_clicks,
     sum_reach,
     sum_impressions,
     sum_spend,
@@ -80,6 +85,7 @@ BEGIN
     COUNT(cpm) AS cpm_count,
     COALESCE(SUM(cpc) FILTER (WHERE cpc IS NOT NULL), 0) AS cpc_sum,
     COUNT(cpc) AS cpc_count,
+    COALESCE(SUM(CASE WHEN cpc > 0 THEN U&"\C9C0\CD9C\AE08\C561" / cpc ELSE 0 END), 0) AS sum_inferred_clicks,
     SUM(U&"\B3C4\B2EC") AS sum_reach,
     SUM(U&"\B178\CD9C") AS sum_impressions,
     SUM(U&"\C9C0\CD9C\AE08\C561") AS sum_spend,
@@ -136,8 +142,12 @@ AS $$
     optimization_goal,
     gender,
     age_range,
-    COALESCE(SUM(cpm_sum) / NULLIF(SUM(cpm_count), 0), 0) AS avg_cpm,
-    COALESCE(SUM(cpc_sum) / NULLIF(SUM(cpc_count), 0), 0) AS avg_cpc,
+    COALESCE(SUM(sum_spend) / NULLIF(SUM(sum_impressions), 0) * 1000, 0) AS avg_cpm,
+    COALESCE(
+      SUM(sum_spend) / NULLIF(SUM(sum_inferred_clicks), 0),
+      SUM(cpc_sum) / NULLIF(SUM(cpc_count), 0),
+      0
+    ) AS avg_cpc,
     SUM(sum_reach) AS sum_reach,
     SUM(sum_impressions) AS sum_impressions,
     SUM(sum_spend) AS sum_spend,

@@ -35,6 +35,12 @@ describe('Foresight monthly aggregate fast RPC contract', () => {
     expect(sql).toMatch(/\bmetric_date\b/i);
     expect(sql).toMatch(/DELETE FROM foresight_monthly_aggregates_cache/i);
     expect(sql).toMatch(/INSERT INTO foresight_monthly_aggregates_cache/i);
+    expect(sql).toMatch(/SUM\(U&"\\C9C0\\CD9C\\AE08\\C561"\) \/ NULLIF\(SUM\(U&"\\B178\\CD9C"\), 0\) \* 1000/i);
+    expect(sql).toMatch(/SUM\(CASE WHEN cpc > 0 THEN U&"\\C9C0\\CD9C\\AE08\\C561" \/ cpc ELSE 0 END\)/i);
+    expect(sql).toMatch(/SUM\(CASE WHEN cpc_link > 0 THEN U&"\\C9C0\\CD9C\\AE08\\C561" \/ cpc_link ELSE 0 END\)/i);
+    expect(sql).toMatch(/SUM\(U&"\\B178\\CD9C"\) \/ NULLIF\(SUM\(U&"\\B3C4\\B2EC"\), 0\)/i);
+    expect(sql).not.toMatch(/\bAVG\(cpm\)\b/i);
+    expect(sql).not.toMatch(/\bAVG\(cpc\)\b/i);
     expect(sql).toMatch(/CREATE OR REPLACE FUNCTION get_monthly_aggregates_fast/i);
     expect(sql).toMatch(/CREATE OR REPLACE FUNCTION get_monthly_aggregates_fast_count/i);
     expect(sql).toMatch(/SELECT COUNT\(\*\) FROM foresight_monthly_aggregates_cache/i);

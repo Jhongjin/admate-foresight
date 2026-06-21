@@ -26,7 +26,12 @@ describe('Foresight demographic aggregate fast RPC contract', () => {
     expect(sql).toMatch(/U&"\\C5F0\\B839"/i);
     expect(sql).toMatch(/cpm_sum/i);
     expect(sql).toMatch(/cpm_count/i);
-    expect(sql).toMatch(/COALESCE\(SUM\(cpm_sum\) \/ NULLIF\(SUM\(cpm_count\), 0\), 0\) AS avg_cpm/i);
+    expect(sql).toMatch(/sum_inferred_clicks/i);
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS sum_inferred_clicks/i);
+    expect(sql).toMatch(/SUM\(CASE WHEN cpc > 0 THEN U&"\\C9C0\\CD9C\\AE08\\C561" \/ cpc ELSE 0 END\)/i);
+    expect(sql).toMatch(/COALESCE\(SUM\(sum_spend\) \/ NULLIF\(SUM\(sum_impressions\), 0\) \* 1000, 0\) AS avg_cpm/i);
+    expect(sql).toMatch(/SUM\(sum_spend\) \/ NULLIF\(SUM\(sum_inferred_clicks\), 0\)/i);
+    expect(sql).toMatch(/SUM\(cpc_sum\) \/ NULLIF\(SUM\(cpc_count\), 0\)/i);
     expect(sql).toMatch(/SECURITY INVOKER/i);
     expect(sql).toMatch(/SECURITY DEFINER/i);
     expect(sql).toMatch(/REVOKE ALL ON FUNCTION refresh_foresight_demographic_aggregates_window\(TEXT, TEXT\) FROM PUBLIC, anon, authenticated/i);
