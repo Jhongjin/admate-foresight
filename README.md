@@ -81,7 +81,7 @@ Export and diagnostics:
 - `GET /api/debug-env`
 - `GET /api/debug-data`
 
-Note: `debug`, `retrain`, and `sync` APIs are known security risks until access control, audit logging, and environment-based protection are added.
+Note: `debug` and export routes are fail-closed in production-style use. Admin mutation routes such as `meta-sync` and `py-retrain` require an internal key and should be paired with audit logging before routine operations.
 
 ## Next.js Development
 
@@ -152,6 +152,25 @@ Supabase:
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+
+Foresight aggregate caches:
+
+- `supabase/get_monthly_aggregates_fast.sql`
+- `supabase/get_demographic_aggregates_fast.sql`
+
+Apply these SQL files only to the Foresight data-plane Supabase project after DB/admin approval. They create read-optimized aggregate cache tables and fast RPCs. After schema creation or after approved Meta/backfill batches, refresh the affected date windows:
+
+```sql
+SELECT refresh_foresight_monthly_aggregates_window('2026-03-01', '2026-04-01');
+SELECT refresh_foresight_demographic_aggregates_window('2026-03-01', '2026-04-01');
+```
+
+The fast read RPCs are:
+
+- `get_monthly_aggregates_fast`
+- `get_monthly_aggregates_fast_count`
+- `get_demographic_aggregates_fast`
+- `get_demographic_aggregates_fast_count`
 
 Python ML:
 
@@ -243,12 +262,18 @@ Raw campaign-level data must not be sent directly to external LLMs.
 
 ## Security Notes
 
-Known risks:
+Current safeguards:
 
-- `/api/debug-env` exposes env presence and prefixes. It must be disabled or protected before production use.
-- `/api/debug-data` can expose sample rows and data distribution. It must be disabled or protected before production use.
-- `/api/py-retrain` can trigger model retraining and should require authorization.
-- `/api/meta-sync` can trigger external data sync and should require authorization and audit logging.
+- `/api/debug-env` and `/api/debug-data` return disabled/not-found responses.
+- `/api/export` is disabled.
+- `/api/py-retrain` requires an internal key.
+- `/api/meta-sync` requires an internal key.
+- The optional Meta scrape Playwright fallback requires an internal key in production runtime.
+
+Remaining operating requirements:
+
+- Admin mutation routes should write audit events before routine operations.
+- Meta sync, Python retrain, and aggregate cache refreshes are operator-controlled until a durable job runner is added.
 - Meta/Supabase tokens must remain server-only.
 - LLM/report features must send only anonymized or aggregated data.
 - Large raw Excel, CSV, cache files, and model artifacts must not be committed.
