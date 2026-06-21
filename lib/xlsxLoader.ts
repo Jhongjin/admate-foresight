@@ -173,7 +173,12 @@ async function fetchRpcAllPagesForFunction<T>(
   fnName: string,
   args: Record<string, unknown> = {},
 ): Promise<T[]> {
-  const PAGE = 1_000;
+  const PAGE = fnName === 'get_monthly_aggregates_fast' ? 5_000 : 1_000;
+  const count = await tryFetchRpcCount(client, fnName, args);
+  if (count !== null) {
+    return fetchRpcPagesByCount<T>(client, fnName, args, PAGE, count);
+  }
+
   const allRows: T[] = [];
   let offset = 0;
 
@@ -189,6 +194,57 @@ async function fetchRpcAllPagesForFunction<T>(
   }
 
   return allRows;
+}
+
+async function tryFetchRpcCount(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
+  fnName: string,
+  args: Record<string, unknown>,
+): Promise<number | null> {
+  if (fnName !== 'get_monthly_aggregates_fast' || Object.keys(args).length > 0) {
+    return null;
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (client.rpc as any)(`${fnName}_count`);
+    if (error) throw new Error(`RPC ${fnName}_count 오류: ${error.message}`);
+    const count = Number(data);
+    return Number.isFinite(count) && count >= 0 ? count : null;
+  } catch (error) {
+    if (isMissingRpcError(error)) return null;
+    throw error;
+  }
+}
+
+async function fetchRpcPagesByCount<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
+  fnName: string,
+  args: Record<string, unknown>,
+  page: number,
+  count: number,
+): Promise<T[]> {
+  if (count === 0) return [];
+
+  const PARALLELISM = 6;
+  const offsets = Array.from({ length: Math.ceil(count / page) }, (_, i) => i * page);
+  const chunks: T[][] = new Array(offsets.length);
+
+  for (let i = 0; i < offsets.length; i += PARALLELISM) {
+    const batch = offsets.slice(i, i + PARALLELISM);
+    await Promise.all(batch.map(async (offset, batchIndex) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (client.rpc as any)(fnName, { ...args, p_limit: page, p_offset: offset });
+      if (error) throw new Error(`RPC ${fnName} 오류: ${error.message}`);
+      chunks[i + batchIndex] = (data ?? []) as T[];
+    }));
+    const loaded = Math.min(count, (i + batch.length) * page);
+    console.log(`[xlsxLoader] ${fnName} 병렬 로딩 중... ${loaded}/${count}행`);
+  }
+
+  return chunks.flat();
 }
 
 /** Supabase RPC 두 함수를 병렬 로딩 */

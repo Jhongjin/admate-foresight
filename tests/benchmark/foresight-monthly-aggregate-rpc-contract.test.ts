@@ -11,7 +11,11 @@ describe('Foresight monthly aggregate fast RPC contract', () => {
     expect(xlsxLoader).toContain("['get_monthly_aggregates_fast', 'get_monthly_aggregates']");
     expect(xlsxLoader).toContain('industry?: string');
     expect(xlsxLoader).toContain('textValue(r.업종, r.industry)');
+    expect(xlsxLoader).toContain('get_monthly_aggregates_fast');
+    expect(xlsxLoader).toContain('fetchRpcPagesByCount');
+    expect(xlsxLoader).toContain('PARALLELISM = 6');
     expect(pythonLoader).toContain('"industry": "업종"');
+    expect(pythonLoader).toContain('page=5000');
     expect(xlsxLoader).toMatch(/PGRST202|could not find.*function/i);
     expect(pythonLoader).toContain('("get_monthly_aggregates_fast", "get_monthly_aggregates")');
     expect(pythonLoader).toContain('PGRST202');
@@ -31,12 +35,15 @@ describe('Foresight monthly aggregate fast RPC contract', () => {
     expect(sql).toMatch(/DELETE FROM foresight_monthly_aggregates_cache/i);
     expect(sql).toMatch(/INSERT INTO foresight_monthly_aggregates_cache/i);
     expect(sql).toMatch(/CREATE OR REPLACE FUNCTION get_monthly_aggregates_fast/i);
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION get_monthly_aggregates_fast_count/i);
+    expect(sql).toMatch(/SELECT COUNT\(\*\) FROM foresight_monthly_aggregates_cache/i);
     expect(sql).toMatch(/FROM foresight_monthly_aggregates_cache/i);
     expect(sql).toMatch(/SECURITY INVOKER/i);
     expect(sql).toMatch(/SECURITY DEFINER/i);
     expect(sql).toMatch(/SET search_path = public/i);
     expect(sql).toMatch(/REVOKE ALL ON FUNCTION refresh_foresight_monthly_aggregates_window\(TEXT, TEXT\) FROM PUBLIC, anon, authenticated/i);
     expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION get_monthly_aggregates_fast\(INT, INT\) TO anon, authenticated/i);
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION get_monthly_aggregates_fast_count\(\) TO anon, authenticated/i);
     expect(sql).toMatch(/LIMIT GREATEST\(0, LEAST\(p_limit, 5000\)\)/i);
     expect(sql).not.toMatch(/[가-힣]/);
     expect(sql).not.toMatch(/\bDROP\b|\bTRUNCATE\b|\bUPDATE\b/i);

@@ -169,9 +169,20 @@ AS $$
   OFFSET GREATEST(0, p_offset);
 $$;
 
+CREATE OR REPLACE FUNCTION get_monthly_aggregates_fast_count()
+RETURNS BIGINT
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COUNT(*) FROM foresight_monthly_aggregates_cache;
+$$;
+
 REVOKE ALL ON FUNCTION refresh_foresight_monthly_aggregates_window(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION refresh_foresight_monthly_aggregates() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_monthly_aggregates_fast(INT, INT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_monthly_aggregates_fast_count() TO anon, authenticated;
 
 -- Run small windows after creation, for example:
 -- SELECT refresh_foresight_monthly_aggregates_window('2026-03-01', '2026-04-01');

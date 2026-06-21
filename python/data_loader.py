@@ -110,6 +110,7 @@ def load_monthly_data() -> pd.DataFrame:
     rows = _fetch_rpc_all_pages_any(
         client,
         ("get_monthly_aggregates_fast", "get_monthly_aggregates"),
+        page=5000,
     )
     if not rows:
         raise RuntimeError("Supabase에서 월별 데이터를 불러오지 못했습니다.")
