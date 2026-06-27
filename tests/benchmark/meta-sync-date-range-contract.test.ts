@@ -44,6 +44,14 @@ describe('meta sync date range chunk contract', () => {
     expect(validateApprovedSyncDateWindow('2026-01-01', '2026-07-06').ok).toBe(false);
   });
 
+  it('supports shorter HTTP execution windows for serverless sync batches', () => {
+    expect(validateApprovedSyncDateWindow('2026-01-01', '2026-01-14', 14)).toEqual({
+      ok: true,
+      days: 14,
+    });
+    expect(validateApprovedSyncDateWindow('2026-01-01', '2026-01-15', 14).ok).toBe(false);
+  });
+
   it('normalizes and deduplicates explicit Meta ad account IDs', () => {
     expect(normalizeMetaAdAccountId('1234567890')).toBe('act_1234567890');
     expect(normalizeMetaAdAccountId('act_9876543210')).toBe('act_9876543210');

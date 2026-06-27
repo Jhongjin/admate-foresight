@@ -12,6 +12,7 @@ const NO_STORE_HEADERS = {
 };
 
 const OPERATION = 'meta_sync';
+const MAX_EXECUTION_WINDOW_DAYS = 14;
 
 interface MetaSyncRequestBody {
   operation?: string;
@@ -80,6 +81,7 @@ function wasProvided(value: unknown): boolean {
  *
  * dry-run은 기본값이며 Meta API/DB를 호출하지 않는다.
  * 실행 시에는 execute=true, reason, 명시 since/until, write-enabled env가 모두 필요하다.
+ * HTTP 실행 단위는 함수 timeout/중복 위험을 줄이기 위해 짧은 날짜 배치로 제한한다.
  */
 export async function POST(req: NextRequest) {
   const blocked = requireInternalKey(req);
@@ -112,7 +114,7 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ error: 'Meta sync execution is disabled.' }, 403);
   }
 
-  const dateWindow = validateApprovedSyncDateWindow(body.since, body.until);
+  const dateWindow = validateApprovedSyncDateWindow(body.since, body.until, MAX_EXECUTION_WINDOW_DAYS);
   if (!dateWindow.ok) {
     return jsonResponse({ error: dateWindow.error }, 400);
   }
