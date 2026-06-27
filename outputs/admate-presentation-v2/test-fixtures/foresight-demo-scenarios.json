@@ -1,0 +1,112 @@
+{
+  "purpose": "Safe demo inputs for the Foresight deployed UI live walkthrough. These values are labels and ranges only, not real advertiser or campaign data.",
+  "data_safety": {
+    "real_advertiser_data": false,
+    "real_campaign_data": false,
+    "contains_account_id": false,
+    "contains_email": false,
+    "contains_token_or_secret": false,
+    "numeric_values_are_demo_buckets": true
+  },
+  "ui_routes": {
+    "main": "/",
+    "optional_appendix": ["/trends", "/insights", "/account"]
+  },
+  "scenarios": [
+    {
+      "id": "foresight-demo-baseline-forecast",
+      "name": "Baseline forecast card",
+      "recommended_for": "main deck screen check",
+      "inputs": {
+        "total_campaign_budget": "demo budget bucket: small-to-mid",
+        "campaign_period": "1개월",
+        "season_boost": false,
+        "target_industry": "demo/general industry option visible in UI",
+        "campaign_objective": "트래픽 or 인지도 option visible in UI",
+        "placement": "전체 위치",
+        "creative_type": "전체 소재",
+        "gender": "전체",
+        "age_range": "broad/all available"
+      },
+      "click_path": [
+        "Open deployed Foresight URL",
+        "Sign in if redirected",
+        "Go to /",
+        "Review 조건 설정",
+        "Click 시뮬레이션 시작",
+        "Check 예측 결과",
+        "Check 이번 예측의 기준 확인"
+      ],
+      "expected_ui": [
+        "예측 결과 section is visible",
+        "At least one KPI card such as 예상 도달 or 예상 CPM is visible",
+        "이번 예측의 기준 확인 panel shows 기간 예산, 예측 방식, 데이터 근거, 구간 상태",
+        "내보내기 준비 중 remains disabled or gated"
+      ]
+    },
+    {
+      "id": "foresight-demo-benchmark-basis",
+      "name": "Benchmark basis review",
+      "recommended_for": "explaining benchmark/forecast assumptions",
+      "inputs": {
+        "total_campaign_budget": "demo budget bucket: default",
+        "campaign_period": "2주일 or 1개월",
+        "season_boost": false,
+        "target_industry": "demo industry with available benchmark data if visible",
+        "campaign_objective": "broad objective option",
+        "placement": "전체 위치",
+        "creative_type": "전체 소재",
+        "gender": "전체",
+        "age_range": "broad/all available"
+      },
+      "click_path": [
+        "Go to /",
+        "Select a safe demo industry if available",
+        "Click 시뮬레이션 시작 or 다시 시뮬레이션",
+        "Open or scroll to 이번 예측의 기준 확인",
+        "Review 예상 범위 and 데이터 충분성 판정"
+      ],
+      "expected_ui": [
+        "Forecast is framed as 기준선, 예상 범위, 검토 근거, or 데이터 충분성",
+        "If data is insufficient, UI shows limited/hold wording rather than a confident claim",
+        "No guarantee or optimal-budget wording appears"
+      ]
+    },
+    {
+      "id": "foresight-demo-range-curve",
+      "name": "Budget range and reach curve review",
+      "recommended_for": "appendix or live explanation after main card",
+      "inputs": {
+        "total_campaign_budget": "demo budget bucket: mid",
+        "campaign_period": "1개월",
+        "season_boost": "optional off by default",
+        "target_industry": "전체 or safe demo industry",
+        "campaign_objective": "traffic/awareness style option",
+        "placement": "전체 위치",
+        "creative_type": "전체 소재",
+        "gender": "전체",
+        "age_range": "broad/all available"
+      },
+      "click_path": [
+        "Run simulation",
+        "Scroll to 예산별 도달 곡선",
+        "Check the curve and range table if available",
+        "Explain it as estimated review range, not a guaranteed budget recommendation"
+      ],
+      "expected_ui": [
+        "예산별 도달 곡선 section is visible or shows a clear waiting/limited state",
+        "Range rows are positioned as review signals",
+        "No raw campaign rows or advertiser-specific IDs are displayed"
+      ]
+    }
+  ],
+  "do_not_use": [
+    "real advertiser name",
+    "real campaign name",
+    "real media account ID",
+    "real budget or spend value",
+    "real performance number",
+    "email address",
+    "token, API key, cookie, session value, or webhook URL"
+  ]
+}
