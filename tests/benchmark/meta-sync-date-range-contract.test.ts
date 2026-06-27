@@ -4,9 +4,12 @@ import {
   DEFAULT_ACCOUNT_BATCH_LIMIT,
   MAX_ACCOUNT_BATCH_LIMIT,
   buildSyncDateRanges,
+  buildSupabaseRowFingerprint,
+  filterDuplicateSupabaseRows,
   normalizeMetaAdAccountId,
   normalizeMetaAdAccountIds,
   selectMetaAccountBatch,
+  type SupabaseRow,
   validateApprovedSyncDateWindow,
 } from '../../lib/metaSync';
 
@@ -82,5 +85,66 @@ describe('meta sync date range chunk contract', () => {
     const capped = selectMetaAccountBatch(accounts, 0, MAX_ACCOUNT_BATCH_LIMIT + 5);
     expect(capped.accountIds).toHaveLength(MAX_ACCOUNT_BATCH_LIMIT);
     expect(capped.accountLimit).toBe(MAX_ACCOUNT_BATCH_LIMIT);
+  });
+
+  it('builds stable exact-row fingerprints for legacy duplicate guards', () => {
+    const row: SupabaseRow = {
+      업종: '식음료',
+      캠페인이름: 'campaign',
+      목표: 'REACH',
+      최적화목표: '도달',
+      노출위치: 'FB 피드',
+      소재형태: '이미지',
+      성별: '',
+      연령: '',
+      도달: 10,
+      노출: 20,
+      지출금액: 30,
+      빈도: 2,
+      cpm: 1500,
+      cpc: 0,
+      cpc_link: 0,
+      영상조회수: 0,
+      영상조회비용: 0,
+      날짜: '2026-01-01',
+    };
+
+    expect(buildSupabaseRowFingerprint(row)).toBe(
+      buildSupabaseRowFingerprint({ ...row, 도달: '10' as unknown as number }),
+    );
+    expect(buildSupabaseRowFingerprint(row)).not.toBe(
+      buildSupabaseRowFingerprint({ ...row, 날짜: '2026-01-02' }),
+    );
+  });
+
+  it('skips rows already present in the legacy ad_data duplicate set', () => {
+    const first: SupabaseRow = {
+      업종: '식음료',
+      캠페인이름: 'campaign-a',
+      목표: 'REACH',
+      최적화목표: '도달',
+      노출위치: 'FB 피드',
+      소재형태: '',
+      성별: '',
+      연령: '',
+      도달: 1,
+      노출: 2,
+      지출금액: 3,
+      빈도: 1,
+      cpm: 1500,
+      cpc: 0,
+      cpc_link: 0,
+      영상조회수: 0,
+      영상조회비용: 0,
+      날짜: '2026-01-01',
+    };
+    const second = { ...first, 캠페인이름: 'campaign-b' };
+    const result = filterDuplicateSupabaseRows(
+      [first, first, second],
+      new Set([buildSupabaseRowFingerprint(first)]),
+    );
+
+    expect(result.skippedDuplicates).toBe(2);
+    expect(result.rows).toEqual([second]);
   });
 });

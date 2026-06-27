@@ -11,6 +11,7 @@
  */
 
 import { extractIndustry } from './xlsxLoader';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   getForesightSupabaseUrl,
   getForesightSupabaseWriteKey,
@@ -231,12 +232,72 @@ interface InsightRow {
   date_start: string;
 }
 
-interface SupabaseRow {
+export interface SupabaseRow {
   업종: string; 캠페인이름: string; 목표: string; 최적화목표: string;
   노출위치: string; 소재형태: string; 성별: string; 연령: string;
   도달: number; 노출: number; 지출금액: number; 빈도: number;
   cpm: number; cpc: number; cpc_link: number; 영상조회수: number; 영상조회비용: number;
   날짜: string;
+}
+
+const SUPABASE_ROW_FIELDS = [
+  '업종',
+  '캠페인이름',
+  '목표',
+  '최적화목표',
+  '노출위치',
+  '소재형태',
+  '성별',
+  '연령',
+  '도달',
+  '노출',
+  '지출금액',
+  '빈도',
+  'cpm',
+  'cpc',
+  'cpc_link',
+  '영상조회수',
+  '영상조회비용',
+  '날짜',
+] as const;
+
+type SupabaseRowField = typeof SUPABASE_ROW_FIELDS[number];
+
+function normalizeFingerprintValue(field: SupabaseRowField, value: unknown): string {
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '0';
+  if (field === '날짜') return typeof value === 'string' ? value.slice(0, 10) : '';
+  if (['도달', '노출', '지출금액', '빈도', 'cpm', 'cpc', 'cpc_link', '영상조회수', '영상조회비용'].includes(field)) {
+    const numeric = typeof value === 'string' ? Number(value) : 0;
+    return Number.isFinite(numeric) ? String(numeric) : '0';
+  }
+  return typeof value === 'string' ? value : '';
+}
+
+export function buildSupabaseRowFingerprint(row: Partial<SupabaseRow>): string {
+  return SUPABASE_ROW_FIELDS
+    .map((field) => `${field}=${normalizeFingerprintValue(field, row[field])}`)
+    .join('\u001f');
+}
+
+export function filterDuplicateSupabaseRows(
+  rows: SupabaseRow[],
+  existingFingerprints: ReadonlySet<string>,
+): { rows: SupabaseRow[]; skippedDuplicates: number } {
+  const seen = new Set(existingFingerprints);
+  const uniqueRows: SupabaseRow[] = [];
+  let skippedDuplicates = 0;
+
+  for (const row of rows) {
+    const fingerprint = buildSupabaseRowFingerprint(row);
+    if (seen.has(fingerprint)) {
+      skippedDuplicates += 1;
+      continue;
+    }
+    seen.add(fingerprint);
+    uniqueRows.push(row);
+  }
+
+  return { rows: uniqueRows, skippedDuplicates };
 }
 
 function toRow(
@@ -297,11 +358,14 @@ export interface SyncOptions {
 
 export interface SyncResult {
   inserted: number;
+  collected: number;
+  skippedDuplicates: number;
   errors:   string[];
   accounts: number;     // 처리된 광고계정 수
   accountTotal: number; // 선택 가능한 광고계정 수
   accountOffset: number;
   accountLimit: number;
+  rollbackPolicy: string;
 }
 
 // 단일 광고계정 동기화 내부 함수
@@ -370,6 +434,41 @@ async function syncOneAccount(accountId: string, accessToken: string, datePreset
   return { rows, errors };
 }
 
+async function fetchExistingRowFingerprints(
+  supabase: SupabaseClient,
+  since: string,
+  until: string,
+): Promise<Set<string>> {
+  const fingerprints = new Set<string>();
+  const PAGE = 1000;
+
+  for (let from = 0; ; from += PAGE) {
+    const to = from + PAGE - 1;
+    const { data, error } = await supabase
+      .from('ad_data')
+      .select(SUPABASE_ROW_FIELDS.join(','))
+      .gte('날짜', since)
+      .lte('날짜', until)
+      .range(from, to);
+
+    if (error) {
+      throw new Error(`Supabase duplicate check failed: ${error.message}`);
+    }
+
+    const rows = (data ?? []) as Partial<SupabaseRow>[];
+    for (const row of rows) {
+      fingerprints.add(buildSupabaseRowFingerprint(row));
+    }
+
+    if (rows.length < PAGE) break;
+  }
+
+  return fingerprints;
+}
+
+const LEGACY_ROLLBACK_POLICY =
+  'legacy_ad_data_exact_duplicate_guard; no account-level rollback until batch lineage schema exists';
+
 export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult> {
   const { accessToken, datePreset = 'last_90_days', since, until } = opts;
   const dateRanges = since && until
@@ -413,22 +512,28 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
   } else {
     return {
       inserted: 0,
+      collected: 0,
+      skippedDuplicates: 0,
       errors: ['adAccountId 또는 businessId 필요'],
       accounts: 0,
       accountTotal: 0,
       accountOffset: 0,
       accountLimit: 0,
+      rollbackPolicy: LEGACY_ROLLBACK_POLICY,
     };
   }
 
   if (accountIds.length === 0) {
     return {
       inserted: 0,
+      collected: 0,
+      skippedDuplicates: 0,
       errors: ['조회된 광고계정 없음'],
       accounts: 0,
       accountTotal,
       accountOffset,
       accountLimit,
+      rollbackPolicy: LEGACY_ROLLBACK_POLICY,
     };
   }
 
@@ -463,11 +568,14 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
     console.warn('[metaSync] 수집된 행 없음');
     return {
       inserted: 0,
+      collected: 0,
+      skippedDuplicates: 0,
       errors: allErrors,
       accounts: accountIds.length,
       accountTotal,
       accountOffset,
       accountLimit,
+      rollbackPolicy: LEGACY_ROLLBACK_POLICY,
     };
   }
 
@@ -478,11 +586,38 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
     getForesightSupabaseWriteKey(),
   );
 
+  let rowsToInsert = allRows;
+  let skippedDuplicates = 0;
+  if (since && until) {
+    const existingFingerprints = await fetchExistingRowFingerprints(supabase, since, until);
+    const filtered = filterDuplicateSupabaseRows(allRows, existingFingerprints);
+    rowsToInsert = filtered.rows;
+    skippedDuplicates = filtered.skippedDuplicates;
+    console.log(
+      `[metaSync] 중복 검사 완료: collected=${allRows.length}, existing=${existingFingerprints.size}, skipped=${skippedDuplicates}`,
+    );
+  }
+
+  if (rowsToInsert.length === 0) {
+    console.warn('[metaSync] 신규 저장 대상 없음');
+    return {
+      inserted: 0,
+      collected: allRows.length,
+      skippedDuplicates,
+      errors: allErrors,
+      accounts: accountIds.length,
+      accountTotal,
+      accountOffset,
+      accountLimit,
+      rollbackPolicy: LEGACY_ROLLBACK_POLICY,
+    };
+  }
+
   let inserted = 0;
   const BATCH = 500;
 
-  for (let i = 0; i < allRows.length; i += BATCH) {
-    const batch = allRows.slice(i, i + BATCH);
+  for (let i = 0; i < rowsToInsert.length; i += BATCH) {
+    const batch = rowsToInsert.slice(i, i + BATCH);
     const { error } = await supabase.from('ad_data').insert(batch);
     if (error) {
       const msg = `Supabase insert 오류 (배치 ${i}~${i + batch.length}): ${error.message}`;
@@ -490,16 +625,19 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
       allErrors.push(msg);
     } else {
       inserted += batch.length;
-      console.log(`[metaSync] Supabase 저장: ${inserted}/${allRows.length}건`);
+      console.log(`[metaSync] Supabase 저장: ${inserted}/${rowsToInsert.length}건`);
     }
   }
 
   return {
     inserted,
+    collected: allRows.length,
+    skippedDuplicates,
     errors: allErrors,
     accounts: accountIds.length,
     accountTotal,
     accountOffset,
     accountLimit,
+    rollbackPolicy: LEGACY_ROLLBACK_POLICY,
   };
 }

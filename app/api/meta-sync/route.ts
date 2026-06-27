@@ -189,21 +189,27 @@ export async function POST(req: NextRequest) {
 
     console.log('[meta-sync] completed:', {
       inserted: result.inserted,
+      collected: result.collected,
+      skippedDuplicates: result.skippedDuplicates,
       accounts: result.accounts,
       accountTotal: result.accountTotal,
       accountOffset: result.accountOffset,
       accountLimit: result.accountLimit,
       errors: result.errors.length,
+      rollbackPolicy: result.rollbackPolicy,
     });
     return jsonResponse({
       status: 'execution_completed',
       operation: OPERATION,
       inserted: result.inserted,
+      collected: result.collected,
+      skippedDuplicates: result.skippedDuplicates,
       accounts: result.accounts,
       accountTotal: result.accountTotal,
       accountOffset: result.accountOffset,
       accountLimit: result.accountLimit,
       errorCount: result.errors.length,
+      rollbackPolicy: result.rollbackPolicy,
     });
   } catch (e) {
     console.error('[meta-sync] failed:', sanitizeError(e));
