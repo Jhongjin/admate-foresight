@@ -8,6 +8,7 @@
     "benchmark:dry-run": "node --experimental-strip-types scripts/benchmark-dry-run.mjs",
     "benchmark:ui-fixtures": "node --experimental-strip-types scripts/benchmark-ui-state-fixtures.mjs",
     "refresh:foresight-aggregate-caches": "node scripts/refresh-foresight-aggregate-caches.mjs",
+    "run:meta-sync-batches": "node scripts/run-foresight-meta-sync-batches.mjs",
     "check:api-response-safety-static": "node scripts/check-api-response-safety-static.mjs",
     "check:auth-handoff-static": "node scripts/check-auth-handoff-static.mjs",
     "check:benchmark-kpi-static-contract": "node scripts/check-benchmark-kpi-static-contract.mjs",
