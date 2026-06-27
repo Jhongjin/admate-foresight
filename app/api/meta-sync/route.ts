@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { syncMetaToSupabase } from '@/lib/metaSync';
+import {
+  MAX_ACCOUNT_BATCH_LIMIT,
+  normalizeMetaAdAccountIds,
+  syncMetaToSupabase,
+  validateApprovedSyncDateWindow,
+} from '@/lib/metaSync';
 import { maskIdentifier, requireInternalKey, sanitizeError } from '@/lib/security';
 
 const NO_STORE_HEADERS = {
@@ -17,7 +22,10 @@ interface MetaSyncRequestBody {
   since?: string;
   until?: string;
   adAccountId?: string;
+  adAccountIds?: string[];
   businessId?: string;
+  accountOffset?: number | string;
+  accountLimit?: number | string;
 }
 
 function jsonResponse(body: Record<string, unknown>, status = 200): NextResponse {
@@ -42,14 +50,36 @@ function cleanString(value: unknown): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function cleanStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(cleanString)
+    .filter((item): item is string => Boolean(item));
+}
+
+function cleanInteger(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string'
+      ? Number(value.trim())
+      : Number.NaN;
+  if (!Number.isInteger(parsed) || parsed < 0) return undefined;
+  return parsed;
+}
+
+function wasProvided(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== '';
+}
+
 /**
  * POST /api/meta-sync
  *
  * Body (선택):
- *   { datePreset?: string, since?: string, until?: string }
+ *   { since?: string, until?: string, accountOffset?: number, accountLimit?: number }
  *
- * 예) 최근 90일:  POST /api/meta-sync
- * 예) 특정 범위:  POST /api/meta-sync  { "since": "2025-01-01", "until": "2025-03-31" }
+ * dry-run은 기본값이며 Meta API/DB를 호출하지 않는다.
+ * 실행 시에는 execute=true, reason, 명시 since/until, write-enabled env가 모두 필요하다.
  */
 export async function POST(req: NextRequest) {
   const blocked = requireInternalKey(req);
@@ -82,27 +112,63 @@ export async function POST(req: NextRequest) {
     return jsonResponse({ error: 'Meta sync execution is disabled.' }, 403);
   }
 
+  const dateWindow = validateApprovedSyncDateWindow(body.since, body.until);
+  if (!dateWindow.ok) {
+    return jsonResponse({ error: dateWindow.error }, 400);
+  }
+
+  const accountOffset = cleanInteger(body.accountOffset);
+  if (wasProvided(body.accountOffset) && accountOffset === undefined) {
+    return jsonResponse({ error: 'accountOffset must be a non-negative integer.' }, 400);
+  }
+
+  const accountLimit = cleanInteger(body.accountLimit);
+  if (wasProvided(body.accountLimit) && accountLimit === undefined) {
+    return jsonResponse({ error: 'accountLimit must be a positive integer.' }, 400);
+  }
+  if (accountLimit !== undefined && (accountLimit < 1 || accountLimit > MAX_ACCOUNT_BATCH_LIMIT)) {
+    return jsonResponse({ error: `accountLimit must be between 1 and ${MAX_ACCOUNT_BATCH_LIMIT}.` }, 400);
+  }
+
   const accessToken = process.env.META_ACCESS_TOKEN;
   const envAccountId = process.env.META_AD_ACCOUNT_ID;
   const envBusinessId = process.env.META_BUSINESS_ID;
+  const requestedAdAccountIds = normalizeMetaAdAccountIds(cleanStringList(body.adAccountIds));
 
   if (!accessToken) {
     return jsonResponse({ error: 'Meta sync is not configured.' }, 503);
   }
-  if (!envAccountId && !envBusinessId) {
+
+  if (Array.isArray(body.adAccountIds) && body.adAccountIds.length > 0 && requestedAdAccountIds.length === 0) {
+    return jsonResponse({ error: 'adAccountIds must contain valid Meta ad account IDs.' }, 400);
+  }
+
+  const requestedAdAccountId = cleanString(body.adAccountId);
+  const requestedBusinessId = cleanString(body.businessId);
+  const adAccountId = requestedAdAccountIds.length > 0
+    ? undefined
+    : requestedBusinessId
+      ? undefined
+      : requestedAdAccountId ?? (envBusinessId ? undefined : envAccountId);
+  const businessId = requestedAdAccountIds.length > 0 || requestedAdAccountId
+    ? undefined
+    : requestedBusinessId ?? envBusinessId;
+
+  if (!adAccountId && !businessId && requestedAdAccountIds.length === 0) {
     return jsonResponse({ error: 'Meta sync target is not configured.' }, 503);
   }
 
-  const adAccountId = body.adAccountId ?? envAccountId;
-  const businessId  = body.businessId  ?? envBusinessId;
-
   console.log('[meta-sync] requested:', {
     adAccountId: maskIdentifier(adAccountId),
+    adAccountIds: requestedAdAccountIds.length,
     businessId:  maskIdentifier(businessId),
-    datePreset:  body.datePreset,
     since:       body.since,
     until:       body.until,
+    days:        dateWindow.days,
+    accountOffset,
+    accountLimit,
     overrideAccount: !!body.adAccountId,
+    overrideAccountList: requestedAdAccountIds.length > 0,
     overrideBusiness: !!body.businessId,
   });
 
@@ -110,15 +176,21 @@ export async function POST(req: NextRequest) {
     const result = await syncMetaToSupabase({
       accessToken,
       adAccountId,
+      adAccountIds: requestedAdAccountIds,
       businessId,
       datePreset: body.datePreset,
       since:      body.since,
       until:      body.until,
+      accountOffset,
+      accountLimit,
     });
 
     console.log('[meta-sync] completed:', {
       inserted: result.inserted,
       accounts: result.accounts,
+      accountTotal: result.accountTotal,
+      accountOffset: result.accountOffset,
+      accountLimit: result.accountLimit,
       errors: result.errors.length,
     });
     return jsonResponse({
@@ -126,6 +198,9 @@ export async function POST(req: NextRequest) {
       operation: OPERATION,
       inserted: result.inserted,
       accounts: result.accounts,
+      accountTotal: result.accountTotal,
+      accountOffset: result.accountOffset,
+      accountLimit: result.accountLimit,
       errorCount: result.errors.length,
     });
   } catch (e) {

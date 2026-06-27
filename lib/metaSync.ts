@@ -19,6 +19,9 @@ import { maskIdentifier, sanitizeError } from './security';
 
 const GRAPH_API = 'https://graph.facebook.com/v21.0';
 const DEFAULT_SYNC_CHUNK_DAYS = 31;
+export const MAX_SYNC_WINDOW_DAYS = 186;
+export const DEFAULT_ACCOUNT_BATCH_LIMIT = 1;
+export const MAX_ACCOUNT_BATCH_LIMIT = 10;
 
 // ── 매핑 테이블 ──────────────────────────────────────────
 const PLACEMENT_MAP: Record<string, Record<string, string>> = {
@@ -84,6 +87,81 @@ function addDays(date: Date, days: number): Date {
   const next = new Date(date);
   next.setUTCDate(next.getUTCDate() + days);
   return next;
+}
+
+function inclusiveDayCount(start: Date, end: Date): number {
+  return Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1;
+}
+
+export function validateApprovedSyncDateWindow(
+  since?: string,
+  until?: string,
+  maxDays = MAX_SYNC_WINDOW_DAYS,
+): { ok: true; days: number } | { ok: false; error: string } {
+  const start = parseYmd(since);
+  const end = parseYmd(until);
+  if (!since || !until) {
+    return { ok: false, error: 'Execution requires explicit since and until dates.' };
+  }
+  if (!start || !end || start > end) {
+    return { ok: false, error: 'Execution date range must be valid YYYY-MM-DD dates.' };
+  }
+
+  const days = inclusiveDayCount(start, end);
+  if (days > maxDays) {
+    return { ok: false, error: `Execution date range must be ${maxDays} days or less.` };
+  }
+
+  return { ok: true, days };
+}
+
+export function normalizeMetaAdAccountId(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const numeric = trimmed.startsWith('act_') ? trimmed.slice(4) : trimmed;
+  if (!/^\d+$/.test(numeric)) return null;
+  return `act_${numeric}`;
+}
+
+export function normalizeMetaAdAccountIds(values: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const value of values) {
+    const id = normalizeMetaAdAccountId(value);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    normalized.push(id);
+  }
+  return normalized;
+}
+
+export interface MetaAccountBatchSelection {
+  accountIds: string[];
+  accountTotal: number;
+  accountOffset: number;
+  accountLimit: number;
+}
+
+export function selectMetaAccountBatch(
+  accountIds: readonly string[],
+  accountOffset = 0,
+  accountLimit = DEFAULT_ACCOUNT_BATCH_LIMIT,
+): MetaAccountBatchSelection {
+  const total = accountIds.length;
+  const offset = Number.isInteger(accountOffset) && accountOffset > 0
+    ? accountOffset
+    : 0;
+  const requestedLimit = Number.isInteger(accountLimit) && accountLimit > 0
+    ? accountLimit
+    : DEFAULT_ACCOUNT_BATCH_LIMIT;
+  const limit = Math.min(requestedLimit, MAX_ACCOUNT_BATCH_LIMIT);
+
+  return {
+    accountIds: accountIds.slice(offset, offset + limit),
+    accountTotal: total,
+    accountOffset: offset,
+    accountLimit: limit,
+  };
 }
 
 export function buildSyncDateRanges(
@@ -207,17 +285,23 @@ export async function fetchAdAccounts(businessId: string, accessToken: string): 
 export interface SyncOptions {
   accessToken:  string;
   adAccountId?: string; // 단일 계정 (act_xxxxxxxxx 형식)
+  adAccountIds?: string[]; // 명시 계정 목록
   businessId?:  string; // 비즈니스 ID → 하위 전체 계정 자동 조회
   datePreset?:  string; // 'last_30_days' | 'last_90_days' | ...
   since?:       string; // YYYY-MM-DD
   until?:       string; // YYYY-MM-DD
   chunkDays?:   number; // since/until 장기 범위 분할 단위
+  accountOffset?: number; // business/adAccountIds 배치 시작 위치
+  accountLimit?:  number; // business/adAccountIds 배치 크기
 }
 
 export interface SyncResult {
   inserted: number;
   errors:   string[];
   accounts: number;     // 처리된 광고계정 수
+  accountTotal: number; // 선택 가능한 광고계정 수
+  accountOffset: number;
+  accountLimit: number;
 }
 
 // 단일 광고계정 동기화 내부 함수
@@ -294,19 +378,58 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
 
   // 광고계정 목록 결정
   let accountIds: string[] = [];
-  if (opts.adAccountId) {
-    const id = opts.adAccountId.startsWith('act_') ? opts.adAccountId : `act_${opts.adAccountId}`;
-    accountIds = [id];
+  let accountTotal = 0;
+  let accountOffset = 0;
+  let accountLimit = 1;
+
+  if (opts.adAccountIds && opts.adAccountIds.length > 0) {
+    const normalized = normalizeMetaAdAccountIds(opts.adAccountIds);
+    const explicitLimit = opts.accountLimit ?? Math.min(normalized.length, MAX_ACCOUNT_BATCH_LIMIT);
+    const selection = selectMetaAccountBatch(normalized, opts.accountOffset, explicitLimit);
+    accountIds = selection.accountIds;
+    accountTotal = selection.accountTotal;
+    accountOffset = selection.accountOffset;
+    accountLimit = selection.accountLimit;
+  } else if (opts.adAccountId) {
+    const id = normalizeMetaAdAccountId(opts.adAccountId);
+    accountIds = id ? [id] : [];
+    accountTotal = accountIds.length;
+    accountLimit = accountIds.length;
   } else if (opts.businessId) {
     console.log(`[metaSync] 비즈니스 ${maskIdentifier(opts.businessId)} 하위 계정 조회 중...`);
-    accountIds = await fetchAdAccounts(opts.businessId, accessToken);
-    console.log(`[metaSync] 광고계정 ${accountIds.length}개 발견`);
+    const fetchedAccountIds = normalizeMetaAdAccountIds(await fetchAdAccounts(opts.businessId, accessToken));
+    const selection = selectMetaAccountBatch(
+      fetchedAccountIds,
+      opts.accountOffset,
+      opts.accountLimit ?? DEFAULT_ACCOUNT_BATCH_LIMIT,
+    );
+    accountIds = selection.accountIds;
+    accountTotal = selection.accountTotal;
+    accountOffset = selection.accountOffset;
+    accountLimit = selection.accountLimit;
+    console.log(
+      `[metaSync] 광고계정 ${accountTotal}개 발견, 배치 ${accountOffset}~${accountOffset + accountIds.length}`,
+    );
   } else {
-    return { inserted: 0, errors: ['adAccountId 또는 businessId 필요'], accounts: 0 };
+    return {
+      inserted: 0,
+      errors: ['adAccountId 또는 businessId 필요'],
+      accounts: 0,
+      accountTotal: 0,
+      accountOffset: 0,
+      accountLimit: 0,
+    };
   }
 
   if (accountIds.length === 0) {
-    return { inserted: 0, errors: ['조회된 광고계정 없음'], accounts: 0 };
+    return {
+      inserted: 0,
+      errors: ['조회된 광고계정 없음'],
+      accounts: 0,
+      accountTotal,
+      accountOffset,
+      accountLimit,
+    };
   }
 
   const allErrors: string[] = [];
@@ -338,7 +461,14 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
 
   if (allRows.length === 0) {
     console.warn('[metaSync] 수집된 행 없음');
-    return { inserted: 0, errors: allErrors, accounts: accountIds.length };
+    return {
+      inserted: 0,
+      errors: allErrors,
+      accounts: accountIds.length,
+      accountTotal,
+      accountOffset,
+      accountLimit,
+    };
   }
 
   // ── Supabase 저장 ────────────────────────────────────────
@@ -364,5 +494,12 @@ export async function syncMetaToSupabase(opts: SyncOptions): Promise<SyncResult>
     }
   }
 
-  return { inserted, errors: allErrors, accounts: accountIds.length };
+  return {
+    inserted,
+    errors: allErrors,
+    accounts: accountIds.length,
+    accountTotal,
+    accountOffset,
+    accountLimit,
+  };
 }
