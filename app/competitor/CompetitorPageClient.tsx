@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import StatePanel from '@/components/StatePanel';
 import {
@@ -216,6 +217,17 @@ export default function CompetitorPage() {
           Meta 광고 라이브러리 기반 흐름을 보고하기 위한 안전 데모 화면입니다. 현재 카드는 익명화된 예시이며 실제 광고주,
           캠페인, 계정 ID, 성과, 예산을 포함하지 않습니다.
         </p>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Link
+            href="/"
+            className="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-800 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+          >
+            성과 예측으로 돌아가기
+          </Link>
+          <span className="text-xs font-semibold text-slate-500">
+            보고용으로는 업종 칩 하나를 눌러 카드가 바뀌는지만 확인해도 충분합니다.
+          </span>
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">

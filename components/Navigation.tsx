@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 interface NavigationProps {
@@ -176,6 +177,10 @@ const ACCESS_REQUESTS_URL = 'https://sentinel.admate.ai.kr/users/access-requests
 const ORGANIZATIONS_URL = 'https://sentinel.admate.ai.kr/users/organizations';
 const USERS_URL = 'https://sentinel.admate.ai.kr/users';
 const LOGOUT_URL = '/auth/logout?next=/';
+const foresightNavItems = [
+  { href: '/', label: '성과 예측' },
+  { href: '/competitor', label: '경쟁 소재' },
+] as const;
 
 export default function Navigation({
   isAuthenticated = false,
@@ -185,6 +190,7 @@ export default function Navigation({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [siteOpen, setSiteOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const pathname = usePathname();
   const siteRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const showSignedIn = isAuthenticated;
@@ -250,7 +256,26 @@ export default function Navigation({
             </div>
           </Link>
 
-          <div className="hidden min-w-0 flex-1 lg:block" aria-hidden="true" />
+          <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex" aria-label="Foresight 내부 메뉴">
+            {foresightNavItems.map((item) => {
+              const active = item.href === '/'
+                ? pathname === '/'
+                : pathname?.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`rounded-[8px] px-3 py-2 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 ${
+                    active
+                      ? 'bg-slate-950 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <div className="relative" ref={siteRef}>

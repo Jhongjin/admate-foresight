@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -609,6 +610,17 @@ export default function SimulatorPage() {
                 예산, 기간, 타겟 조건에 따른 예상 성과와 AdMate 기준 데이터를 함께 봅니다.
                 표본 상태가 부족하면 예측 결과와 구간 판단을 분리해 표시합니다.
               </p>
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <Link
+                  href="/competitor"
+                  className="inline-flex min-h-10 items-center justify-center rounded-md bg-slate-950 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
+                >
+                  경쟁 소재 확인
+                </Link>
+                <span className="text-xs font-semibold text-slate-500">
+                  익명 데모 기준으로 업종별 소재 흐름을 확인합니다.
+                </span>
+              </div>
               <div className="mt-4 grid gap-2 sm:grid-cols-3">
                 {sampleStatusLegend.map((item) => (
                   <div key={item.label} className="rounded-md border border-stone-200 bg-white/70 px-3 py-2">
