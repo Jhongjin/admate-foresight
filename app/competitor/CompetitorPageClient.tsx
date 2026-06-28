@@ -38,6 +38,13 @@ interface GoogleCreativeResponse {
   }>;
 }
 
+interface PublicCreativeAsset {
+  id: string;
+  imageUrl: string;
+  source: string;
+  format: string;
+}
+
 async function readJsonOrNull(res: Response): Promise<unknown | null> {
   try {
     return await res.json();
@@ -75,22 +82,33 @@ function isSafeCreativeImageUrl(value: unknown): value is string {
   }
 }
 
-function mergeCreativeAssets(
-  baseAds: CompetitorCreativeDemoAd[],
-  creativeAssets: Array<{ imageUrl: string; source: string }>,
-): CompetitorCreativeDemoAd[] {
-  if (creativeAssets.length === 0) return baseAds;
-  return baseAds.map((ad, index) => {
-    const asset = creativeAssets[index % creativeAssets.length];
-    return {
-      ...ad,
-      assetUrl: asset.imageUrl,
-      assetSource: asset.source,
-    };
-  });
+function toPublicCreativeCards(creativeAssets: PublicCreativeAsset[], scope: string): CompetitorCreativeDemoAd[] {
+  return creativeAssets.map((asset, index) => ({
+    id: `public-creative-${index + 1}`,
+    advertiser: '공개 소재 이미지',
+    category: scope,
+    message: `검색 기준 "${scope}"에서 확인된 공개 소재 이미지입니다.`,
+    cta: '이미지 확인',
+    format: asset.format,
+    sourceLabel: asset.source,
+    observedWindow: '공개 소재 경로',
+    flowSignal: '이미지 전체 비율을 우선 확인합니다.',
+    evidenceLevel: 'Public creative image',
+    assetUrl: asset.imageUrl,
+    assetSource: asset.source,
+    visual: {
+      headline: '',
+      subcopy: '',
+      background: '#f8fafc',
+      surface: '#ffffff',
+      accent: '#334155',
+      ink: '#0f172a',
+      motif: 'grid',
+    },
+  }));
 }
 
-async function fetchPublicCreativeAssets(ind: string, kw: string): Promise<Array<{ imageUrl: string; source: string }>> {
+async function fetchPublicCreativeAssets(ind: string, kw: string): Promise<PublicCreativeAsset[]> {
   const params = new URLSearchParams({ limit: '9' });
   if (ind && ind !== ALL_LABEL) params.set('industry', ind);
   const safeKeyword = toSafeCompetitorLookupText(kw);
@@ -103,9 +121,17 @@ async function fetchPublicCreativeAssets(ind: string, kw: string): Promise<Array
   const response = data as GoogleCreativeResponse;
   const ads = Array.isArray(response.ads) ? response.ads : [];
   return ads
-    .map((ad) => ad.imageUrl)
-    .filter(isSafeCreativeImageUrl)
-    .map((imageUrl) => ({ imageUrl, source: 'Google Ads Transparency' }));
+    .map((ad, index) => ({
+      id: `google-creative-${index + 1}`,
+      imageUrl: ad.imageUrl,
+      source: 'Google Ads Transparency',
+      format: typeof ad.format === 'number' ? `Format ${ad.format}` : 'Image creative',
+    }))
+    .filter((asset): asset is PublicCreativeAsset => isSafeCreativeImageUrl(asset.imageUrl))
+    .map((asset) => ({
+      ...asset,
+      imageUrl: asset.imageUrl,
+    }));
 }
 
 function CreativePreview({ ad }: { ad: CompetitorCreativeDemoAd }) {
@@ -115,21 +141,22 @@ function CreativePreview({ ad }: { ad: CompetitorCreativeDemoAd }) {
 
   return (
     <div
-      className="relative aspect-[4/3] min-h-56 overflow-hidden border-b border-slate-200 p-4"
-      style={{ backgroundColor: visual.background, color: visual.ink }}
+      className={`relative overflow-hidden border-b border-slate-200 ${
+        ad.assetUrl ? 'aspect-square bg-slate-50 p-3' : 'aspect-[4/3] min-h-56 p-4'
+      }`}
+      style={{ backgroundColor: ad.assetUrl ? '#f8fafc' : visual.background, color: visual.ink }}
     >
       {ad.assetUrl ? (
-        <>
+        <div className="flex h-full w-full items-center justify-center rounded-md bg-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={ad.assetUrl}
             alt=""
-            className="absolute inset-0 h-full w-full object-cover"
+            className="max-h-full max-w-full object-contain"
             loading="lazy"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-black/20" />
-        </>
+        </div>
       ) : null}
       <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: motifColor }} />
       <div className="relative z-10 flex h-full flex-col justify-between gap-4">
@@ -137,9 +164,9 @@ function CreativePreview({ ad }: { ad: CompetitorCreativeDemoAd }) {
           <span
             className="rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]"
             style={{
-              borderColor: ad.assetUrl ? 'rgba(255,255,255,0.42)' : motifColor,
-              backgroundColor: ad.assetUrl ? 'rgba(15,23,42,0.72)' : visual.surface,
-              color: ad.assetUrl ? '#ffffff' : motifColor,
+              borderColor: ad.assetUrl ? '#cbd5e1' : motifColor,
+              backgroundColor: ad.assetUrl ? '#ffffff' : visual.surface,
+              color: ad.assetUrl ? '#334155' : motifColor,
             }}
           >
             {ad.assetUrl ? '공개 소재 이미지' : '익명 소재 프리뷰'}
@@ -152,20 +179,19 @@ function CreativePreview({ ad }: { ad: CompetitorCreativeDemoAd }) {
           </span>
         </div>
 
-        <div className="grid min-h-28 grid-cols-[minmax(0,1fr)_88px] items-end gap-4">
-          <div className="min-w-0 rounded-md p-2" style={{ backgroundColor: ad.assetUrl ? 'rgba(15,23,42,0.64)' : 'transparent' }}>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: ad.assetUrl ? '#e2e8f0' : mutedInk }}>
-              {ad.category} creative flow
-            </p>
-            <p className="mt-2 line-clamp-2 break-words text-2xl font-black leading-tight" style={{ color: ad.assetUrl ? '#ffffff' : visual.ink }}>
-              {visual.headline}
-            </p>
-            <p className="mt-2 line-clamp-2 break-words text-sm font-semibold" style={{ color: ad.assetUrl ? '#e2e8f0' : mutedInk }}>
-              {visual.subcopy}
-            </p>
-          </div>
-
-          {!ad.assetUrl && (
+        {!ad.assetUrl && (
+          <div className="grid min-h-28 grid-cols-[minmax(0,1fr)_88px] items-end gap-4">
+            <div className="min-w-0 rounded-md p-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: mutedInk }}>
+                {ad.category} creative flow
+              </p>
+              <p className="mt-2 line-clamp-2 break-words text-2xl font-black leading-tight" style={{ color: visual.ink }}>
+                {visual.headline}
+              </p>
+              <p className="mt-2 line-clamp-2 break-words text-sm font-semibold" style={{ color: mutedInk }}>
+                {visual.subcopy}
+              </p>
+            </div>
             <div
               className="relative h-28 overflow-hidden rounded-md border shadow-sm"
               style={{ borderColor: `${motifColor}55`, backgroundColor: visual.surface }}
@@ -237,11 +263,17 @@ function CreativePreview({ ad }: { ad: CompetitorCreativeDemoAd }) {
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-3">
-          <span className="max-w-[62%] truncate text-xs font-bold" style={{ color: ad.assetUrl ? '#e2e8f0' : mutedInk }}>
+          <span
+            className="max-w-[62%] truncate rounded-md px-2 py-1 text-xs font-bold"
+            style={{
+              color: ad.assetUrl ? '#334155' : mutedInk,
+              backgroundColor: ad.assetUrl ? '#ffffff' : 'transparent',
+            }}
+          >
             {ad.assetUrl ? ad.assetSource : '익명 소재 기준'}
           </span>
           <span
@@ -257,15 +289,27 @@ function CreativePreview({ ad }: { ad: CompetitorCreativeDemoAd }) {
 }
 
 function CreativeCard({ ad }: { ad: CompetitorCreativeDemoAd }) {
+  const isPublicImageCard = Boolean(ad.assetUrl);
+
   return (
     <article className="flex min-h-[520px] flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       <CreativePreview ad={ad} />
       <div className="flex flex-1 flex-col gap-3 p-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">익명 브랜드</p>
-          <h3 className="mt-1 line-clamp-2 break-words text-base font-bold text-slate-950">{ad.advertiser}</h3>
-        </div>
-        <p className="line-clamp-4 break-words text-sm leading-6 text-slate-700">{ad.message}</p>
+        {isPublicImageCard ? (
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">공개 소재 이미지</p>
+            <h3 className="mt-1 line-clamp-2 break-words text-base font-bold text-slate-950">{ad.category}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-700">기존 공개 소재 경로에서 확인된 이미지를 전체 비율로 표시합니다.</p>
+          </div>
+        ) : (
+          <>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">익명 브랜드</p>
+              <h3 className="mt-1 line-clamp-2 break-words text-base font-bold text-slate-950">{ad.advertiser}</h3>
+            </div>
+            <p className="line-clamp-4 break-words text-sm leading-6 text-slate-700">{ad.message}</p>
+          </>
+        )}
         <div className="rounded-md border border-stone-200 bg-stone-50 px-3 py-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">소재 흐름 신호</p>
           <p className="mt-1 break-words text-xs leading-5 text-slate-700">{ad.flowSignal}</p>
@@ -330,7 +374,8 @@ export default function CompetitorPage() {
         setAds(baseAds);
         const assets = await fetchPublicCreativeAssets(ind, kw);
         if (assets.length > 0) {
-          setAds(mergeCreativeAssets(baseAds, assets));
+          const scope = toSafeCompetitorLookupText(kw) || (ind && ind !== ALL_LABEL ? ind : ALL_LABEL);
+          setAds(toPublicCreativeCards(assets, scope));
           setAssetStatus('connected');
         } else {
           setAssetStatus('fallback');
