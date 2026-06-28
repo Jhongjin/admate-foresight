@@ -10,7 +10,7 @@ import {
 } from '@/lib/competitorCreativeDemo';
 
 const ALL_LABEL = '전체업종';
-const PRODUCT_SAFE_ERROR = '실시간 소재 조회는 운영 승인 전 자동 실행하지 않습니다. 안전 데모 기준선을 표시합니다.';
+const PRODUCT_SAFE_ERROR = '실시간 소재 조회는 운영 승인 전 자동 실행하지 않습니다. 익명화된 소재 기준선을 표시합니다.';
 const INDUSTRIES = [
   ALL_LABEL,
   '식음료', '뷰티', '패션', '생활/잡화', '주류', '전자',
@@ -20,6 +20,7 @@ const INDUSTRIES = [
 ];
 
 type DemoMode = 'industry_demo' | 'keyword_demo' | 'broadened_demo';
+type AssetStatus = 'checking' | 'connected' | 'fallback';
 
 interface DemoApiResponse {
   ads?: CompetitorCreativeDemoAd[];
@@ -27,6 +28,14 @@ interface DemoApiResponse {
   searchLabel?: string;
   mode?: DemoMode;
   total?: number;
+}
+
+interface GoogleCreativeResponse {
+  ads?: Array<{
+    imageUrl?: unknown;
+    previewUrl?: unknown;
+    format?: unknown;
+  }>;
 }
 
 async function readJsonOrNull(res: Response): Promise<unknown | null> {
@@ -49,25 +58,213 @@ function getLocalDemo(industry: string, keyword: string): Required<Pick<DemoApiR
   return resolveCompetitorCreativeDemo({ industry, keyword, limit: 9 });
 }
 
-function CreativeCard({ ad }: { ad: CompetitorCreativeDemoAd }) {
+function isSafeCreativeImageUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && [
+      'adstransparency.google.com',
+      'tpc.googlesyndication.com',
+      'lh3.googleusercontent.com',
+      'www.gstatic.com',
+      'facebook.com',
+      'www.facebook.com',
+    ].some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
+  } catch {
+    return false;
+  }
+}
+
+function mergeCreativeAssets(
+  baseAds: CompetitorCreativeDemoAd[],
+  creativeAssets: Array<{ imageUrl: string; source: string }>,
+): CompetitorCreativeDemoAd[] {
+  if (creativeAssets.length === 0) return baseAds;
+  return baseAds.map((ad, index) => {
+    const asset = creativeAssets[index % creativeAssets.length];
+    return {
+      ...ad,
+      assetUrl: asset.imageUrl,
+      assetSource: asset.source,
+    };
+  });
+}
+
+async function fetchPublicCreativeAssets(ind: string, kw: string): Promise<Array<{ imageUrl: string; source: string }>> {
+  const params = new URLSearchParams({ limit: '9' });
+  if (ind && ind !== ALL_LABEL) params.set('industry', ind);
+  const safeKeyword = toSafeCompetitorLookupText(kw);
+  if (safeKeyword) params.set('keyword', safeKeyword);
+
+  const res = await fetch(`/api/google-ads?${params}`);
+  const data = await readJsonOrNull(res);
+  if (!res.ok || !isRecord(data)) return [];
+
+  const response = data as GoogleCreativeResponse;
+  const ads = Array.isArray(response.ads) ? response.ads : [];
+  return ads
+    .map((ad) => ad.imageUrl)
+    .filter(isSafeCreativeImageUrl)
+    .map((imageUrl) => ({ imageUrl, source: 'Google Ads Transparency' }));
+}
+
+function CreativePreview({ ad }: { ad: CompetitorCreativeDemoAd }) {
+  const visual = ad.visual;
+  const motifColor = visual.accent;
+  const mutedInk = `${visual.ink}cc`;
+
   return (
-    <article className="flex min-h-[336px] flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex h-36 flex-col justify-between bg-[#f8f6f0] p-4">
+    <div
+      className="relative aspect-[4/3] min-h-56 overflow-hidden border-b border-slate-200 p-4"
+      style={{ backgroundColor: visual.background, color: visual.ink }}
+    >
+      {ad.assetUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={ad.assetUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-black/20" />
+        </>
+      ) : null}
+      <div className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: motifColor }} />
+      <div className="relative z-10 flex h-full flex-col justify-between gap-4">
         <div className="flex items-start justify-between gap-3">
-          <span className="rounded-md border border-teal-200 bg-white px-2 py-1 text-[11px] font-semibold text-teal-800">
-            {ad.category}
+          <span
+            className="rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]"
+            style={{
+              borderColor: ad.assetUrl ? 'rgba(255,255,255,0.42)' : motifColor,
+              backgroundColor: ad.assetUrl ? 'rgba(15,23,42,0.72)' : visual.surface,
+              color: ad.assetUrl ? '#ffffff' : motifColor,
+            }}
+          >
+            {ad.assetUrl ? '공개 소재 이미지' : '익명 소재 프리뷰'}
           </span>
-          <span className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] font-semibold text-stone-600">
+          <span
+            className="rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white"
+            style={{ backgroundColor: motifColor }}
+          >
             {ad.format}
           </span>
         </div>
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Demo advertiser</p>
-          <h3 className="mt-1 line-clamp-2 break-words text-base font-bold text-slate-950">{ad.advertiser}</h3>
+
+        <div className="grid min-h-28 grid-cols-[minmax(0,1fr)_88px] items-end gap-4">
+          <div className="min-w-0 rounded-md p-2" style={{ backgroundColor: ad.assetUrl ? 'rgba(15,23,42,0.64)' : 'transparent' }}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: ad.assetUrl ? '#e2e8f0' : mutedInk }}>
+              {ad.category} creative flow
+            </p>
+            <p className="mt-2 line-clamp-2 break-words text-2xl font-black leading-tight" style={{ color: ad.assetUrl ? '#ffffff' : visual.ink }}>
+              {visual.headline}
+            </p>
+            <p className="mt-2 line-clamp-2 break-words text-sm font-semibold" style={{ color: ad.assetUrl ? '#e2e8f0' : mutedInk }}>
+              {visual.subcopy}
+            </p>
+          </div>
+
+          {!ad.assetUrl && (
+            <div
+              className="relative h-28 overflow-hidden rounded-md border shadow-sm"
+              style={{ borderColor: `${motifColor}55`, backgroundColor: visual.surface }}
+              aria-hidden="true"
+            >
+              {visual.motif === 'routine' && (
+                <div className="grid h-full grid-cols-3 gap-1.5 p-2">
+                  {[1, 2, 3].map((step) => (
+                    <div key={step} className="flex flex-col justify-end rounded-sm bg-white/70 p-1">
+                      <span className="mb-1 h-7 rounded-sm" style={{ backgroundColor: `${motifColor}${step === 2 ? 'cc' : '88'}` }} />
+                      <span className="text-center text-[10px] font-black" style={{ color: motifColor }}>{step}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {visual.motif === 'product' && (
+                <div className="flex h-full items-center justify-center p-3">
+                  <div className="h-20 w-14 rounded-t-full rounded-b-md border-4 bg-white" style={{ borderColor: motifColor }} />
+                  <div className="-ml-3 h-14 w-10 rounded-md" style={{ backgroundColor: `${motifColor}aa` }} />
+                </div>
+              )}
+              {visual.motif === 'trust' && (
+                <div className="grid h-full gap-2 p-3">
+                  <div className="h-5 rounded-sm" style={{ backgroundColor: `${motifColor}cc` }} />
+                  <div className="h-3 w-10/12 rounded-sm bg-slate-200" />
+                  <div className="h-3 w-8/12 rounded-sm bg-slate-200" />
+                  <div className="mt-auto h-7 rounded-sm border-2" style={{ borderColor: motifColor }} />
+                </div>
+              )}
+              {visual.motif === 'travel' && (
+                <div className="h-full p-3">
+                  <div className="h-full rounded-md" style={{ backgroundColor: `${motifColor}33` }}>
+                    <div className="h-12 rounded-t-md" style={{ backgroundColor: `${motifColor}aa` }} />
+                    <div className="mx-auto mt-4 h-8 w-16 rounded-t-full bg-white/80" />
+                  </div>
+                </div>
+              )}
+              {visual.motif === 'grid' && (
+                <div className="grid h-full grid-cols-2 gap-2 p-3">
+                  {[0, 1, 2, 3].map((item) => (
+                    <div key={item} className="rounded-sm bg-white/85">
+                      <div className="h-8 rounded-t-sm" style={{ backgroundColor: item % 2 ? `${motifColor}88` : `${motifColor}cc` }} />
+                      <div className="m-1 h-2 rounded-sm bg-slate-200" />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {visual.motif === 'lead' && (
+                <div className="flex h-full flex-col gap-2 p-3">
+                  <div className="h-4 rounded-sm" style={{ backgroundColor: `${motifColor}bb` }} />
+                  <div className="h-4 rounded-sm bg-white" />
+                  <div className="h-4 rounded-sm bg-white" />
+                  <div className="mt-auto h-7 rounded-sm" style={{ backgroundColor: motifColor }} />
+                </div>
+              )}
+              {visual.motif === 'device' && (
+                <div className="flex h-full items-center justify-center p-3">
+                  <div className="h-24 w-14 rounded-lg border-4 bg-white" style={{ borderColor: motifColor }}>
+                    <div className="mx-auto mt-2 h-10 w-8 rounded-sm" style={{ backgroundColor: `${motifColor}88` }} />
+                    <div className="mx-auto mt-3 h-2 w-7 rounded-sm bg-slate-200" />
+                  </div>
+                </div>
+              )}
+              {visual.motif === 'play' && (
+                <div className="flex h-full items-center justify-center p-3">
+                  <div className="relative h-20 w-20 rounded-md" style={{ backgroundColor: `${motifColor}33` }}>
+                    <div className="absolute left-6 top-5 h-0 w-0 border-y-[20px] border-l-[30px] border-y-transparent" style={{ borderLeftColor: motifColor }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="max-w-[62%] truncate text-xs font-bold" style={{ color: ad.assetUrl ? '#e2e8f0' : mutedInk }}>
+            {ad.assetUrl ? ad.assetSource : '익명 소재 기준'}
+          </span>
+          <span
+            className="rounded-md px-3 py-1.5 text-xs font-black text-white"
+            style={{ backgroundColor: motifColor }}
+          >
+            {ad.cta}
+          </span>
         </div>
       </div>
+    </div>
+  );
+}
 
+function CreativeCard({ ad }: { ad: CompetitorCreativeDemoAd }) {
+  return (
+    <article className="flex min-h-[520px] flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      <CreativePreview ad={ad} />
       <div className="flex flex-1 flex-col gap-3 p-4">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">익명 브랜드</p>
+          <h3 className="mt-1 line-clamp-2 break-words text-base font-bold text-slate-950">{ad.advertiser}</h3>
+        </div>
         <p className="line-clamp-4 break-words text-sm leading-6 text-slate-700">{ad.message}</p>
         <div className="rounded-md border border-stone-200 bg-stone-50 px-3 py-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-500">소재 흐름 신호</p>
@@ -77,15 +274,11 @@ function CreativeCard({ ad }: { ad: CompetitorCreativeDemoAd }) {
         <div className="mt-auto grid gap-2 border-t border-slate-100 pt-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md border border-teal-100 bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">
-              CTA: {ad.cta}
+              {ad.cta}
             </span>
             <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600">
               {ad.observedWindow}
             </span>
-          </div>
-          <div className="flex flex-col gap-1 text-[11px] leading-5 text-slate-500">
-            <span>{ad.sourceLabel}</span>
-            <span>{ad.evidenceLevel} · 원문/계정/성과 데이터 미포함</span>
           </div>
         </div>
       </div>
@@ -117,11 +310,13 @@ export default function CompetitorPage() {
   const [searchLabel, setSearchLabel] = useState(initialDemo.searchLabel);
   const [searchTerm, setSearchTerm] = useState(initialDemo.searchTerm);
   const [mode, setMode] = useState<DemoMode>(initialDemo.mode);
+  const [assetStatus, setAssetStatus] = useState<AssetStatus>('checking');
 
   const loadDemo = useCallback(async (ind: string, kw: string) => {
     const localFallback = getLocalDemo(ind, kw);
     setLoading(true);
     setNotice('');
+    setAssetStatus('checking');
 
     try {
       const params = new URLSearchParams({ limit: '9' });
@@ -131,8 +326,19 @@ export default function CompetitorPage() {
 
       const res = await fetch(`/api/competitor-demo?${params}`);
       const data = await readJsonOrNull(res);
+      const applyBaseAds = async (baseAds: CompetitorCreativeDemoAd[]) => {
+        setAds(baseAds);
+        const assets = await fetchPublicCreativeAssets(ind, kw);
+        if (assets.length > 0) {
+          setAds(mergeCreativeAssets(baseAds, assets));
+          setAssetStatus('connected');
+        } else {
+          setAssetStatus('fallback');
+        }
+      };
+
       if (!res.ok || !isRecord(data)) {
-        setAds(localFallback.ads);
+        await applyBaseAds(localFallback.ads);
         setSearchLabel(localFallback.searchLabel);
         setSearchTerm(localFallback.searchTerm);
         setMode(localFallback.mode);
@@ -141,12 +347,13 @@ export default function CompetitorPage() {
       }
 
       const response = data as DemoApiResponse;
-      setAds(Array.isArray(response.ads) ? response.ads : localFallback.ads);
+      await applyBaseAds(Array.isArray(response.ads) ? response.ads : localFallback.ads);
       setSearchLabel(typeof response.searchLabel === 'string' ? response.searchLabel : localFallback.searchLabel);
       setSearchTerm(typeof response.searchTerm === 'string' ? response.searchTerm : localFallback.searchTerm);
       setMode(isDemoMode(response.mode) ? response.mode : localFallback.mode);
     } catch {
       setAds(localFallback.ads);
+      setAssetStatus('fallback');
       setSearchLabel(localFallback.searchLabel);
       setSearchTerm(localFallback.searchTerm);
       setMode(localFallback.mode);
@@ -170,7 +377,7 @@ export default function CompetitorPage() {
   function handleKeywordSearch() {
     const safeKeyword = toSafeCompetitorLookupText(keyword, '');
     if (!safeKeyword) {
-      setNotice('검색어는 demo/anonymized 기준으로만 표시됩니다. 민감한 값처럼 보이는 입력은 사용하지 않습니다.');
+      setNotice('검색어는 익명화 기준으로만 표시됩니다. 민감한 값처럼 보이는 입력은 사용하지 않습니다.');
       return;
     }
     setIndustry('');
@@ -184,12 +391,12 @@ export default function CompetitorPage() {
     {
       label: '탐색 범위',
       value: visibleScope,
-      detail: mode === 'broadened_demo' ? '일치 항목이 없어 안전 데모 범위로 확장' : '현재 검토 기준',
+      detail: mode === 'broadened_demo' ? '일치 항목이 적어 익명 기준선으로 확장' : '현재 검토 기준',
       tone: mode === 'broadened_demo' ? ('watch' as const) : ('ready' as const),
     },
     {
       label: '데이터 모드',
-      value: 'Anonymized demo fallback',
+      value: '익명 소재 프리뷰',
       detail: '외부 API와 스크래핑 자동 호출 없음',
       tone: 'ready' as const,
     },
@@ -199,11 +406,23 @@ export default function CompetitorPage() {
       detail: '광고주명, 계정 ID, 성과, 예산 원문 미포함',
       tone: 'ready' as const,
     },
+    {
+      label: '이미지 상태',
+      value: assetStatus === 'checking'
+        ? '연결 확인 중'
+        : assetStatus === 'connected'
+          ? '공개 이미지 연결'
+          : '익명 프리뷰 표시',
+      detail: assetStatus === 'connected'
+        ? '기존 공개 소재 경로 이미지 사용'
+        : '이미지가 없거나 연결 실패 시 시각 프리뷰 유지',
+      tone: assetStatus === 'connected' ? ('ready' as const) : ('watch' as const),
+    },
   ];
 
   const emptyActions = [
     '업종 버튼을 눌러 더 넓은 소재 흐름을 확인합니다.',
-    '보고에서는 실제 집행 확정이 아니라 경쟁 소재 흐름 참고 기준이라고 설명합니다.',
+    '실제 집행 확정이 아니라 경쟁 소재 흐름 참고 기준으로 확인합니다.',
   ];
 
   return (
@@ -214,9 +433,12 @@ export default function CompetitorPage() {
         </p>
         <h1 className="mt-4 text-2xl font-bold text-slate-950 sm:text-3xl">경쟁사 소재 흐름 확인</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-          Meta 광고 라이브러리 기반 흐름을 보고하기 위한 안전 데모 화면입니다. 현재 카드는 익명화된 예시이며 실제 광고주,
+          Meta 광고 라이브러리에서 확인할 수 있는 소재 흐름을 기획 검토용으로 정리합니다. 현재 카드는 익명화된 예시이며 실제 광고주,
           캠페인, 계정 ID, 성과, 예산을 포함하지 않습니다.
         </p>
+        <div className="mt-3 inline-flex rounded-md border border-teal-200 bg-white/80 px-2.5 py-1 text-xs font-semibold text-teal-800">
+          익명화된 예시 · 원문/계정/성과 미포함
+        </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Link
             href="/"
@@ -224,16 +446,13 @@ export default function CompetitorPage() {
           >
             성과 예측으로 돌아가기
           </Link>
-          <span className="text-xs font-semibold text-slate-500">
-            보고용으로는 업종 칩 하나를 눌러 카드가 바뀌는지만 확인해도 충분합니다.
-          </span>
         </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5 rounded-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-800">브랜드 · 키워드 데모 검색</label>
+            <label className="mb-2 block text-sm font-semibold text-slate-800">브랜드 · 키워드 검색</label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
@@ -253,7 +472,7 @@ export default function CompetitorPage() {
               </button>
             </div>
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              실제 브랜드명 입력 없이 업종/일반 키워드로 데모 흐름을 확인합니다.
+              일반 업종/카테고리 키워드로 익명화된 소재 흐름을 확인합니다.
             </p>
           </div>
 
@@ -281,19 +500,21 @@ export default function CompetitorPage() {
           </div>
         </div>
 
-        <aside className="rounded-md border border-amber-200 bg-amber-50 p-4 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-800">운영 안전 장치</p>
-          <h2 className="mt-2 text-sm font-bold text-slate-950">라이브 외부 조회 보류</h2>
-          <p className="mt-2 text-xs leading-5 text-amber-900">
-            Commander 승인 전 production 화면에서 Meta API, Google Ads Transparency, Playwright 스크래핑을 자동 실행하지 않습니다.
+        <aside className="rounded-md border border-teal-200 bg-teal-50 p-4 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-teal-800">소재 이미지 연결</p>
+          <h2 className="mt-2 text-sm font-bold text-slate-950">
+            {assetStatus === 'connected' ? '공개 이미지 우선 표시' : '익명 프리뷰 우선 표시'}
+          </h2>
+          <p className="mt-2 text-xs leading-5 text-teal-900">
+            기존 공개 소재 경로에서 이미지가 확인되면 카드 상단에 먼저 표시하고, 없으면 익명화된 시각 프리뷰를 유지합니다.
           </p>
-          <button
-            type="button"
-            disabled
-            className="mt-4 w-full rounded-md border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-900 opacity-75"
-          >
-            라이브 조회 준비 중
-          </button>
+          <div className="mt-4 rounded-md border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-900">
+            {assetStatus === 'checking'
+              ? '이미지 연결 확인 중'
+              : assetStatus === 'connected'
+                ? '이미지 연결됨'
+                : '시각 프리뷰 표시 중'}
+          </div>
         </aside>
       </section>
 
@@ -306,7 +527,7 @@ export default function CompetitorPage() {
               검색 조건이 어떤 소재 흐름 기준으로 이어지는지 먼저 고정합니다.
             </p>
           </div>
-          <div className="grid divide-y divide-stone-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <div className="grid divide-y divide-stone-200 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
             {captureLedger.map((item) => (
               <div key={item.label} className="min-w-0 px-4 py-3 sm:px-5 sm:py-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-stone-500">{item.label}</p>
@@ -328,7 +549,7 @@ export default function CompetitorPage() {
         <div>
           <div className="mb-4 flex items-center gap-2">
             <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-teal-100 border-t-teal-700" />
-            <span className="text-xs font-semibold text-teal-700">안전 데모 소재 흐름 구성 중...</span>
+            <span className="text-xs font-semibold text-teal-700">익명화 소재 흐름 구성 중...</span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} />)}
@@ -340,7 +561,7 @@ export default function CompetitorPage() {
         <section>
           <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Demo creative cards</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-500">Creative previews</p>
               <h2 className="mt-1 text-base font-semibold text-slate-800">
                 {visibleScope} 소재 흐름
                 <span className="ml-2 text-sm font-normal text-slate-400">{ads.length}개</span>
@@ -360,10 +581,10 @@ export default function CompetitorPage() {
       {!loading && ads.length === 0 && (
         <StatePanel
           variant="empty"
-          title="표시할 데모 소재 흐름이 없습니다"
-          description="업종 또는 일반 키워드로 범위를 넓혀 안전 데모 기준선을 다시 확인해 보세요."
+          title="표시할 소재 흐름이 없습니다"
+          description="업종 또는 일반 키워드로 범위를 넓혀 익명 기준선을 다시 확인해 보세요."
           eyebrow="소재 흐름 대기"
-          checks={['업종 범위', '키워드', '데모 기준선']}
+          checks={['업종 범위', '키워드', '익명 기준선']}
           ledger={captureLedger}
           nextActions={emptyActions}
           className="min-h-64"

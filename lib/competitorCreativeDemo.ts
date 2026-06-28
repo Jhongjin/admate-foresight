@@ -9,6 +9,17 @@ export interface CompetitorCreativeDemoAd {
   observedWindow: string;
   flowSignal: string;
   evidenceLevel: string;
+  assetUrl?: string;
+  assetSource?: string;
+  visual: {
+    headline: string;
+    subcopy: string;
+    background: string;
+    surface: string;
+    accent: string;
+    ink: string;
+    motif: 'routine' | 'product' | 'trust' | 'travel' | 'grid' | 'lead' | 'device' | 'play';
+  };
 }
 
 export interface CompetitorCreativeDemoResult {
@@ -30,10 +41,19 @@ const DEMO_ADS: CompetitorCreativeDemoAd[] = [
     message: '피부 고민을 한 문장으로 좁히고 사용 루틴을 짧은 영상으로 반복 노출합니다.',
     cta: '루틴 확인',
     format: 'Short-form video',
-    sourceLabel: 'Demo fallback: Meta Ad Library style',
+    sourceLabel: 'Anonymized creative preview',
     observedWindow: '최근 30일 흐름 예시',
     flowSignal: '성분보다 사용 장면과 전후 루틴을 먼저 보여줌',
-    evidenceLevel: 'Anonymized demo',
+    evidenceLevel: 'Anonymized example',
+    visual: {
+      headline: '3-step routine',
+      subcopy: 'Skin care sequence',
+      background: '#f7e8e4',
+      surface: '#fff9f7',
+      accent: '#b85d4b',
+      ink: '#31201d',
+      motif: 'routine',
+    },
   },
   {
     id: 'demo-food-launch-01',
@@ -42,10 +62,19 @@ const DEMO_ADS: CompetitorCreativeDemoAd[] = [
     message: '신제품의 맛 표현을 전면에 두고 한정 기간 혜택을 보조 메시지로 붙입니다.',
     cta: '신제품 보기',
     format: 'Carousel',
-    sourceLabel: 'Demo fallback: Meta Ad Library style',
+    sourceLabel: 'Anonymized creative preview',
     observedWindow: '최근 30일 흐름 예시',
     flowSignal: '제품 클로즈업, 맛 키워드, 기간성 혜택이 함께 반복됨',
-    evidenceLevel: 'Anonymized demo',
+    evidenceLevel: 'Anonymized example',
+    visual: {
+      headline: 'New flavor drop',
+      subcopy: 'Limited offer',
+      background: '#f7ead1',
+      surface: '#fffaf0',
+      accent: '#d47a2d',
+      ink: '#352214',
+      motif: 'product',
+    },
   },
   {
     id: 'demo-finance-trust-01',
@@ -54,10 +83,19 @@ const DEMO_ADS: CompetitorCreativeDemoAd[] = [
     message: '수수료와 편의성을 직접 비교하기보다 신뢰 장치와 상담 흐름을 강조합니다.',
     cta: '상담 신청',
     format: 'Static image',
-    sourceLabel: 'Demo fallback: Meta Ad Library style',
+    sourceLabel: 'Anonymized creative preview',
     observedWindow: '최근 60일 흐름 예시',
     flowSignal: '혜택 단정 표현보다 검토, 상담, 기준 확인 문구를 사용',
-    evidenceLevel: 'Anonymized demo',
+    evidenceLevel: 'Anonymized example',
+    visual: {
+      headline: 'Review before action',
+      subcopy: 'Consultation flow',
+      background: '#e5edf5',
+      surface: '#f8fbff',
+      accent: '#3f6f95',
+      ink: '#172635',
+      motif: 'trust',
+    },
   },
   {
     id: 'demo-travel-season-01',
@@ -66,10 +104,19 @@ const DEMO_ADS: CompetitorCreativeDemoAd[] = [
     message: '여행지를 크게 보여준 뒤 시즌 키워드와 예약 편의성을 짧게 연결합니다.',
     cta: '일정 둘러보기',
     format: 'Collection',
-    sourceLabel: 'Demo fallback: Meta Ad Library style',
+    sourceLabel: 'Anonymized creative preview',
     observedWindow: '성수기 전환 흐름 예시',
     flowSignal: '장소 이미지, 시즌성, 예약 행동 유도가 한 화면에 묶임',
-    evidenceLevel: 'Anonymized demo',
+    evidenceLevel: 'Anonymized example',
+    visual: {
+      headline: 'Season window',
+      subcopy: 'Plan your route',
+      background: '#e7f1e6',
+      surface: '#fbfff8',
+      accent: '#4f855d',
+      ink: '#1f2d20',
+      motif: 'travel',
+    },
   },
   {
     id: 'demo-retail-promo-01',
@@ -78,10 +125,19 @@ const DEMO_ADS: CompetitorCreativeDemoAd[] = [
     message: '카테고리 할인보다 오늘의 추천 상품과 장바구니 행동을 먼저 제안합니다.',
     cta: '상품 확인',
     format: 'Product grid',
-    sourceLabel: 'Demo fallback: Meta Ad Library style',
+    sourceLabel: 'Anonymized creative preview',
     observedWindow: '프로모션 주간 흐름 예시',
     flowSignal: '가격 단정 대신 큐레이션, 추천, 기간성 메시지를 조합',
-    evidenceLevel: 'Anonymized demo',
+    evidenceLevel: 'Anonymized example',
+    visual: {
+      headline: 'Picked for today',
+      subcopy: 'Cart-ready set',
+      background: '#eee7d9',
+      surface: '#fffdf8',
+      accent: '#7c6a45',
+      ink: '#2c2618',
+      motif: 'grid',
+    },
   },
   {
     id: 'demo-education-lead-01',
@@ -90,10 +146,19 @@ const DEMO_ADS: CompetitorCreativeDemoAd[] = [
     message: '결과 보장을 말하지 않고 학습 진단, 커리큘럼, 상담 신청 흐름으로 설득합니다.',
     cta: '진단 받기',
     format: 'Lead form',
-    sourceLabel: 'Demo fallback: Meta Ad Library style',
+    sourceLabel: 'Anonymized creative preview',
     observedWindow: '상담 캠페인 흐름 예시',
     flowSignal: '무료 진단과 상담 CTA가 반복되며 성과 보장 표현은 배제',
-    evidenceLevel: 'Anonymized demo',
+    evidenceLevel: 'Anonymized example',
+    visual: {
+      headline: 'Start with a check',
+      subcopy: 'Learning diagnosis',
+      background: '#e8e6f2',
+      surface: '#fbfaff',
+      accent: '#6e6395',
+      ink: '#27233a',
+      motif: 'lead',
+    },
   },
   {
     id: 'demo-electronics-feature-01',
@@ -102,10 +167,19 @@ const DEMO_ADS: CompetitorCreativeDemoAd[] = [
     message: '스펙 전체보다 사용 상황별 핵심 기능을 하나씩 분리해 보여줍니다.',
     cta: '기능 보기',
     format: 'Reels cutdown',
-    sourceLabel: 'Demo fallback: Meta Ad Library style',
+    sourceLabel: 'Anonymized creative preview',
     observedWindow: '제품 출시 흐름 예시',
     flowSignal: '기능별 짧은 소재를 여러 개로 쪼개 테스트하는 패턴',
-    evidenceLevel: 'Anonymized demo',
+    evidenceLevel: 'Anonymized example',
+    visual: {
+      headline: 'Feature in use',
+      subcopy: 'One scene, one benefit',
+      background: '#e5eef0',
+      surface: '#f8fcfd',
+      accent: '#2f7f86',
+      ink: '#122d31',
+      motif: 'device',
+    },
   },
   {
     id: 'demo-game-prelaunch-01',
@@ -114,10 +188,19 @@ const DEMO_ADS: CompetitorCreativeDemoAd[] = [
     message: '캐릭터와 보상보다 사전예약 마감 시점과 플레이 장면을 빠르게 교차합니다.',
     cta: '사전예약',
     format: 'Video',
-    sourceLabel: 'Demo fallback: Meta Ad Library style',
+    sourceLabel: 'Anonymized creative preview',
     observedWindow: '출시 전 흐름 예시',
     flowSignal: '마감 임박, 플레이 컷, 예약 CTA가 반복됨',
-    evidenceLevel: 'Anonymized demo',
+    evidenceLevel: 'Anonymized example',
+    visual: {
+      headline: 'Pre-register now',
+      subcopy: 'Gameplay teaser',
+      background: '#eee4ed',
+      surface: '#fff8fe',
+      accent: '#8b4f83',
+      ink: '#31182d',
+      motif: 'play',
+    },
   },
 ];
 
